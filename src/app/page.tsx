@@ -268,6 +268,14 @@ export default function ReservationPage() {
 
   const isNextDisabled =
     navigation.isNextDisabled || (step === "contact" && (!isReady || isSubmittingReservation));
+  const primaryNextLabel =
+    step === "room"
+      ? "시간 선택"
+      : step === "time"
+        ? "정보 입력"
+        : step === "contact" && isSubmittingReservation
+          ? "예약 중..."
+          : navigation.nextLabel;
 
   return (
     <MotionConfig reducedMotion="user">
@@ -285,14 +293,20 @@ export default function ReservationPage() {
               <ChevronLeftIcon className="size-4" />
               이전
             </Button>
-            <div className="flex min-w-0 items-center justify-center gap-1 text-xs font-bold text-muted-foreground sm:text-sm">
+            <div className="flex min-w-0 items-center justify-center gap-1 text-xs font-semibold text-muted-foreground sm:text-sm">
               {BOOKING_STEP_ITEMS.map((item, index) => {
                 const isActive = step === item.id;
                 const isDone = step === "done";
 
                 return (
                   <span key={item.id} className="flex min-w-0 items-center gap-1">
-                    <span className={isActive || isDone ? "text-foreground" : "text-muted-foreground"}>
+                    <span
+                      className={
+                        isActive || isDone
+                          ? "rounded-full bg-foreground px-2 py-1 text-background"
+                          : "text-muted-foreground"
+                      }
+                    >
                       {item.label}
                     </span>
                     {index < BOOKING_STEP_ITEMS.length - 1 ? <span className="text-muted-foreground/70">&gt;</span> : null}
@@ -306,7 +320,7 @@ export default function ReservationPage() {
               onClick={moveNext}
               type="button"
             >
-              {step === "contact" && isSubmittingReservation ? "예약 중..." : navigation.nextLabel}
+              {primaryNextLabel}
               {step !== "contact" && step !== "done" ? <ChevronRightIcon className="size-4" /> : null}
             </Button>
           </div>
@@ -329,12 +343,12 @@ export default function ReservationPage() {
             {formatKoreaDate(date)}
           </DialogTrigger>
           <DialogContent
-            className="mobile-date-dialog !top-auto !right-0 !bottom-0 !left-0 !w-full !max-w-none !translate-x-0 !translate-y-0 gap-5 rounded-t-2xl border-0 p-5 shadow-2xl ring-0 data-closed:slide-out-to-bottom data-open:slide-in-from-bottom data-open:zoom-in-100 data-closed:zoom-out-100 sm:hidden"
+            className="mobile-date-dialog !top-auto !right-0 !bottom-0 !left-0 !w-full !max-w-none !translate-x-0 !translate-y-0 gap-4 rounded-t-2xl border-0 p-4 shadow-2xl ring-0 data-closed:slide-out-to-bottom data-open:slide-in-from-bottom data-open:zoom-in-100 data-closed:zoom-out-100 sm:hidden"
             showCloseButton={false}
           >
             <DialogHeader className="flex-row items-start justify-between gap-4">
               <div className="grid gap-1">
-                <DialogTitle className="text-2xl font-bold">날짜 선택</DialogTitle>
+                <DialogTitle className="text-xl font-bold">날짜 선택</DialogTitle>
                 <DialogDescription className="sr-only">
                   예약 날짜 선택
                 </DialogDescription>
@@ -362,27 +376,27 @@ export default function ReservationPage() {
               className="mobile-date-calendar w-full p-0"
               classNames={{
                 root: "w-full",
-                month: "w-full gap-5",
-                months: "relative flex w-full flex-col gap-4",
-                caption_label: "text-lg font-bold",
-                weekday: "flex-1 rounded-(--cell-radius) text-sm font-bold text-muted-foreground select-none",
+                month: "w-full gap-3",
+                months: "relative flex w-full flex-col gap-3",
+                caption_label: "text-base font-bold",
+                weekday: "flex-1 rounded-(--cell-radius) text-xs font-semibold text-muted-foreground select-none",
               }}
             />
-            <DialogFooter className="-mx-5 -mb-5 grid grid-cols-[1fr_2fr] gap-2 rounded-b-none bg-background p-5 sm:grid-cols-[1fr_2fr]">
+            <DialogFooter className="-mx-4 -mb-4 grid grid-cols-[1fr_2fr] gap-2 rounded-b-none bg-background p-4 sm:grid-cols-[1fr_2fr]">
               <Button
                 type="button"
                 variant="outline"
-                className="h-12 rounded-xl text-base font-bold"
+                className="h-11 rounded-xl text-base font-bold"
                 onClick={() => setPendingDate(valueToKoreaDate(todayKoreaValue()))}
               >
                 오늘
               </Button>
               <Button
                 type="button"
-                className="h-12 rounded-xl text-base font-bold"
+                className="h-11 rounded-xl text-base font-bold"
                 onClick={confirmPendingDate}
               >
-                선택 완료
+                이 날짜로 예약
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -451,7 +465,7 @@ export default function ReservationPage() {
                   key={period.id}
                   className={`h-11 rounded-lg border px-2 text-base font-bold transition-colors focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none sm:h-12 sm:text-lg ${
                     selectedPeriod === period.id
-                      ? "motion-choice-selected border-primary bg-primary text-primary-foreground"
+                      ? "motion-choice-selected border-primary bg-muted text-foreground"
                       : "bg-background text-foreground hover:border-primary"
                   }`}
                   {...itemMotion}
@@ -478,10 +492,10 @@ export default function ReservationPage() {
                 const isSelected = selectedStartMinutes === minutes;
                 const buttonClassName =
                   isSelected
-                    ? "motion-choice-selected border-4 border-primary bg-background text-foreground"
+                    ? "motion-choice-selected border-2 border-primary bg-muted text-foreground"
                     : isBlockedStart
                       ? "bg-muted text-muted-foreground"
-                      : "border border-primary bg-primary text-primary-foreground hover:bg-primary/90";
+                      : "border border-border bg-background text-foreground hover:border-primary hover:bg-muted";
 
                 return (
                   <motion.button
@@ -530,10 +544,10 @@ export default function ReservationPage() {
                       key={option.minutes}
                       className={`h-12 rounded-lg px-3 text-lg font-bold transition-colors focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none disabled:cursor-not-allowed ${
                         isSelected
-                          ? "motion-choice-selected border-4 border-primary bg-background text-foreground"
+                          ? "motion-choice-selected border-2 border-primary bg-muted text-foreground"
                           : isDisabled
                             ? "bg-muted text-muted-foreground"
-                            : "border border-primary bg-primary text-primary-foreground hover:bg-primary/90"
+                            : "border border-border bg-background text-foreground hover:border-primary hover:bg-muted"
                       }`}
                       disabled={isDisabled}
                       {...itemMotion}

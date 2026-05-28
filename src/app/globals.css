@@ -118,11 +118,12 @@ button:disabled {
   max-width: none;
   transform: none;
   padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+  overscroll-behavior: contain;
 }
 
 .mobile-date-calendar {
-  --cell-size: 2.75rem;
-  --cell-radius: 0.75rem;
+  --cell-size: 2.25rem;
+  --cell-radius: 0.65rem;
 }
 
 .mobile-date-calendar table {
