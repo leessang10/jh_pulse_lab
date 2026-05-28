@@ -5,6 +5,7 @@ import {
   formatMinutes,
   getBookingHalfDayTimePoints,
   getBookingDurationOptions,
+  getBookableRangeOptions,
   getBookingStartOptions,
   getAvailableTimeSlots,
   getRoomName,
@@ -229,6 +230,22 @@ describe("reservation rules", () => {
       hasUnavailableSlotInRange: false,
       isAvailable: true,
     });
+  });
+
+  it("lists only directly bookable ranges for a selected duration", () => {
+    const options = getBookableRangeOptions([], {
+      date: "2026-05-28",
+      roomId: "room-1",
+      durationMinutes: 60,
+    });
+
+    expect(options.find((option) => option.startMinutes === 1350)).toMatchObject({
+      label: "22:30-23:30",
+      startMinutes: 1350,
+      endMinutes: 1410,
+    });
+    expect(options.some((option) => option.startMinutes === 1380)).toBe(false);
+    expect(options.some((option) => option.startMinutes === 1410)).toBe(false);
   });
 
   it("builds all-day start options when no period is selected", () => {

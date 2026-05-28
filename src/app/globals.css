@@ -109,6 +109,27 @@ button:disabled {
     0 12px 28px oklch(0.21 0.007 255 / 10%);
 }
 
+.range-scroll-area {
+  scrollbar-color: oklch(0.54 0.006 255) oklch(0.94 0.004 255);
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+}
+
+.range-scroll-area::-webkit-scrollbar {
+  width: 0.6rem;
+}
+
+.range-scroll-area::-webkit-scrollbar-track {
+  background: oklch(0.94 0.004 255);
+  border-radius: 999px;
+}
+
+.range-scroll-area::-webkit-scrollbar-thumb {
+  background: oklch(0.54 0.006 255);
+  border: 2px solid oklch(0.94 0.004 255);
+  border-radius: 999px;
+}
+
 .field {
   display: grid;
   gap: 0.45rem;

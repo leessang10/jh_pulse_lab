@@ -12,8 +12,8 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Input } from "@/components/ui/input";
 import {
   findReservationConflict,
+  getBookableRangeOptions,
   getBookingDurationOptions,
-  getBookingStartOptions,
   getRoomName,
   ROOMS,
   type ReservationDraft,
@@ -39,7 +39,7 @@ type SelectedTime = {
   label: string;
 };
 
-type BookingStartOption = ReturnType<typeof getBookingStartOptions>[number];
+type BookableRangeOption = ReturnType<typeof getBookableRangeOptions>[number];
 
 const sectionMotion = {
   initial: { opacity: 1, y: 0 },
@@ -85,9 +85,9 @@ export default function ReservationPage() {
   });
   const headerState = getBookingHeaderState(step);
   const durationOptions = useMemo(() => getBookingDurationOptions(), []);
-  const startOptions = useMemo(
+  const rangeOptions = useMemo(
     () =>
-      getBookingStartOptions(reservations, {
+      getBookableRangeOptions(reservations, {
         date,
         roomId,
         durationMinutes: selectedDurationMinutes,
@@ -112,18 +112,7 @@ export default function ReservationPage() {
     clearTimeSelection();
   }
 
-  function selectStartTime(option: BookingStartOption) {
-    if (!option.isAvailable) {
-      toast.error(
-        option.hasReservedSlotInRange
-          ? "이미 예약된 시간이 포함되어 선택할 수 없습니다."
-          : "예약 가능 시간을 넘어 선택할 수 없습니다.",
-      );
-      setSelectedStartMinutes(null);
-      setSelectedTime(null);
-      return;
-    }
-
+  function selectRange(option: BookableRangeOption) {
     const conflict = findReservationConflict(reservations, {
       date,
       roomId,
@@ -141,7 +130,7 @@ export default function ReservationPage() {
     setSelectedTime({
       startMinutes: option.startMinutes,
       endMinutes: option.endMinutes,
-      label: option.rangeLabel,
+      label: option.label,
     });
   }
 
@@ -267,20 +256,19 @@ export default function ReservationPage() {
 
       {step === "time" && (
         <motion.section key="time" className="grid flex-1 content-start gap-5" {...sectionMotion}>
-          <h1 className="text-3xl font-bold tracking-normal sm:text-4xl">{selectedRoomName}</h1>
           <div className="grid gap-5">
             <div className="grid gap-3">
               <div className="text-lg font-bold text-muted-foreground sm:text-xl">이용 시간</div>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <div className="grid grid-cols-3 gap-2">
                 {durationOptions.map((option, index) => {
                   const isSelected = selectedDurationMinutes === option.minutes;
 
                   return (
                     <motion.button
                       key={option.minutes}
-                      className={`h-14 rounded-xl px-3 text-xl font-bold transition-colors focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none disabled:cursor-not-allowed sm:h-15 ${
-                        isSelected
-                          ? "motion-choice-selected border-2 border-primary bg-muted text-foreground"
+                        className={`h-13 rounded-xl px-2 text-lg font-bold transition-colors focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none disabled:cursor-not-allowed sm:h-15 sm:px-3 sm:text-xl ${
+                          isSelected
+                          ? "motion-choice-selected border border-primary bg-muted text-foreground ring-2 ring-primary/70 ring-inset"
                           : "border border-border bg-background text-foreground hover:border-primary hover:bg-muted"
                       }`}
                       {...itemMotion}
@@ -291,7 +279,7 @@ export default function ReservationPage() {
                       }}
                       transition={{ ...itemMotion.transition, delay: index * 0.03 }}
                       onClick={() => selectDuration(option.minutes)}
-                      style={{ fontSize: "clamp(1.08rem, 3.4vw, 1.25rem)", fontWeight: 700 }}
+                      style={{ fontSize: "clamp(0.95rem, 3vw, 1.25rem)", fontWeight: 700 }}
                       type="button"
                     >
                       <span className="block leading-tight">{option.label}</span>
@@ -302,52 +290,43 @@ export default function ReservationPage() {
             </div>
 
             <div className="grid gap-3">
-              <div className="text-lg font-bold text-muted-foreground sm:text-xl">시작 시간</div>
-              <div className="grid grid-cols-4 gap-2">
-              {startOptions.map((option, index) => {
-                const isSelected =
-                  selectedTime !== null &&
-                  !option.isReservedSlot &&
-                  option.startMinutes >= selectedTime.startMinutes &&
-                  option.startMinutes < selectedTime.endMinutes;
-                const isSelectedStart = selectedStartMinutes === option.startMinutes && selectedTime?.endMinutes === option.endMinutes;
-                const buttonClassName =
-                  isSelected
-                    ? "motion-choice-selected border-2 border-primary bg-muted text-foreground"
-                    : option.isAvailable
-                      ? "border border-border bg-background text-foreground hover:border-primary hover:bg-muted"
-                      : option.isReservedSlot
-                        ? "border border-destructive/20 bg-destructive/10 text-destructive"
-                        : "border border-border bg-muted text-muted-foreground";
-                const unavailableLabel = option.hasReservedSlotInRange ? "예약" : "불가";
-
-                return (
-                  <motion.button
-                    key={option.startMinutes}
-                    className={`relative h-14 rounded-xl px-1 text-lg font-bold transition-colors focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none disabled:cursor-not-allowed sm:h-16 sm:px-2 ${buttonClassName}`}
-                    aria-disabled={!option.isAvailable}
-                    aria-label={!option.isAvailable && !isSelected ? `${option.label} ${unavailableLabel}` : option.label}
-                    {...itemMotion}
-                    {...(option.isAvailable ? tactileMotion : {})}
-                    animate={{
-                      ...itemMotion.animate,
-                      scale: isSelectedStart ? 1.025 : 1,
-                    }}
-                    transition={{ ...itemMotion.transition, delay: index * 0.01 }}
-                    onClick={() => selectStartTime(option)}
-                    style={{ fontSize: "clamp(1.02rem, 3.9vw, 1.28rem)", fontWeight: 700 }}
-                    type="button"
-                  >
-                    <span className="block leading-tight">{option.label}</span>
-                    {!option.isAvailable && !isSelected ? (
-                      <span className="absolute top-1 right-1 rounded-md bg-background/80 px-1 text-[0.62rem] leading-4 font-bold">
-                        {unavailableLabel}
-                      </span>
-                    ) : null}
-                  </motion.button>
-                );
-              })}
+              <div className="flex items-end justify-between gap-3">
+                <div className="text-lg font-bold text-muted-foreground sm:text-xl">예약 가능한 시간</div>
+                <div className="text-sm font-bold text-muted-foreground">{rangeOptions.length}개</div>
               </div>
+              {rangeOptions.length > 0 ? (
+                <div className="range-scroll-area grid h-[min(22vh,14rem)] min-h-36 touch-pan-y gap-2 overflow-y-scroll overscroll-contain pr-1 pb-1 [-webkit-overflow-scrolling:touch]">
+                  {rangeOptions.map((option, index) => {
+                    const isSelected =
+                      selectedTime?.startMinutes === option.startMinutes && selectedTime.endMinutes === option.endMinutes;
+
+                    return (
+                      <motion.button
+                        key={option.startMinutes}
+                        className={`grid min-h-16 touch-pan-y select-none grid-cols-[1fr_auto] items-center gap-3 rounded-xl px-4 text-left font-bold transition-colors focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none ${
+                          isSelected
+                            ? "motion-choice-selected border border-primary bg-muted text-foreground ring-2 ring-primary/70 ring-inset"
+                            : "border border-border bg-background text-foreground hover:border-primary hover:bg-muted"
+                        }`}
+                        {...itemMotion}
+                        animate={{
+                          ...itemMotion.animate,
+                          scale: 1,
+                        }}
+                        transition={{ ...itemMotion.transition, delay: index * 0.012 }}
+                        onClick={() => selectRange(option)}
+                        type="button"
+                      >
+                        <span className="text-2xl leading-tight sm:text-3xl">{option.label}</span>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-xl border bg-muted/45 p-5 text-lg font-bold text-muted-foreground">
+                  선택한 이용시간으로 예약 가능한 시간이 없습니다.
+                </div>
+              )}
             </div>
 
             <motion.div

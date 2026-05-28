@@ -218,6 +218,23 @@ export function getBookingStartOptions(
     });
 }
 
+export function getBookableRangeOptions(
+  reservations: Reservation[],
+  options: {
+    date: string;
+    roomId: string;
+    durationMinutes: number;
+  },
+) {
+  return getBookingStartOptions(reservations, options)
+    .filter((option) => option.isAvailable)
+    .map((option) => ({
+      startMinutes: option.startMinutes,
+      endMinutes: option.endMinutes,
+      label: option.rangeLabel,
+    }));
+}
+
 export function buildTimeRange(firstMinutes: number, secondMinutes: number) {
   if (firstMinutes === secondMinutes) return null;
 
