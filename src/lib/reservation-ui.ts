@@ -19,6 +19,22 @@ export function getReservationSummary(options: { dateLabel: string; roomName: st
   return [options.dateLabel, options.roomName || "강의실 미선택", options.timeLabel || "시간 미선택"].join(" · ");
 }
 
+export function getBookingHeaderState(step: BookingStep) {
+  const activeIndex = step === "time" ? 1 : step === "contact" || step === "done" ? 2 : 0;
+  const totalSteps = BOOKING_STEP_ITEMS.length;
+  const titles: Record<Exclude<BookingStep, "done">, string> = {
+    room: "강의실 선택",
+    time: "시간 선택",
+    contact: "예약자 정보",
+  };
+
+  return {
+    title: step === "done" ? "예약 완료" : titles[step],
+    stepLabel: `${activeIndex + 1}/${totalSteps}`,
+    progressPercent: ((activeIndex + 1) / totalSteps) * 100,
+  };
+}
+
 export function getBookingStepNavigation(options: { step: BookingStep; hasRoom: boolean; hasTime: boolean }) {
   if (options.step === "room") {
     return {

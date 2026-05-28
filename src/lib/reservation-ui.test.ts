@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   BOOKING_STEP_ITEMS,
   formatKoreanPhoneNumber,
+  getBookingHeaderState,
   getBookingStepNavigation,
   getReservationSummary,
 } from "./reservation-ui";
@@ -39,6 +40,26 @@ describe("reservation UI helpers", () => {
         timeLabel: "14:00-15:00",
       }),
     ).toBe("5월 29일 · 강의실 2 · 14:00-15:00");
+  });
+
+  it("returns lean header state for the active booking step", () => {
+    expect(getBookingHeaderState("room")).toEqual({
+      title: "강의실 선택",
+      stepLabel: "1/3",
+      progressPercent: 33.33333333333333,
+    });
+
+    expect(getBookingHeaderState("time")).toEqual({
+      title: "시간 선택",
+      stepLabel: "2/3",
+      progressPercent: 66.66666666666666,
+    });
+
+    expect(getBookingHeaderState("contact")).toEqual({
+      title: "예약자 정보",
+      stepLabel: "3/3",
+      progressPercent: 100,
+    });
   });
 
   it("returns previous and next navigation state for each booking step", () => {

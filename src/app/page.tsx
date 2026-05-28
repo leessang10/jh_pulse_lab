@@ -3,43 +3,26 @@
 import { useMemo, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AnimatePresence, motion, MotionConfig } from "framer-motion";
-import { CalendarIcon, CheckCircle2Icon, ChevronLeftIcon, ChevronRightIcon, XIcon } from "lucide-react";
+import { CheckCircle2Icon, ChevronLeftIcon } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-  BOOKING_PERIODS,
   findReservationConflict,
-  formatMinutes,
   getBookingDurationOptions,
-  getBookingPeriodTimePoints,
+  getBookingStartOptions,
   getRoomName,
-  isBookingDurationAvailable,
   ROOMS,
-  type BookingPeriodId,
   type ReservationDraft,
 } from "@/lib/reservations";
-import { dateToKoreaValue, formatKoreaDate, isBeforeKoreaToday, todayKoreaValue, valueToKoreaDate } from "@/lib/korea-date";
+import { todayKoreaValue } from "@/lib/korea-date";
 import {
-  BOOKING_STEP_ITEMS,
   formatKoreanPhoneNumber,
+  getBookingHeaderState,
   getBookingStepNavigation,
-  getReservationSummary,
   type BookingStep,
 } from "@/lib/reservation-ui";
 import { useReservations } from "@/lib/use-reservations";
@@ -56,11 +39,13 @@ type SelectedTime = {
   label: string;
 };
 
+type BookingStartOption = ReturnType<typeof getBookingStartOptions>[number];
+
 const sectionMotion = {
-  initial: { opacity: 0, y: 14 },
+  initial: { opacity: 1, y: 0 },
   animate: { opacity: 1, y: 0 },
   exit: { opacity: 0, y: -8 },
-  transition: { duration: 0.28, ease: "easeOut" },
+  transition: { duration: 0.18, ease: "easeOut" },
 } as const;
 
 const itemMotion = {
@@ -76,12 +61,10 @@ const tactileMotion = {
 
 export default function ReservationPage() {
   const [step, setStep] = useState<BookingStep>("room");
-  const [date, setDate] = useState(todayKoreaValue);
-  const [isDateDialogOpen, setIsDateDialogOpen] = useState(false);
-  const [pendingDate, setPendingDate] = useState<Date>(() => valueToKoreaDate(todayKoreaValue()));
+  const [date] = useState(todayKoreaValue);
   const { reservations, addReservation, isReady, error } = useReservations({ date });
   const [roomId, setRoomId] = useState("");
-  const [selectedPeriod, setSelectedPeriod] = useState<BookingPeriodId>("afternoon");
+  const [selectedDurationMinutes, setSelectedDurationMinutes] = useState(60);
   const [selectedStartMinutes, setSelectedStartMinutes] = useState<number | null>(null);
   const [selectedTime, setSelectedTime] = useState<SelectedTime | null>(null);
   const [isSubmittingReservation, setIsSubmittingReservation] = useState(false);
@@ -95,42 +78,27 @@ export default function ReservationPage() {
   });
 
   const selectedRoomName = roomId ? getRoomName(roomId) : "";
-  const selectedDate = valueToKoreaDate(date);
-  const reservationSummary = getReservationSummary({
-    dateLabel: formatKoreaDate(date),
-    roomName: selectedRoomName,
-    timeLabel: selectedTime?.label ?? null,
-  });
   const navigation = getBookingStepNavigation({
     step,
     hasRoom: Boolean(roomId),
     hasTime: Boolean(selectedTime),
   });
-  const timePoints = useMemo(() => getBookingPeriodTimePoints(selectedPeriod), [selectedPeriod]);
+  const headerState = getBookingHeaderState(step);
   const durationOptions = useMemo(() => getBookingDurationOptions(), []);
+  const startOptions = useMemo(
+    () =>
+      getBookingStartOptions(reservations, {
+        date,
+        roomId,
+        durationMinutes: selectedDurationMinutes,
+      }),
+    [date, reservations, roomId, selectedDurationMinutes],
+  );
   const phoneRegistration = form.register("phone");
 
   function clearTimeSelection() {
     setSelectedStartMinutes(null);
     setSelectedTime(null);
-  }
-
-  function changeDate(nextDate: Date | undefined) {
-    if (!nextDate) return;
-
-    setDate(dateToKoreaValue(nextDate));
-    clearTimeSelection();
-    if (step !== "room") setStep(roomId ? "time" : "room");
-  }
-
-  function openDateDialog(nextOpen: boolean) {
-    setIsDateDialogOpen(nextOpen);
-    if (nextOpen) setPendingDate(selectedDate);
-  }
-
-  function confirmPendingDate() {
-    changeDate(pendingDate);
-    setIsDateDialogOpen(false);
   }
 
   function selectRoom(nextRoomId: string) {
@@ -139,38 +107,28 @@ export default function ReservationPage() {
     setStep("time");
   }
 
-  function hasAvailableDuration(startMinutes: number) {
-    return durationOptions.some((option) =>
-      isBookingDurationAvailable(reservations, {
-        date,
-        roomId,
-        startMinutes,
-        durationMinutes: option.minutes,
-      }),
-    );
-  }
-
-  function selectPeriod(periodId: BookingPeriodId) {
-    setSelectedPeriod(periodId);
+  function selectDuration(durationMinutes: number) {
+    setSelectedDurationMinutes(durationMinutes);
     clearTimeSelection();
   }
 
-  function selectStartTime(minutes: number) {
-    if (!hasAvailableDuration(minutes)) return;
+  function selectStartTime(option: BookingStartOption) {
+    if (!option.isAvailable) {
+      toast.error(
+        option.hasReservedSlotInRange
+          ? "이미 예약된 시간이 포함되어 선택할 수 없습니다."
+          : "예약 가능 시간을 넘어 선택할 수 없습니다.",
+      );
+      setSelectedStartMinutes(null);
+      setSelectedTime(null);
+      return;
+    }
 
-    setSelectedStartMinutes(minutes);
-    setSelectedTime(null);
-  }
-
-  function selectDuration(durationMinutes: number) {
-    if (selectedStartMinutes === null) return;
-
-    const endMinutes = selectedStartMinutes + durationMinutes;
     const conflict = findReservationConflict(reservations, {
       date,
       roomId,
-      startMinutes: selectedStartMinutes,
-      endMinutes,
+      startMinutes: option.startMinutes,
+      endMinutes: option.endMinutes,
     });
 
     if (conflict) {
@@ -179,10 +137,11 @@ export default function ReservationPage() {
       return;
     }
 
+    setSelectedStartMinutes(option.startMinutes);
     setSelectedTime({
-      startMinutes: selectedStartMinutes,
-      endMinutes,
-      label: `${formatMinutes(selectedStartMinutes)}-${formatMinutes(endMinutes)}`,
+      startMinutes: option.startMinutes,
+      endMinutes: option.endMinutes,
+      label: option.rangeLabel,
     });
   }
 
@@ -245,186 +204,38 @@ export default function ReservationPage() {
     if (navigation.previousStep) setStep(navigation.previousStep);
   }
 
-  function moveNext() {
-    if (step === "room" && roomId) {
-      setStep("time");
-      return;
-    }
-
-    if (step === "time") {
-      moveToContact();
-      return;
-    }
-
-    if (step === "contact") {
-      void form.handleSubmit(submitReservation, (errors) => {
-        toast.error(errors.name?.message ?? errors.phone?.message ?? "확인해 주세요.");
-      })();
-      return;
-    }
-
-    if (step === "done") resetFlow();
-  }
-
-  const isNextDisabled =
-    navigation.isNextDisabled || (step === "contact" && (!isReady || isSubmittingReservation));
-  const primaryNextLabel =
-    step === "room"
-      ? "시간 선택"
-      : step === "time"
-        ? "정보 입력"
-        : step === "contact" && isSubmittingReservation
-          ? "예약 중..."
-          : navigation.nextLabel;
-
   return (
     <MotionConfig reducedMotion="user">
     <main className="reservation-shell mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 sm:px-6">
-      <nav className="sticky top-0 z-20 -mx-4 border-b bg-background/95 px-4 py-3 shadow-sm backdrop-blur sm:-mx-6 sm:px-6">
+      <nav className="sticky top-0 z-20 -mx-4 border-b bg-background/96 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
         <div className="mx-auto grid max-w-2xl gap-2">
-          <div className="grid grid-cols-[4.5rem_1fr_4.5rem] items-center gap-2">
+          <div className="grid grid-cols-[2.5rem_1fr_2.5rem] items-center gap-3">
             <Button
-              className="h-10 justify-center rounded-lg px-2 text-sm font-bold"
+              aria-label="이전 단계"
+              className="size-10 justify-center rounded-lg p-0"
               disabled={!navigation.previousStep}
               onClick={movePrevious}
               type="button"
               variant="outline"
             >
               <ChevronLeftIcon className="size-4" />
-              이전
             </Button>
-            <div className="flex min-w-0 items-center justify-center gap-1 text-xs font-semibold text-muted-foreground sm:text-sm">
-              {BOOKING_STEP_ITEMS.map((item, index) => {
-                const isActive = step === item.id;
-                const isDone = step === "done";
-
-                return (
-                  <span key={item.id} className="flex min-w-0 items-center gap-1">
-                    <span
-                      className={
-                        isActive || isDone
-                          ? "rounded-full bg-foreground px-2 py-1 text-background"
-                          : "text-muted-foreground"
-                      }
-                    >
-                      {item.label}
-                    </span>
-                    {index < BOOKING_STEP_ITEMS.length - 1 ? <span className="text-muted-foreground/70">&gt;</span> : null}
-                  </span>
-                );
-              })}
+            <div className="min-w-0 text-center">
+              <div className="text-[0.72rem] font-bold text-muted-foreground sm:text-xs">{headerState.stepLabel}</div>
+              <div className="truncate text-xl font-bold leading-tight tracking-normal sm:text-2xl">
+                {headerState.title}
+              </div>
             </div>
-            <Button
-              className="h-10 justify-center rounded-lg px-2 text-sm font-bold"
-              disabled={isNextDisabled}
-              onClick={moveNext}
-              type="button"
-            >
-              {primaryNextLabel}
-              {step !== "contact" && step !== "done" ? <ChevronRightIcon className="size-4" /> : null}
-            </Button>
+            <div aria-hidden="true" />
           </div>
-          <div className="truncate text-center text-xs font-bold text-muted-foreground sm:text-sm">{reservationSummary}</div>
+          <div className="h-1 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-foreground transition-[width] duration-300 ease-out"
+              style={{ width: `${headerState.progressPercent}%` }}
+            />
+          </div>
         </div>
       </nav>
-
-      <header className="grid gap-3 pt-2 sm:flex sm:items-center sm:justify-between">
-        <Dialog open={isDateDialogOpen} onOpenChange={openDateDialog}>
-          <DialogTrigger
-            render={
-              <Button
-                variant="outline"
-                className="h-12 w-full justify-start rounded-xl px-4 text-lg font-bold sm:hidden"
-                style={{ fontSize: "1.125rem", fontWeight: 700 }}
-              />
-            }
-          >
-            <CalendarIcon className="size-5" />
-            {formatKoreaDate(date)}
-          </DialogTrigger>
-          <DialogContent
-            className="mobile-date-dialog !top-auto !right-0 !bottom-0 !left-0 !w-full !max-w-none !translate-x-0 !translate-y-0 gap-4 rounded-t-2xl border-0 p-4 shadow-2xl ring-0 data-closed:slide-out-to-bottom data-open:slide-in-from-bottom data-open:zoom-in-100 data-closed:zoom-out-100 sm:hidden"
-            showCloseButton={false}
-          >
-            <DialogHeader className="flex-row items-start justify-between gap-4">
-              <div className="grid gap-1">
-                <DialogTitle className="text-xl font-bold">날짜 선택</DialogTitle>
-                <DialogDescription className="sr-only">
-                  예약 날짜 선택
-                </DialogDescription>
-              </div>
-              <DialogClose
-                render={
-                  <Button
-                    variant="ghost"
-                    size="icon-lg"
-                    className="rounded-full"
-                    aria-label="날짜 선택 닫기"
-                  />
-                }
-              >
-                <XIcon className="size-5" />
-              </DialogClose>
-            </DialogHeader>
-            <Calendar
-              mode="single"
-              selected={pendingDate}
-              onSelect={(nextDate) => {
-                if (nextDate) setPendingDate(nextDate);
-              }}
-              disabled={(day) => isBeforeKoreaToday(dateToKoreaValue(day))}
-              className="mobile-date-calendar w-full p-0"
-              classNames={{
-                root: "w-full",
-                month: "w-full gap-3",
-                months: "relative flex w-full flex-col gap-3",
-                caption_label: "text-base font-bold",
-                weekday: "flex-1 rounded-(--cell-radius) text-xs font-semibold text-muted-foreground select-none",
-              }}
-            />
-            <DialogFooter className="-mx-4 -mb-4 grid grid-cols-[1fr_2fr] gap-2 rounded-b-none bg-background p-4 sm:grid-cols-[1fr_2fr]">
-              <Button
-                type="button"
-                variant="outline"
-                className="h-11 rounded-xl text-base font-bold"
-                onClick={() => setPendingDate(valueToKoreaDate(todayKoreaValue()))}
-              >
-                오늘
-              </Button>
-              <Button
-                type="button"
-                className="h-11 rounded-xl text-base font-bold"
-                onClick={confirmPendingDate}
-              >
-                이 날짜로 예약
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        <Popover>
-          <PopoverTrigger
-            render={
-              <Button
-                variant="outline"
-                className="hidden h-12 w-full justify-start rounded-xl px-4 text-lg font-bold sm:inline-flex sm:w-auto"
-                style={{ fontSize: "1.125rem", fontWeight: 700 }}
-              />
-            }
-          >
-            <CalendarIcon className="size-5" />
-            {formatKoreaDate(date)}
-          </PopoverTrigger>
-          <PopoverContent align="start" className="w-auto">
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={changeDate}
-              disabled={(day) => isBeforeKoreaToday(dateToKoreaValue(day))}
-            />
-          </PopoverContent>
-        </Popover>
-      </header>
 
       {error ? (
         <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 font-bold text-destructive">
@@ -435,7 +246,6 @@ export default function ReservationPage() {
       <AnimatePresence mode="wait">
       {step === "room" && (
         <motion.section key="room" className="grid flex-1 content-start gap-4" {...sectionMotion}>
-          <h1 className="text-3xl font-bold tracking-normal sm:text-4xl">강의실 선택</h1>
           <div className="grid gap-3 sm:grid-cols-2">
             {ROOMS.map((room, index) => (
               <motion.button
@@ -456,121 +266,92 @@ export default function ReservationPage() {
       )}
 
       {step === "time" && (
-        <motion.section key="time" className="grid flex-1 content-start gap-4" {...sectionMotion}>
+        <motion.section key="time" className="grid flex-1 content-start gap-5" {...sectionMotion}>
           <h1 className="text-3xl font-bold tracking-normal sm:text-4xl">{selectedRoomName}</h1>
-          <div className="grid gap-4 rounded-xl border bg-card p-3 shadow-sm sm:p-5">
-            <div className="grid grid-cols-4 gap-2">
-              {BOOKING_PERIODS.map((period, index) => (
-                <motion.button
-                  key={period.id}
-                  className={`h-11 rounded-lg border px-2 text-base font-bold transition-colors focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none sm:h-12 sm:text-lg ${
-                    selectedPeriod === period.id
-                      ? "motion-choice-selected border-primary bg-muted text-foreground"
-                      : "bg-background text-foreground hover:border-primary"
-                  }`}
-                  {...itemMotion}
-                  {...tactileMotion}
-                  animate={{
-                    ...itemMotion.animate,
-                    scale: selectedPeriod === period.id ? 1.02 : 1,
-                  }}
-                  transition={{ ...itemMotion.transition, delay: index * 0.025 }}
-                  onClick={() => selectPeriod(period.id)}
-                  style={{ fontSize: "clamp(0.95rem, 3vw, 1.125rem)", fontWeight: 700 }}
-                  type="button"
-                >
-                  {period.label}
-                </motion.button>
-              ))}
-            </div>
-
-            <div className="grid gap-2">
-              <div className="text-base font-bold text-muted-foreground sm:text-lg">시작 시간</div>
-              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {timePoints.map((minutes, index) => {
-                const isBlockedStart = !hasAvailableDuration(minutes);
-                const isSelected = selectedStartMinutes === minutes;
-                const buttonClassName =
-                  isSelected
-                    ? "motion-choice-selected border-2 border-primary bg-muted text-foreground"
-                    : isBlockedStart
-                      ? "bg-muted text-muted-foreground"
-                      : "border border-border bg-background text-foreground hover:border-primary hover:bg-muted";
-
-                return (
-                  <motion.button
-                    key={minutes}
-                    className={`h-13 rounded-lg px-2 text-xl font-bold transition-colors focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none disabled:cursor-not-allowed sm:h-14 ${buttonClassName}`}
-                    disabled={isBlockedStart}
-                    {...itemMotion}
-                    {...(!isBlockedStart ? tactileMotion : {})}
-                    animate={{
-                      ...itemMotion.animate,
-                      scale: isSelected ? 1.025 : 1,
-                    }}
-                    transition={{ ...itemMotion.transition, delay: index * 0.018 }}
-                    onClick={() => selectStartTime(minutes)}
-                    style={{ fontSize: "clamp(1.15rem, 4vw, 1.45rem)", fontWeight: 700 }}
-                    type="button"
-                  >
-                    <span className="block leading-tight">{formatMinutes(minutes)}</span>
-                    {isBlockedStart ? <span className="block text-xs font-bold leading-tight">예약 마감</span> : null}
-                  </motion.button>
-                );
-              })}
-              </div>
-            </div>
-
-            <div className="grid gap-2">
-              <div className="text-base font-bold text-muted-foreground sm:text-lg">이용 시간</div>
+          <div className="grid gap-5">
+            <div className="grid gap-3">
+              <div className="text-lg font-bold text-muted-foreground sm:text-xl">이용 시간</div>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                 {durationOptions.map((option, index) => {
-                  const isDisabled =
-                    selectedStartMinutes === null ||
-                    !isBookingDurationAvailable(reservations, {
-                      date,
-                      roomId,
-                      startMinutes: selectedStartMinutes,
-                      durationMinutes: option.minutes,
-                    });
-                  const isSelected =
-                    selectedTime !== null &&
-                    selectedTime.startMinutes === selectedStartMinutes &&
-                    selectedTime.endMinutes === (selectedStartMinutes ?? 0) + option.minutes;
-                  const isClosed = selectedStartMinutes !== null && isDisabled;
+                  const isSelected = selectedDurationMinutes === option.minutes;
 
                   return (
                     <motion.button
                       key={option.minutes}
-                      className={`h-12 rounded-lg px-3 text-lg font-bold transition-colors focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none disabled:cursor-not-allowed ${
+                      className={`h-14 rounded-xl px-3 text-xl font-bold transition-colors focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none disabled:cursor-not-allowed sm:h-15 ${
                         isSelected
                           ? "motion-choice-selected border-2 border-primary bg-muted text-foreground"
-                          : isDisabled
-                            ? "bg-muted text-muted-foreground"
-                            : "border border-border bg-background text-foreground hover:border-primary hover:bg-muted"
+                          : "border border-border bg-background text-foreground hover:border-primary hover:bg-muted"
                       }`}
-                      disabled={isDisabled}
                       {...itemMotion}
-                      {...(!isDisabled ? tactileMotion : {})}
+                      {...tactileMotion}
                       animate={{
                         ...itemMotion.animate,
                         scale: isSelected ? 1.025 : 1,
                       }}
                       transition={{ ...itemMotion.transition, delay: index * 0.03 }}
                       onClick={() => selectDuration(option.minutes)}
-                      style={{ fontSize: "clamp(1rem, 3vw, 1.125rem)", fontWeight: 700 }}
+                      style={{ fontSize: "clamp(1.08rem, 3.4vw, 1.25rem)", fontWeight: 700 }}
                       type="button"
                     >
                       <span className="block leading-tight">{option.label}</span>
-                      {isClosed ? <span className="block text-xs font-bold leading-tight">예약 마감</span> : null}
                     </motion.button>
                   );
                 })}
               </div>
             </div>
 
+            <div className="grid gap-3">
+              <div className="text-lg font-bold text-muted-foreground sm:text-xl">시작 시간</div>
+              <div className="grid grid-cols-4 gap-2">
+              {startOptions.map((option, index) => {
+                const isSelected =
+                  selectedTime !== null &&
+                  !option.isReservedSlot &&
+                  option.startMinutes >= selectedTime.startMinutes &&
+                  option.startMinutes < selectedTime.endMinutes;
+                const isSelectedStart = selectedStartMinutes === option.startMinutes && selectedTime?.endMinutes === option.endMinutes;
+                const buttonClassName =
+                  isSelected
+                    ? "motion-choice-selected border-2 border-primary bg-muted text-foreground"
+                    : option.isAvailable
+                      ? "border border-border bg-background text-foreground hover:border-primary hover:bg-muted"
+                      : option.isReservedSlot
+                        ? "border border-destructive/20 bg-destructive/10 text-destructive"
+                        : "border border-border bg-muted text-muted-foreground";
+                const unavailableLabel = option.hasReservedSlotInRange ? "예약" : "불가";
+
+                return (
+                  <motion.button
+                    key={option.startMinutes}
+                    className={`relative h-14 rounded-xl px-1 text-lg font-bold transition-colors focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none disabled:cursor-not-allowed sm:h-16 sm:px-2 ${buttonClassName}`}
+                    aria-disabled={!option.isAvailable}
+                    aria-label={!option.isAvailable && !isSelected ? `${option.label} ${unavailableLabel}` : option.label}
+                    {...itemMotion}
+                    {...(option.isAvailable ? tactileMotion : {})}
+                    animate={{
+                      ...itemMotion.animate,
+                      scale: isSelectedStart ? 1.025 : 1,
+                    }}
+                    transition={{ ...itemMotion.transition, delay: index * 0.01 }}
+                    onClick={() => selectStartTime(option)}
+                    style={{ fontSize: "clamp(1.02rem, 3.9vw, 1.28rem)", fontWeight: 700 }}
+                    type="button"
+                  >
+                    <span className="block leading-tight">{option.label}</span>
+                    {!option.isAvailable && !isSelected ? (
+                      <span className="absolute top-1 right-1 rounded-md bg-background/80 px-1 text-[0.62rem] leading-4 font-bold">
+                        {unavailableLabel}
+                      </span>
+                    ) : null}
+                  </motion.button>
+                );
+              })}
+              </div>
+            </div>
+
             <motion.div
-              className="min-h-18 rounded-xl border p-4"
+              className="min-h-18 rounded-xl border bg-muted/45 p-4"
               animate={{
                 backgroundColor: selectedTime ? "oklch(0.955 0.003 255)" : "var(--background)",
                 scale: selectedTime ? 1.01 : 1,
@@ -578,8 +359,17 @@ export default function ReservationPage() {
               transition={{ duration: 0.24, ease: "easeOut" }}
             >
               <div className="text-sm font-bold text-muted-foreground">선택한 시간</div>
-              <div className="mt-1 text-xl font-bold sm:text-2xl">{selectedTime ? selectedTime.label : "시작 시간과 이용 시간을 선택해 주세요"}</div>
+              <div className="mt-1 text-xl font-bold sm:text-2xl">{selectedTime ? selectedTime.label : "이용 시간 선택 후 시작 시간을 선택해 주세요"}</div>
             </motion.div>
+            <Button
+              className="motion-action h-14 rounded-xl text-xl"
+              disabled={!selectedTime}
+              onClick={moveToContact}
+              style={{ fontSize: "1.25rem", fontWeight: 700 }}
+              type="button"
+            >
+              정보 입력
+            </Button>
           </div>
         </motion.section>
       )}
@@ -598,6 +388,7 @@ export default function ReservationPage() {
                 <span className="text-lg font-bold">이름</span>
                 <Input
                   className="h-14 rounded-xl px-4 text-xl md:text-xl"
+                  autoComplete="name"
                   placeholder="이름"
                   style={{ fontSize: "1.25rem", fontWeight: 700 }}
                   {...form.register("name")}
@@ -610,9 +401,11 @@ export default function ReservationPage() {
                 <span className="text-lg font-bold">연락처</span>
                 <Input
                   className="h-14 rounded-xl px-4 text-xl md:text-xl"
+                  autoComplete="tel"
                   inputMode="tel"
                   placeholder="010-0000-0000"
                   style={{ fontSize: "1.25rem", fontWeight: 700 }}
+                  type="tel"
                   {...phoneRegistration}
                   onChange={(event) => {
                     event.currentTarget.value = formatKoreanPhoneNumber(event.currentTarget.value);

@@ -3,15 +3,16 @@ import {
   buildTimeRange,
   findReservationConflict,
   formatMinutes,
+  getBookingHalfDayTimePoints,
   getBookingDurationOptions,
-  getBookingPeriodTimePoints,
+  getBookingStartOptions,
   getAvailableTimeSlots,
   getRoomName,
   getRoomTimeSlots,
   getSimpleBookingTimePoints,
   generateTimeSlots,
   isBookingDurationAvailable,
-  BOOKING_PERIODS,
+  BOOKING_HALF_DAY_PERIODS,
   validateReservationDraft,
   type Reservation,
 } from "./reservations";
@@ -90,16 +91,16 @@ describe("reservation rules", () => {
     expect(points.at(-1)).toBe(1320);
   });
 
-  it("groups 30-minute start points by booking period", () => {
-    expect(BOOKING_PERIODS.map((period) => period.label)).toEqual(["오전", "오후", "저녁", "심야"]);
+  it("groups 30-minute start points into half-day periods", () => {
+    expect(BOOKING_HALF_DAY_PERIODS.map((period) => period.label)).toEqual(["00:00-12:00", "12:00-24:00"]);
 
-    const morning = getBookingPeriodTimePoints("morning");
-    const night = getBookingPeriodTimePoints("night");
+    const firstHalf = getBookingHalfDayTimePoints("first-half");
+    const secondHalf = getBookingHalfDayTimePoints("second-half");
 
-    expect(morning[0]).toBe(360);
-    expect(morning.at(-1)).toBe(690);
-    expect(night[0]).toBe(0);
-    expect(night.at(-1)).toBe(330);
+    expect(firstHalf[0]).toBe(0);
+    expect(firstHalf.at(-1)).toBe(690);
+    expect(secondHalf[0]).toBe(720);
+    expect(secondHalf.at(-1)).toBe(1410);
   });
 
   it("returns practical booking duration options", () => {
@@ -140,6 +141,142 @@ describe("reservation rules", () => {
         durationMinutes: 120,
       }),
     ).toBe(false);
+  });
+
+  it("builds start options from the selected duration", () => {
+    const options = getBookingStartOptions([baseReservation], {
+      date: "2026-05-28",
+      roomId: "room-1",
+      periodId: "first-half",
+      durationMinutes: 60,
+    });
+
+    expect(options[0]).toEqual({
+      startMinutes: 0,
+      endMinutes: 60,
+      label: "00:00",
+      rangeLabel: "00:00-01:00",
+      selectedSlotMinutes: [0, 30],
+      isReservedSlot: false,
+      hasReservedSlotInRange: false,
+      hasUnavailableSlotInRange: false,
+      isAvailable: true,
+    });
+    expect(options.find((option) => option.startMinutes === 570)).toMatchObject({
+      label: "09:30",
+      rangeLabel: "09:30-10:30",
+      selectedSlotMinutes: [570, 600],
+      hasReservedSlotInRange: true,
+      isAvailable: false,
+    });
+    expect(options.at(-1)).toEqual({
+      startMinutes: 690,
+      endMinutes: 750,
+      label: "11:30",
+      rangeLabel: "11:30-12:30",
+      selectedSlotMinutes: [690, 720],
+      isReservedSlot: false,
+      hasReservedSlotInRange: false,
+      hasUnavailableSlotInRange: false,
+      isAvailable: true,
+    });
+  });
+
+  it("marks individual reserved slots separately from invalid starts", () => {
+    const options = getBookingStartOptions([baseReservation], {
+      date: "2026-05-28",
+      roomId: "room-1",
+      durationMinutes: 180,
+    });
+
+    expect(options.find((option) => option.startMinutes === 600)).toMatchObject({
+      label: "10:00",
+      isReservedSlot: true,
+      hasReservedSlotInRange: true,
+      isAvailable: false,
+    });
+    expect(options.find((option) => option.startMinutes === 1260)).toMatchObject({
+      label: "21:00",
+      isReservedSlot: false,
+      hasReservedSlotInRange: false,
+      hasUnavailableSlotInRange: true,
+      isAvailable: false,
+    });
+    expect(options.find((option) => option.startMinutes === 1410)).toMatchObject({
+      label: "23:30",
+      isReservedSlot: false,
+      hasReservedSlotInRange: false,
+      isAvailable: false,
+    });
+  });
+
+  it("blocks a range when any included slot is unavailable for the selected duration", () => {
+    const options = getBookingStartOptions([], {
+      date: "2026-05-28",
+      roomId: "room-1",
+      durationMinutes: 60,
+    });
+
+    expect(options.find((option) => option.startMinutes === 1380)).toMatchObject({
+      label: "23:00",
+      selectedSlotMinutes: [1380, 1410],
+      hasUnavailableSlotInRange: true,
+      isAvailable: false,
+    });
+    expect(options.find((option) => option.startMinutes === 1350)).toMatchObject({
+      label: "22:30",
+      selectedSlotMinutes: [1350, 1380],
+      hasUnavailableSlotInRange: false,
+      isAvailable: true,
+    });
+  });
+
+  it("builds all-day start options when no period is selected", () => {
+    const options = getBookingStartOptions([], {
+      date: "2026-05-28",
+      roomId: "room-1",
+      durationMinutes: 180,
+    });
+
+    expect(options).toHaveLength(48);
+    expect(options[0]).toMatchObject({
+      startMinutes: 0,
+      label: "00:00",
+      rangeLabel: "00:00-03:00",
+      isAvailable: true,
+    });
+    expect(options.at(-1)).toMatchObject({
+      startMinutes: 1410,
+      label: "23:30",
+      rangeLabel: "23:30-26:30",
+      hasReservedSlotInRange: false,
+      isAvailable: false,
+    });
+  });
+
+  it("keeps late start slots visible but unavailable when they pass midnight", () => {
+    const options = getBookingStartOptions([], {
+      date: "2026-05-28",
+      roomId: "room-1",
+      periodId: "second-half",
+      durationMinutes: 180,
+    });
+
+    expect(options.at(-1)).toMatchObject({
+      startMinutes: 1410,
+      endMinutes: 1590,
+      label: "23:30",
+      rangeLabel: "23:30-26:30",
+      isAvailable: false,
+    });
+    expect(options.find((option) => option.startMinutes === 1260)).toMatchObject({
+      label: "21:00",
+      rangeLabel: "21:00-24:00",
+      selectedSlotMinutes: [1260, 1290, 1320, 1350, 1380, 1410],
+      hasReservedSlotInRange: false,
+      hasUnavailableSlotInRange: true,
+      isAvailable: false,
+    });
   });
 
   it("builds a sorted range from two clicked times", () => {

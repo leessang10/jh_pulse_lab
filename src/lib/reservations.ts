@@ -47,6 +47,7 @@ export const SIMPLE_BOOKING_START_MINUTES = 9 * 60;
 export const SIMPLE_BOOKING_END_MINUTES = 22 * 60;
 export const SIMPLE_BOOKING_DURATION_MINUTES = 60;
 
+export type BookingHalfDayPeriodId = "first-half" | "second-half";
 export type BookingPeriodId = "morning" | "afternoon" | "evening" | "night";
 
 export type BookingPeriod = {
@@ -55,6 +56,18 @@ export type BookingPeriod = {
   startMinutes: number;
   endMinutes: number;
 };
+
+export type BookingHalfDayPeriod = {
+  id: BookingHalfDayPeriodId;
+  label: string;
+  startMinutes: number;
+  endMinutes: number;
+};
+
+export const BOOKING_HALF_DAY_PERIODS: BookingHalfDayPeriod[] = [
+  { id: "first-half", label: "00:00-12:00", startMinutes: 0, endMinutes: 12 * 60 },
+  { id: "second-half", label: "12:00-24:00", startMinutes: 12 * 60, endMinutes: DAY_END_MINUTES },
+];
 
 export const BOOKING_PERIODS: BookingPeriod[] = [
   { id: "morning", label: "오전", startMinutes: 6 * 60, endMinutes: 12 * 60 },
@@ -108,6 +121,15 @@ export function getBookingPeriodTimePoints(periodId: BookingPeriodId) {
   return Array.from({ length: pointCount }, (_, index) => period.startMinutes + index * SLOT_MINUTES);
 }
 
+export function getBookingHalfDayTimePoints(periodId: BookingHalfDayPeriodId) {
+  const period = BOOKING_HALF_DAY_PERIODS.find((item) => item.id === periodId);
+  if (!period) return [];
+
+  const pointCount = (period.endMinutes - period.startMinutes) / SLOT_MINUTES;
+
+  return Array.from({ length: pointCount }, (_, index) => period.startMinutes + index * SLOT_MINUTES);
+}
+
 export function getBookingDurationOptions() {
   return BOOKING_DURATION_OPTIONS;
 }
@@ -132,6 +154,68 @@ export function isBookingDurationAvailable(
       endMinutes,
     }) === null
   );
+}
+
+export function getBookingStartOptions(
+  reservations: Reservation[],
+  options: {
+    date: string;
+    roomId: string;
+    periodId?: BookingHalfDayPeriodId;
+    durationMinutes: number;
+  },
+) {
+  const startMinutesList = options.periodId
+    ? getBookingHalfDayTimePoints(options.periodId)
+    : generateTimeSlots().map((slot) => slot.value);
+
+  return startMinutesList
+    .map((startMinutes) => {
+      const endMinutes = startMinutes + options.durationMinutes;
+      const selectedSlotMinutes = Array.from(
+        { length: options.durationMinutes / SLOT_MINUTES },
+        (_, index) => startMinutes + index * SLOT_MINUTES,
+      );
+      const isReservedSlot =
+        startMinutes + SLOT_MINUTES <= DAY_END_MINUTES &&
+        findReservationConflict(reservations, {
+          date: options.date,
+          roomId: options.roomId,
+          startMinutes,
+          endMinutes: startMinutes + SLOT_MINUTES,
+        }) !== null;
+      const hasReservedSlotInRange = selectedSlotMinutes.some(
+        (slotStartMinutes) =>
+          slotStartMinutes + SLOT_MINUTES <= DAY_END_MINUTES &&
+          findReservationConflict(reservations, {
+            date: options.date,
+            roomId: options.roomId,
+            startMinutes: slotStartMinutes,
+            endMinutes: slotStartMinutes + SLOT_MINUTES,
+          }) !== null,
+      );
+      const hasUnavailableSlotInRange = selectedSlotMinutes.some(
+        (slotStartMinutes) =>
+          !isBookingDurationAvailable(reservations, {
+            date: options.date,
+            roomId: options.roomId,
+            startMinutes: slotStartMinutes,
+            durationMinutes: options.durationMinutes,
+          }),
+      );
+
+      return {
+        startMinutes,
+        endMinutes,
+        label: formatMinutes(startMinutes),
+        rangeLabel: `${formatMinutes(startMinutes)}-${formatMinutes(endMinutes)}`,
+        selectedSlotMinutes,
+        isReservedSlot,
+        hasReservedSlotInRange,
+        hasUnavailableSlotInRange,
+        isAvailable: !hasUnavailableSlotInRange,
+      };
+    });
 }
 
 export function buildTimeRange(firstMinutes: number, secondMinutes: number) {
