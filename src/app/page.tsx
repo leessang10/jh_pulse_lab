@@ -12,15 +12,18 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-  buildTimeRange,
+  BOOKING_PERIODS,
   findReservationConflict,
   formatMinutes,
+  getBookingDurationOptions,
+  getBookingPeriodTimePoints,
   getRoomName,
-  getRoomTimeSlots,
-  getSimpleBookingTimePoints,
+  isBookingDurationAvailable,
   ROOMS,
+  type BookingPeriodId,
   type ReservationDraft,
 } from "@/lib/reservations";
+import { dateToKoreaValue, formatKoreaDate, isBeforeKoreaToday, todayKoreaValue, valueToKoreaDate } from "@/lib/korea-date";
 import { useReservations } from "@/lib/use-reservations";
 
 const contactSchema = z.object({
@@ -36,26 +39,13 @@ type SelectedTime = {
   label: string;
 };
 
-function dateToValue(date: Date) {
-  const offset = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - offset).toISOString().slice(0, 10);
-}
-
-function valueToDate(value: string) {
-  const [year, month, day] = value.split("-").map(Number);
-  return new Date(year, month - 1, day);
-}
-
-function todayValue() {
-  return dateToValue(new Date());
-}
-
 export default function ReservationPage() {
   const { reservations, addReservation, isReady } = useReservations();
   const [step, setStep] = useState<BookingStep>("room");
-  const [date, setDate] = useState(todayValue);
+  const [date, setDate] = useState(todayKoreaValue);
   const [roomId, setRoomId] = useState("");
-  const [firstRangePoint, setFirstRangePoint] = useState<number | null>(null);
+  const [selectedPeriod, setSelectedPeriod] = useState<BookingPeriodId>("afternoon");
+  const [selectedStartMinutes, setSelectedStartMinutes] = useState<number | null>(null);
   const [selectedTime, setSelectedTime] = useState<SelectedTime | null>(null);
 
   const form = useForm<ContactValues>({
@@ -67,26 +57,19 @@ export default function ReservationPage() {
   });
 
   const selectedRoomName = roomId ? getRoomName(roomId) : "";
-  const selectedDate = valueToDate(date);
-  const timePoints = useMemo(() => getSimpleBookingTimePoints(), []);
-  const timeSlots = useMemo(() => {
-    if (!roomId) return [];
-
-    return getRoomTimeSlots(reservations, {
-      date,
-      roomId,
-    });
-  }, [date, reservations, roomId]);
+  const selectedDate = valueToKoreaDate(date);
+  const timePoints = useMemo(() => getBookingPeriodTimePoints(selectedPeriod), [selectedPeriod]);
+  const durationOptions = useMemo(() => getBookingDurationOptions(), []);
 
   function clearTimeSelection() {
-    setFirstRangePoint(null);
+    setSelectedStartMinutes(null);
     setSelectedTime(null);
   }
 
   function changeDate(nextDate: Date | undefined) {
     if (!nextDate) return;
 
-    setDate(dateToValue(nextDate));
+    setDate(dateToKoreaValue(nextDate));
     clearTimeSelection();
     if (step !== "room") setStep(roomId ? "time" : "room");
   }
@@ -97,35 +80,51 @@ export default function ReservationPage() {
     setStep("time");
   }
 
-  function selectTimePoint(minutes: number) {
-    if (firstRangePoint === null) {
-      setFirstRangePoint(minutes);
-      setSelectedTime(null);
-      return;
-    }
+  function hasAvailableDuration(startMinutes: number) {
+    return durationOptions.some((option) =>
+      isBookingDurationAvailable(reservations, {
+        date,
+        roomId,
+        startMinutes,
+        durationMinutes: option.minutes,
+      }),
+    );
+  }
 
-    const range = buildTimeRange(firstRangePoint, minutes);
-    if (!range) {
-      clearTimeSelection();
-      return;
-    }
+  function selectPeriod(periodId: BookingPeriodId) {
+    setSelectedPeriod(periodId);
+    clearTimeSelection();
+  }
 
+  function selectStartTime(minutes: number) {
+    if (!hasAvailableDuration(minutes)) return;
+
+    setSelectedStartMinutes(minutes);
+    setSelectedTime(null);
+  }
+
+  function selectDuration(durationMinutes: number) {
+    if (selectedStartMinutes === null) return;
+
+    const endMinutes = selectedStartMinutes + durationMinutes;
     const conflict = findReservationConflict(reservations, {
       date,
       roomId,
-      startMinutes: range.startMinutes,
-      endMinutes: range.endMinutes,
+      startMinutes: selectedStartMinutes,
+      endMinutes,
     });
 
     if (conflict) {
       toast.error("이미 예약된 시간이 포함되어 있습니다.");
-      setFirstRangePoint(minutes);
       setSelectedTime(null);
       return;
     }
 
-    setSelectedTime(range);
-    setFirstRangePoint(null);
+    setSelectedTime({
+      startMinutes: selectedStartMinutes,
+      endMinutes,
+      label: `${formatMinutes(selectedStartMinutes)}-${formatMinutes(endMinutes)}`,
+    });
   }
 
   function moveToContact() {
@@ -186,10 +185,15 @@ export default function ReservationPage() {
             }
           >
             <CalendarIcon className="size-6" />
-            {date}
+            {formatKoreaDate(date)}
           </PopoverTrigger>
           <PopoverContent align="start" className="w-auto">
-            <Calendar mode="single" selected={selectedDate} onSelect={changeDate} />
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={changeDate}
+              disabled={(day) => isBeforeKoreaToday(dateToKoreaValue(day))}
+            />
           </PopoverContent>
         </Popover>
         {step !== "room" && (
@@ -227,40 +231,96 @@ export default function ReservationPage() {
       {step === "time" && (
         <section className="grid flex-1 content-start gap-5">
           <h1 className="text-4xl font-bold tracking-normal sm:text-5xl">{selectedRoomName}</h1>
-          <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-            <div className="grid grid-cols-[7rem_1fr] border-b bg-muted/50 text-xl font-bold sm:grid-cols-[10rem_1fr]">
-              <div className="p-4 text-center">시간</div>
-              <div className="p-4 text-center">선택</div>
+          <div className="grid gap-5 rounded-2xl border bg-card p-4 shadow-sm sm:p-5">
+            <div className="grid grid-cols-4 gap-2">
+              {BOOKING_PERIODS.map((period) => (
+                <button
+                  key={period.id}
+                  className={`h-14 rounded-xl border px-2 text-xl font-bold transition focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none ${
+                    selectedPeriod === period.id
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "bg-background text-foreground hover:border-primary"
+                  }`}
+                  onClick={() => selectPeriod(period.id)}
+                  style={{ fontSize: "clamp(1rem, 3vw, 1.25rem)", fontWeight: 700 }}
+                  type="button"
+                >
+                  {period.label}
+                </button>
+              ))}
             </div>
-            <div className="grid">
+
+            <div className="grid gap-3">
+              <div className="text-xl font-bold text-muted-foreground">시작 시간</div>
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
               {timePoints.map((minutes) => {
-                const slot = timeSlots.find((timeSlot) => timeSlot.startMinutes === minutes);
-                const isBlockedStart = slot ? !slot.isAvailable : false;
-                const isPending = firstRangePoint === minutes;
-                const isSelected =
-                  selectedTime !== null && minutes >= selectedTime.startMinutes && minutes <= selectedTime.endMinutes;
+                const isBlockedStart = !hasAvailableDuration(minutes);
+                const isSelected = selectedStartMinutes === minutes;
                 const buttonClassName =
-                  isSelected || isPending
-                    ? "bg-emerald-600 text-white"
+                  isSelected
+                    ? "border-4 border-primary bg-background text-foreground"
                     : isBlockedStart
                       ? "bg-muted text-muted-foreground"
-                      : "bg-blue-600 text-white hover:bg-blue-700";
-                const label = isSelected || isPending ? "선택됨" : isBlockedStart ? "이용불가" : "이용가능";
+                      : "border border-primary bg-primary text-primary-foreground hover:bg-primary/90";
 
                 return (
-                  <div key={minutes} className="grid min-h-20 grid-cols-[7rem_1fr] border-b last:border-b-0 sm:grid-cols-[10rem_1fr]">
-                    <div className="grid place-items-center border-r p-3 text-3xl font-bold">{formatMinutes(minutes)}</div>
-                    <button
-                      className={`m-3 min-h-14 rounded-xl px-4 text-2xl font-bold transition focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none ${buttonClassName}`}
-                      onClick={() => selectTimePoint(minutes)}
-                      style={{ fontSize: "clamp(1.5rem, 4vw, 2rem)", fontWeight: 700 }}
-                      type="button"
-                    >
-                      {label}
-                    </button>
-                  </div>
+                  <button
+                    key={minutes}
+                    className={`h-16 rounded-xl px-3 text-2xl font-bold transition focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none disabled:cursor-not-allowed ${buttonClassName}`}
+                    disabled={isBlockedStart}
+                    onClick={() => selectStartTime(minutes)}
+                    style={{ fontSize: "clamp(1.35rem, 4vw, 1.75rem)", fontWeight: 700 }}
+                    type="button"
+                  >
+                    {formatMinutes(minutes)}
+                  </button>
                 );
               })}
+              </div>
+            </div>
+
+            <div className="grid gap-3">
+              <div className="text-xl font-bold text-muted-foreground">이용 시간</div>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {durationOptions.map((option) => {
+                  const isDisabled =
+                    selectedStartMinutes === null ||
+                    !isBookingDurationAvailable(reservations, {
+                      date,
+                      roomId,
+                      startMinutes: selectedStartMinutes,
+                      durationMinutes: option.minutes,
+                    });
+                  const isSelected =
+                    selectedTime !== null &&
+                    selectedTime.startMinutes === selectedStartMinutes &&
+                    selectedTime.endMinutes === (selectedStartMinutes ?? 0) + option.minutes;
+
+                  return (
+                    <button
+                      key={option.minutes}
+                      className={`h-14 rounded-xl px-3 text-xl font-bold transition focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none disabled:cursor-not-allowed ${
+                        isSelected
+                          ? "border-4 border-primary bg-background text-foreground"
+                          : isDisabled
+                            ? "bg-muted text-muted-foreground"
+                            : "border border-primary bg-primary text-primary-foreground hover:bg-primary/90"
+                      }`}
+                      disabled={isDisabled}
+                      onClick={() => selectDuration(option.minutes)}
+                      style={{ fontSize: "clamp(1.1rem, 3vw, 1.25rem)", fontWeight: 700 }}
+                      type="button"
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="min-h-20 rounded-xl border bg-background p-4">
+              <div className="text-lg font-bold text-muted-foreground">선택한 시간</div>
+              <div className="mt-1 text-3xl font-bold">{selectedTime ? selectedTime.label : "시작 시간과 이용 시간을 선택해 주세요"}</div>
             </div>
           </div>
           <Button

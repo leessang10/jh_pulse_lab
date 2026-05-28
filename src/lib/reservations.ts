@@ -47,6 +47,31 @@ export const SIMPLE_BOOKING_START_MINUTES = 9 * 60;
 export const SIMPLE_BOOKING_END_MINUTES = 22 * 60;
 export const SIMPLE_BOOKING_DURATION_MINUTES = 60;
 
+export type BookingPeriodId = "morning" | "afternoon" | "evening" | "night";
+
+export type BookingPeriod = {
+  id: BookingPeriodId;
+  label: string;
+  startMinutes: number;
+  endMinutes: number;
+};
+
+export const BOOKING_PERIODS: BookingPeriod[] = [
+  { id: "morning", label: "오전", startMinutes: 6 * 60, endMinutes: 12 * 60 },
+  { id: "afternoon", label: "오후", startMinutes: 12 * 60, endMinutes: 18 * 60 },
+  { id: "evening", label: "저녁", startMinutes: 18 * 60, endMinutes: DAY_END_MINUTES },
+  { id: "night", label: "심야", startMinutes: 0, endMinutes: 6 * 60 },
+];
+
+export const BOOKING_DURATION_OPTIONS = [
+  { minutes: 30, label: "30분" },
+  { minutes: 60, label: "1시간" },
+  { minutes: 90, label: "1시간 30분" },
+  { minutes: 120, label: "2시간" },
+  { minutes: 150, label: "2시간 30분" },
+  { minutes: 180, label: "3시간" },
+];
+
 export function formatMinutes(minutes: number) {
   const hours = Math.floor(minutes / 60);
   const mins = minutes % 60;
@@ -71,6 +96,41 @@ export function getSimpleBookingTimePoints() {
   return Array.from(
     { length: pointCount },
     (_, index) => SIMPLE_BOOKING_START_MINUTES + index * SIMPLE_BOOKING_DURATION_MINUTES,
+  );
+}
+
+export function getBookingPeriodTimePoints(periodId: BookingPeriodId) {
+  const period = BOOKING_PERIODS.find((item) => item.id === periodId);
+  if (!period) return [];
+
+  const pointCount = (period.endMinutes - period.startMinutes) / SLOT_MINUTES;
+
+  return Array.from({ length: pointCount }, (_, index) => period.startMinutes + index * SLOT_MINUTES);
+}
+
+export function getBookingDurationOptions() {
+  return BOOKING_DURATION_OPTIONS;
+}
+
+export function isBookingDurationAvailable(
+  reservations: Reservation[],
+  options: {
+    date: string;
+    roomId: string;
+    startMinutes: number;
+    durationMinutes: number;
+  },
+) {
+  const endMinutes = options.startMinutes + options.durationMinutes;
+  if (options.startMinutes < 0 || endMinutes > DAY_END_MINUTES) return false;
+
+  return (
+    findReservationConflict(reservations, {
+      date: options.date,
+      roomId: options.roomId,
+      startMinutes: options.startMinutes,
+      endMinutes,
+    }) === null
   );
 }
 

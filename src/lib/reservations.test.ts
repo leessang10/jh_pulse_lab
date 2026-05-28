@@ -3,10 +3,14 @@ import {
   buildTimeRange,
   findReservationConflict,
   formatMinutes,
+  getBookingDurationOptions,
+  getBookingPeriodTimePoints,
   getAvailableTimeSlots,
   getRoomTimeSlots,
   getSimpleBookingTimePoints,
   generateTimeSlots,
+  isBookingDurationAvailable,
+  BOOKING_PERIODS,
   validateReservationDraft,
   type Reservation,
 } from "./reservations";
@@ -83,6 +87,58 @@ describe("reservation rules", () => {
 
     expect(points[0]).toBe(540);
     expect(points.at(-1)).toBe(1320);
+  });
+
+  it("groups 30-minute start points by booking period", () => {
+    expect(BOOKING_PERIODS.map((period) => period.label)).toEqual(["오전", "오후", "저녁", "심야"]);
+
+    const morning = getBookingPeriodTimePoints("morning");
+    const night = getBookingPeriodTimePoints("night");
+
+    expect(morning[0]).toBe(360);
+    expect(morning.at(-1)).toBe(690);
+    expect(night[0]).toBe(0);
+    expect(night.at(-1)).toBe(330);
+  });
+
+  it("returns practical booking duration options", () => {
+    expect(getBookingDurationOptions()).toEqual([
+      { minutes: 30, label: "30분" },
+      { minutes: 60, label: "1시간" },
+      { minutes: 90, label: "1시간 30분" },
+      { minutes: 120, label: "2시간" },
+      { minutes: 150, label: "2시간 30분" },
+      { minutes: 180, label: "3시간" },
+    ]);
+  });
+
+  it("checks whether a duration is available from a selected start time", () => {
+    expect(
+      isBookingDurationAvailable([baseReservation], {
+        date: "2026-05-28",
+        roomId: "room-1",
+        startMinutes: 540,
+        durationMinutes: 60,
+      }),
+    ).toBe(true);
+
+    expect(
+      isBookingDurationAvailable([baseReservation], {
+        date: "2026-05-28",
+        roomId: "room-1",
+        startMinutes: 570,
+        durationMinutes: 60,
+      }),
+    ).toBe(false);
+
+    expect(
+      isBookingDurationAvailable([], {
+        date: "2026-05-28",
+        roomId: "room-1",
+        startMinutes: 1380,
+        durationMinutes: 120,
+      }),
+    ).toBe(false);
   });
 
   it("builds a sorted range from two clicked times", () => {

@@ -22,24 +22,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { dateToKoreaValue, formatKoreaDate, todayKoreaValue, valueToKoreaDate } from "@/lib/korea-date";
 import { formatMinutes, getRoomName, ROOMS, STATUS_LABELS, type ReservationStatus } from "@/lib/reservations";
 import { useReservations } from "@/lib/use-reservations";
 
 const statuses: Array<ReservationStatus | "all"> = ["all", "pending", "confirmed", "cancelled"];
-
-function dateToValue(date: Date) {
-  const offset = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - offset).toISOString().slice(0, 10);
-}
-
-function valueToDate(value: string) {
-  const [year, month, day] = value.split("-").map(Number);
-  return new Date(year, month - 1, day);
-}
-
-function todayValue() {
-  return dateToValue(new Date());
-}
 
 function statusVariant(status: ReservationStatus) {
   if (status === "cancelled") return "destructive";
@@ -49,7 +36,7 @@ function statusVariant(status: ReservationStatus) {
 
 export default function AdminPage() {
   const { reservations, updateReservationStatus, removeReservation, isReady } = useReservations();
-  const [date, setDate] = useState(todayValue);
+  const [date, setDate] = useState(todayKoreaValue);
   const [roomId, setRoomId] = useState("all");
   const [status, setStatus] = useState<ReservationStatus | "all">("all");
 
@@ -77,7 +64,7 @@ export default function AdminPage() {
     <main className="mx-auto min-h-screen w-full max-w-7xl px-5 py-6 lg:px-8">
       <header className="flex flex-col gap-4 py-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <Badge variant="outline" className="border-primary/30 bg-white text-primary">
+          <Badge variant="outline" className="border-primary/30 bg-card text-primary">
             예약 관리
           </Badge>
           <h1 className="mt-2 text-4xl font-bold text-foreground sm:text-5xl">예약 관리</h1>
@@ -95,13 +82,13 @@ export default function AdminPage() {
           <div className="grid gap-2">
             <span className="text-sm font-bold text-muted-foreground">날짜</span>
             <Popover>
-              <PopoverTrigger render={<Button variant="outline" className="h-11 justify-start" />}>{date}</PopoverTrigger>
+              <PopoverTrigger render={<Button variant="outline" className="h-11 justify-start" />}>{formatKoreaDate(date)}</PopoverTrigger>
               <PopoverContent align="start" className="w-auto">
                 <Calendar
                   mode="single"
-                  selected={valueToDate(date)}
+                  selected={valueToKoreaDate(date)}
                   onSelect={(nextDate) => {
-                    if (nextDate) setDate(dateToValue(nextDate));
+                    if (nextDate) setDate(dateToKoreaValue(nextDate));
                   }}
                 />
               </PopoverContent>
