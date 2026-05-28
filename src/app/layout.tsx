@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Geist } from "next/font/google";
+import { SmoothScrollProvider } from "@/components/smooth-scroll-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
 
@@ -15,7 +16,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="ko" className={cn("font-sans", geist.variable)}>
       <body>
-        {children}
+        <SmoothScrollProvider>{children}</SmoothScrollProvider>
         <Toaster richColors position="top-center" />
       </body>
     </html>

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { AnimatePresence, motion, MotionConfig } from "framer-motion";
 import { CalendarIcon, CheckCircle2Icon } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -38,6 +39,24 @@ type SelectedTime = {
   endMinutes: number;
   label: string;
 };
+
+const sectionMotion = {
+  initial: { opacity: 0, y: 14 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -8 },
+  transition: { duration: 0.28, ease: "easeOut" },
+} as const;
+
+const itemMotion = {
+  initial: { opacity: 0, y: 10, scale: 0.985 },
+  animate: { opacity: 1, y: 0, scale: 1 },
+  transition: { duration: 0.3, ease: "easeOut" },
+} as const;
+
+const tactileMotion = {
+  whileHover: { y: -2 },
+  whileTap: { scale: 0.985, y: 0 },
+} as const;
 
 export default function ReservationPage() {
   const [step, setStep] = useState<BookingStep>("room");
@@ -179,6 +198,7 @@ export default function ReservationPage() {
   }
 
   return (
+    <MotionConfig reducedMotion="user">
     <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-5 px-4 py-5 sm:px-8">
       <header className="flex items-center justify-between gap-3">
         <Popover>
@@ -205,7 +225,7 @@ export default function ReservationPage() {
         </Popover>
         {step !== "room" && (
           <Button
-            className="h-14 rounded-xl px-5 text-xl"
+            className="motion-action h-14 rounded-xl px-5 text-xl"
             onClick={() => setStep("room")}
             style={{ fontSize: "1.25rem", fontWeight: 700 }}
             type="button"
@@ -222,71 +242,89 @@ export default function ReservationPage() {
         </div>
       ) : null}
 
+      <AnimatePresence mode="wait">
       {step === "room" && (
-        <section className="grid flex-1 content-start gap-5">
+        <motion.section key="room" className="grid flex-1 content-start gap-5" {...sectionMotion}>
           <h1 className="text-4xl font-bold tracking-normal sm:text-5xl">방 선택</h1>
           <div className="grid gap-4 sm:grid-cols-2">
-            {ROOMS.map((room) => (
-              <button
+            {ROOMS.map((room, index) => (
+              <motion.button
                 key={room.id}
-                className="min-h-40 rounded-2xl border bg-card p-8 text-left text-4xl font-bold shadow-sm transition hover:border-primary hover:bg-primary/5 focus-visible:border-ring focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none sm:min-h-52 sm:text-5xl"
+                className="min-h-40 rounded-2xl border bg-card p-8 text-left text-4xl font-bold shadow-sm transition-colors hover:border-primary hover:bg-primary/5 focus-visible:border-ring focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none sm:min-h-52 sm:text-5xl"
+                {...itemMotion}
+                {...tactileMotion}
+                transition={{ ...itemMotion.transition, delay: index * 0.06 }}
                 onClick={() => selectRoom(room.id)}
                 style={{ fontSize: "clamp(2.5rem, 6vw, 4rem)", fontWeight: 700 }}
                 type="button"
               >
                 {room.name}
-              </button>
+              </motion.button>
             ))}
           </div>
-        </section>
+        </motion.section>
       )}
 
       {step === "time" && (
-        <section className="grid flex-1 content-start gap-5">
+        <motion.section key="time" className="grid flex-1 content-start gap-5" {...sectionMotion}>
           <h1 className="text-4xl font-bold tracking-normal sm:text-5xl">{selectedRoomName}</h1>
           <div className="grid gap-5 rounded-2xl border bg-card p-4 shadow-sm sm:p-5">
             <div className="grid grid-cols-4 gap-2">
-              {BOOKING_PERIODS.map((period) => (
-                <button
+              {BOOKING_PERIODS.map((period, index) => (
+                <motion.button
                   key={period.id}
-                  className={`h-14 rounded-xl border px-2 text-xl font-bold transition focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none ${
+                  className={`h-14 rounded-xl border px-2 text-xl font-bold transition-colors focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none ${
                     selectedPeriod === period.id
-                      ? "border-primary bg-primary text-primary-foreground"
+                      ? "motion-choice-selected border-primary bg-primary text-primary-foreground"
                       : "bg-background text-foreground hover:border-primary"
                   }`}
+                  {...itemMotion}
+                  {...tactileMotion}
+                  animate={{
+                    ...itemMotion.animate,
+                    scale: selectedPeriod === period.id ? 1.02 : 1,
+                  }}
+                  transition={{ ...itemMotion.transition, delay: index * 0.025 }}
                   onClick={() => selectPeriod(period.id)}
                   style={{ fontSize: "clamp(1rem, 3vw, 1.25rem)", fontWeight: 700 }}
                   type="button"
                 >
                   {period.label}
-                </button>
+                </motion.button>
               ))}
             </div>
 
             <div className="grid gap-3">
               <div className="text-xl font-bold text-muted-foreground">시작 시간</div>
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {timePoints.map((minutes) => {
+              {timePoints.map((minutes, index) => {
                 const isBlockedStart = !hasAvailableDuration(minutes);
                 const isSelected = selectedStartMinutes === minutes;
                 const buttonClassName =
                   isSelected
-                    ? "border-4 border-primary bg-background text-foreground"
+                    ? "motion-choice-selected border-4 border-primary bg-background text-foreground"
                     : isBlockedStart
                       ? "bg-muted text-muted-foreground"
                       : "border border-primary bg-primary text-primary-foreground hover:bg-primary/90";
 
                 return (
-                  <button
+                  <motion.button
                     key={minutes}
-                    className={`h-16 rounded-xl px-3 text-2xl font-bold transition focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none disabled:cursor-not-allowed ${buttonClassName}`}
+                    className={`h-16 rounded-xl px-3 text-2xl font-bold transition-colors focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none disabled:cursor-not-allowed ${buttonClassName}`}
                     disabled={isBlockedStart}
+                    {...itemMotion}
+                    {...(!isBlockedStart ? tactileMotion : {})}
+                    animate={{
+                      ...itemMotion.animate,
+                      scale: isSelected ? 1.025 : 1,
+                    }}
+                    transition={{ ...itemMotion.transition, delay: index * 0.018 }}
                     onClick={() => selectStartTime(minutes)}
                     style={{ fontSize: "clamp(1.35rem, 4vw, 1.75rem)", fontWeight: 700 }}
                     type="button"
                   >
                     {formatMinutes(minutes)}
-                  </button>
+                  </motion.button>
                 );
               })}
               </div>
@@ -295,7 +333,7 @@ export default function ReservationPage() {
             <div className="grid gap-3">
               <div className="text-xl font-bold text-muted-foreground">이용 시간</div>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {durationOptions.map((option) => {
+                {durationOptions.map((option, index) => {
                   const isDisabled =
                     selectedStartMinutes === null ||
                     !isBookingDurationAvailable(reservations, {
@@ -310,34 +348,48 @@ export default function ReservationPage() {
                     selectedTime.endMinutes === (selectedStartMinutes ?? 0) + option.minutes;
 
                   return (
-                    <button
+                    <motion.button
                       key={option.minutes}
-                      className={`h-14 rounded-xl px-3 text-xl font-bold transition focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none disabled:cursor-not-allowed ${
+                      className={`h-14 rounded-xl px-3 text-xl font-bold transition-colors focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none disabled:cursor-not-allowed ${
                         isSelected
-                          ? "border-4 border-primary bg-background text-foreground"
+                          ? "motion-choice-selected border-4 border-primary bg-background text-foreground"
                           : isDisabled
                             ? "bg-muted text-muted-foreground"
                             : "border border-primary bg-primary text-primary-foreground hover:bg-primary/90"
                       }`}
                       disabled={isDisabled}
+                      {...itemMotion}
+                      {...(!isDisabled ? tactileMotion : {})}
+                      animate={{
+                        ...itemMotion.animate,
+                        scale: isSelected ? 1.025 : 1,
+                      }}
+                      transition={{ ...itemMotion.transition, delay: index * 0.03 }}
                       onClick={() => selectDuration(option.minutes)}
                       style={{ fontSize: "clamp(1.1rem, 3vw, 1.25rem)", fontWeight: 700 }}
                       type="button"
                     >
                       {option.label}
-                    </button>
+                    </motion.button>
                   );
                 })}
               </div>
             </div>
 
-            <div className="min-h-20 rounded-xl border bg-background p-4">
+            <motion.div
+              className="min-h-20 rounded-xl border p-4"
+              animate={{
+                backgroundColor: selectedTime ? "oklch(0.955 0.003 255)" : "var(--background)",
+                scale: selectedTime ? 1.01 : 1,
+              }}
+              transition={{ duration: 0.24, ease: "easeOut" }}
+            >
               <div className="text-lg font-bold text-muted-foreground">선택한 시간</div>
               <div className="mt-1 text-3xl font-bold">{selectedTime ? selectedTime.label : "시작 시간과 이용 시간을 선택해 주세요"}</div>
-            </div>
+            </motion.div>
           </div>
           <Button
-            className="h-16 rounded-xl text-2xl"
+            className="motion-action h-16 rounded-xl text-2xl"
             disabled={!selectedTime}
             onClick={moveToContact}
             style={{ fontSize: "1.5rem", fontWeight: 700 }}
@@ -345,11 +397,11 @@ export default function ReservationPage() {
           >
             다음
           </Button>
-        </section>
+        </motion.section>
       )}
 
       {step === "contact" && selectedTime && (
-        <section className="grid flex-1 content-start gap-5">
+        <motion.section key="contact" className="grid flex-1 content-start gap-5" {...sectionMotion}>
           <h1 className="text-4xl font-bold tracking-normal sm:text-5xl">
             {selectedRoomName} {selectedTime.label}
           </h1>
@@ -386,7 +438,7 @@ export default function ReservationPage() {
             </CardContent>
             <CardFooter className="grid gap-3 sm:grid-cols-2">
               <Button
-                className="h-16 rounded-xl text-2xl"
+                className="motion-action h-16 rounded-xl text-2xl"
                 onClick={() => setStep("time")}
                 style={{ fontSize: "1.5rem", fontWeight: 700 }}
                 type="button"
@@ -395,7 +447,7 @@ export default function ReservationPage() {
                 시간 변경
               </Button>
               <Button
-                className="h-16 rounded-xl text-2xl"
+                className="motion-action h-16 rounded-xl text-2xl"
                 disabled={!isReady}
                 onClick={form.handleSubmit(submitReservation, (errors) => {
                   toast.error(errors.name?.message ?? errors.phone?.message ?? "확인해 주세요.");
@@ -407,20 +459,32 @@ export default function ReservationPage() {
               </Button>
             </CardFooter>
           </Card>
-        </section>
+        </motion.section>
       )}
 
       {step === "done" && selectedTime && (
-        <section className="grid flex-1 place-items-center">
+        <motion.section key="done" className="grid flex-1 place-items-center" {...sectionMotion}>
+          <motion.div
+            className="w-full"
+            initial={{ opacity: 0, scale: 0.94, y: 14 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.42, ease: "easeOut" }}
+          >
           <Card className="w-full rounded-2xl border bg-card text-center shadow-sm">
             <CardContent className="grid gap-6 p-10">
-              <CheckCircle2Icon className="mx-auto size-20 text-primary" />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.72, rotate: -8 }}
+                animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                transition={{ delay: 0.08, duration: 0.44, ease: "easeOut" }}
+              >
+                <CheckCircle2Icon className="mx-auto size-20 text-primary" />
+              </motion.div>
               <h1 className="text-5xl font-bold">접수 완료</h1>
               <p className="text-3xl font-bold">
                 {selectedRoomName} {selectedTime.label}
               </p>
               <Button
-                className="mx-auto h-16 rounded-xl px-10 text-2xl"
+                className="motion-action mx-auto h-16 rounded-xl px-10 text-2xl"
                 onClick={resetFlow}
                 style={{ fontSize: "1.5rem", fontWeight: 700 }}
                 type="button"
@@ -429,8 +493,11 @@ export default function ReservationPage() {
               </Button>
             </CardContent>
           </Card>
-        </section>
+          </motion.div>
+        </motion.section>
       )}
+      </AnimatePresence>
     </main>
+    </MotionConfig>
   );
 }
