@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="GithubDefaultAccount">
+    <option name="defaultAccountId" value="3c8db0e2-3193-4c17-91fc-9908167bcb0d" />
+  </component>
+  <component name="KubernetesApiProvider">{}</component>
+  <component name="MaterialThemeProjectNewConfig">
+    <option name="metadata">
+      <MTProjectMetadataState>
+        <option name="migrated" value="true" />
+        <option name="pristineConfig" value="false" />
+        <option name="userId" value="-7d9dcb9e:193bc156d48:-7ff9" />
+      </MTProjectMetadataState>
+    </option>
+  </component>
+</project>

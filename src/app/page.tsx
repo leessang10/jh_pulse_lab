@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AnimatePresence, motion, MotionConfig } from "framer-motion";
-import { CalendarIcon, CheckCircle2Icon } from "lucide-react";
+import { CalendarIcon, CheckCircle2Icon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -25,6 +25,13 @@ import {
   type ReservationDraft,
 } from "@/lib/reservations";
 import { dateToKoreaValue, formatKoreaDate, isBeforeKoreaToday, todayKoreaValue, valueToKoreaDate } from "@/lib/korea-date";
+import {
+  BOOKING_STEP_ITEMS,
+  formatKoreanPhoneNumber,
+  getBookingStepNavigation,
+  getReservationSummary,
+  type BookingStep,
+} from "@/lib/reservation-ui";
 import { useReservations } from "@/lib/use-reservations";
 
 const contactSchema = z.object({
@@ -33,7 +40,6 @@ const contactSchema = z.object({
 });
 
 type ContactValues = z.infer<typeof contactSchema>;
-type BookingStep = "room" | "time" | "contact" | "done";
 type SelectedTime = {
   startMinutes: number;
   endMinutes: number;
@@ -66,6 +72,7 @@ export default function ReservationPage() {
   const [selectedPeriod, setSelectedPeriod] = useState<BookingPeriodId>("afternoon");
   const [selectedStartMinutes, setSelectedStartMinutes] = useState<number | null>(null);
   const [selectedTime, setSelectedTime] = useState<SelectedTime | null>(null);
+  const [isSubmittingReservation, setIsSubmittingReservation] = useState(false);
 
   const form = useForm<ContactValues>({
     resolver: zodResolver(contactSchema),
@@ -77,8 +84,19 @@ export default function ReservationPage() {
 
   const selectedRoomName = roomId ? getRoomName(roomId) : "";
   const selectedDate = valueToKoreaDate(date);
+  const reservationSummary = getReservationSummary({
+    dateLabel: formatKoreaDate(date),
+    roomName: selectedRoomName,
+    timeLabel: selectedTime?.label ?? null,
+  });
+  const navigation = getBookingStepNavigation({
+    step,
+    hasRoom: Boolean(roomId),
+    hasTime: Boolean(selectedTime),
+  });
   const timePoints = useMemo(() => getBookingPeriodTimePoints(selectedPeriod), [selectedPeriod]);
   const durationOptions = useMemo(() => getBookingDurationOptions(), []);
+  const phoneRegistration = form.register("phone");
 
   function clearTimeSelection() {
     setSelectedStartMinutes(null);
@@ -156,6 +174,8 @@ export default function ReservationPage() {
   }
 
   async function submitReservation(values: ContactValues) {
+    if (isSubmittingReservation) return;
+
     if (!roomId || !selectedTime) {
       setStep(roomId ? "time" : "room");
       return;
@@ -173,21 +193,23 @@ export default function ReservationPage() {
 
     if (conflict) {
       toast.error("이미 예약된 시간입니다.");
-      clearTimeSelection();
       setStep("time");
       return;
     }
 
-    const result = await addReservation(draft);
-    if (!result.ok) {
-      toast.error(result.error);
-      clearTimeSelection();
-      setStep("time");
-      return;
-    }
+    setIsSubmittingReservation(true);
+    try {
+      const result = await addReservation(draft);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
 
-    setStep("done");
-    toast.success("접수되었습니다.");
+      setStep("done");
+      toast.success("예약이 확정되었습니다.");
+    } finally {
+      setIsSubmittingReservation(false);
+    }
   }
 
   function resetFlow() {
@@ -197,10 +219,80 @@ export default function ReservationPage() {
     form.reset();
   }
 
+  function movePrevious() {
+    if (navigation.previousStep) setStep(navigation.previousStep);
+  }
+
+  function moveNext() {
+    if (step === "room" && roomId) {
+      setStep("time");
+      return;
+    }
+
+    if (step === "time") {
+      moveToContact();
+      return;
+    }
+
+    if (step === "contact") {
+      void form.handleSubmit(submitReservation, (errors) => {
+        toast.error(errors.name?.message ?? errors.phone?.message ?? "확인해 주세요.");
+      })();
+      return;
+    }
+
+    if (step === "done") resetFlow();
+  }
+
+  const isNextDisabled =
+    navigation.isNextDisabled || (step === "contact" && (!isReady || isSubmittingReservation));
+
   return (
     <MotionConfig reducedMotion="user">
-    <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-5 px-4 py-5 sm:px-8">
-      <header className="flex items-center justify-between gap-3">
+    <main className="reservation-shell mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 sm:px-8">
+      <nav className="sticky top-0 z-20 -mx-4 border-b bg-background/95 px-4 py-3 shadow-sm backdrop-blur sm:-mx-8 sm:px-8">
+        <div className="mx-auto grid max-w-5xl gap-2">
+          <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
+            <Button
+              className="h-9 rounded-lg px-2 text-sm font-bold sm:px-3"
+              disabled={!navigation.previousStep}
+              onClick={movePrevious}
+              type="button"
+              variant="outline"
+            >
+              <ChevronLeftIcon className="size-4" />
+              이전
+            </Button>
+            <div className="flex min-w-0 items-center justify-center gap-1 text-sm font-bold text-muted-foreground sm:text-base">
+              {BOOKING_STEP_ITEMS.map((item, index) => {
+                const isActive = step === item.id;
+                const isDone = step === "done";
+
+                return (
+                  <span key={item.id} className="flex min-w-0 items-center gap-1">
+                    <span className={isActive || isDone ? "text-foreground" : "text-muted-foreground"}>
+                      {item.label}
+                    </span>
+                    {index < BOOKING_STEP_ITEMS.length - 1 ? <span className="text-muted-foreground/70">&gt;</span> : null}
+                  </span>
+                );
+              })}
+            </div>
+            <Button
+              className="h-9 rounded-lg px-2 text-sm font-bold sm:px-3"
+              disabled={isNextDisabled}
+              onClick={moveNext}
+              type="button"
+            >
+              {step === "contact" && isSubmittingReservation ? "예약 중..." : navigation.nextLabel}
+              {step !== "contact" && step !== "done" ? <ChevronRightIcon className="size-4" /> : null}
+            </Button>
+          </div>
+          <div className="truncate text-center text-sm font-bold text-muted-foreground">{reservationSummary}</div>
+        </div>
+      </nav>
+
+      <header className="flex items-center justify-between gap-3 pt-1">
         <Popover>
           <PopoverTrigger
             render={
@@ -223,17 +315,6 @@ export default function ReservationPage() {
             />
           </PopoverContent>
         </Popover>
-        {step !== "room" && (
-          <Button
-            className="motion-action h-14 rounded-xl px-5 text-xl"
-            onClick={() => setStep("room")}
-            style={{ fontSize: "1.25rem", fontWeight: 700 }}
-            type="button"
-            variant="outline"
-          >
-            방 변경
-          </Button>
-        )}
       </header>
 
       {error ? (
@@ -245,17 +326,17 @@ export default function ReservationPage() {
       <AnimatePresence mode="wait">
       {step === "room" && (
         <motion.section key="room" className="grid flex-1 content-start gap-5" {...sectionMotion}>
-          <h1 className="text-4xl font-bold tracking-normal sm:text-5xl">방 선택</h1>
+          <h1 className="text-4xl font-bold tracking-normal sm:text-5xl">강의실 선택</h1>
           <div className="grid gap-4 sm:grid-cols-2">
             {ROOMS.map((room, index) => (
               <motion.button
                 key={room.id}
-                className="min-h-40 rounded-2xl border bg-card p-8 text-left text-4xl font-bold shadow-sm transition-colors hover:border-primary hover:bg-primary/5 focus-visible:border-ring focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none sm:min-h-52 sm:text-5xl"
+                className="min-h-28 rounded-2xl border bg-card p-6 text-left text-4xl font-bold shadow-sm transition-colors hover:border-primary hover:bg-primary/5 focus-visible:border-ring focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none sm:min-h-52 sm:p-8 sm:text-5xl"
                 {...itemMotion}
                 {...tactileMotion}
                 transition={{ ...itemMotion.transition, delay: index * 0.06 }}
                 onClick={() => selectRoom(room.id)}
-                style={{ fontSize: "clamp(2.5rem, 6vw, 4rem)", fontWeight: 700 }}
+                style={{ fontSize: "clamp(2.15rem, 9vw, 4rem)", fontWeight: 700 }}
                 type="button"
               >
                 {room.name}
@@ -323,7 +404,8 @@ export default function ReservationPage() {
                     style={{ fontSize: "clamp(1.35rem, 4vw, 1.75rem)", fontWeight: 700 }}
                     type="button"
                   >
-                    {formatMinutes(minutes)}
+                    <span className="block leading-tight">{formatMinutes(minutes)}</span>
+                    {isBlockedStart ? <span className="block text-sm font-bold leading-tight">예약 마감</span> : null}
                   </motion.button>
                 );
               })}
@@ -346,6 +428,7 @@ export default function ReservationPage() {
                     selectedTime !== null &&
                     selectedTime.startMinutes === selectedStartMinutes &&
                     selectedTime.endMinutes === (selectedStartMinutes ?? 0) + option.minutes;
+                  const isClosed = selectedStartMinutes !== null && isDisabled;
 
                   return (
                     <motion.button
@@ -369,7 +452,8 @@ export default function ReservationPage() {
                       style={{ fontSize: "clamp(1.1rem, 3vw, 1.25rem)", fontWeight: 700 }}
                       type="button"
                     >
-                      {option.label}
+                      <span className="block leading-tight">{option.label}</span>
+                      {isClosed ? <span className="block text-xs font-bold leading-tight">예약 마감</span> : null}
                     </motion.button>
                   );
                 })}
@@ -384,19 +468,10 @@ export default function ReservationPage() {
               }}
               transition={{ duration: 0.24, ease: "easeOut" }}
             >
-              <div className="text-lg font-bold text-muted-foreground">선택한 시간</div>
-              <div className="mt-1 text-3xl font-bold">{selectedTime ? selectedTime.label : "시작 시간과 이용 시간을 선택해 주세요"}</div>
+              <div className="text-base font-bold text-muted-foreground">선택한 시간</div>
+              <div className="mt-1 text-2xl font-bold">{selectedTime ? selectedTime.label : "시작 시간과 이용 시간을 선택해 주세요"}</div>
             </motion.div>
           </div>
-          <Button
-            className="motion-action h-16 rounded-xl text-2xl"
-            disabled={!selectedTime}
-            onClick={moveToContact}
-            style={{ fontSize: "1.5rem", fontWeight: 700 }}
-            type="button"
-          >
-            다음
-          </Button>
         </motion.section>
       )}
 
@@ -429,7 +504,11 @@ export default function ReservationPage() {
                   inputMode="tel"
                   placeholder="010-0000-0000"
                   style={{ fontSize: "1.5rem", fontWeight: 700 }}
-                  {...form.register("phone")}
+                  {...phoneRegistration}
+                  onChange={(event) => {
+                    event.currentTarget.value = formatKoreanPhoneNumber(event.currentTarget.value);
+                    void phoneRegistration.onChange(event);
+                  }}
                 />
                 {form.formState.errors.phone ? (
                   <span className="text-lg font-bold text-destructive">{form.formState.errors.phone.message}</span>
@@ -448,14 +527,14 @@ export default function ReservationPage() {
               </Button>
               <Button
                 className="motion-action h-16 rounded-xl text-2xl"
-                disabled={!isReady}
+                disabled={!isReady || isSubmittingReservation}
                 onClick={form.handleSubmit(submitReservation, (errors) => {
                   toast.error(errors.name?.message ?? errors.phone?.message ?? "확인해 주세요.");
                 })}
                 style={{ fontSize: "1.5rem", fontWeight: 700 }}
                 type="button"
               >
-                접수
+                {isSubmittingReservation ? "예약 중..." : "예약 확정"}
               </Button>
             </CardFooter>
           </Card>
@@ -479,7 +558,7 @@ export default function ReservationPage() {
               >
                 <CheckCircle2Icon className="mx-auto size-20 text-primary" />
               </motion.div>
-              <h1 className="text-5xl font-bold">접수 완료</h1>
+              <h1 className="text-5xl font-bold">예약 완료</h1>
               <p className="text-3xl font-bold">
                 {selectedRoomName} {selectedTime.label}
               </p>

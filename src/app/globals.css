@@ -71,6 +71,18 @@ button:disabled {
   opacity: 0.45;
 }
 
+.reservation-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding-bottom: max(8rem, env(safe-area-inset-bottom));
+}
+
+@media (min-width: 640px) {
+  .reservation-shell {
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+  }
+}
+
 .motion-action {
   transform: translateY(0) scale(1);
   transition:

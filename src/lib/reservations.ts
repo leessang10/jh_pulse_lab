@@ -29,10 +29,10 @@ export type ReservationDraft = {
 };
 
 export const ROOMS: Room[] = [
-  { id: "room-1", name: "Room 1" },
-  { id: "room-2", name: "Room 2" },
-  { id: "room-3", name: "Room 3" },
-  { id: "room-4", name: "Room 4" },
+  { id: "room-1", name: "강의실 1" },
+  { id: "room-2", name: "강의실 2" },
+  { id: "room-3", name: "강의실 3" },
+  { id: "room-4", name: "강의실 4" },
 ];
 
 export const STATUS_LABELS: Record<ReservationStatus, string> = {

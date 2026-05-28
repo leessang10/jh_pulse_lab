@@ -6,6 +6,7 @@ import {
   getBookingDurationOptions,
   getBookingPeriodTimePoints,
   getAvailableTimeSlots,
+  getRoomName,
   getRoomTimeSlots,
   getSimpleBookingTimePoints,
   generateTimeSlots,
@@ -209,5 +210,10 @@ describe("reservation rules", () => {
       "예약자 이름을 입력해 주세요.",
       "연락처를 입력해 주세요.",
     ]);
+  });
+
+  it("uses Korean classroom labels for public room names", () => {
+    expect(getRoomName("room-1")).toBe("강의실 1");
+    expect(getRoomName("room-4")).toBe("강의실 4");
   });
 });
