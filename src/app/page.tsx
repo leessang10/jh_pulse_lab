@@ -1,398 +1,363 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
-import Link from "next/link";
+import { useMemo, useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { CalendarIcon, CheckCircle2Icon } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
+  buildTimeRange,
   findReservationConflict,
   formatMinutes,
-  generateTimeSlots,
   getRoomName,
+  getRoomTimeSlots,
+  getSimpleBookingTimePoints,
   ROOMS,
-  STATUS_LABELS,
-  validateReservationDraft,
   type ReservationDraft,
 } from "@/lib/reservations";
 import { useReservations } from "@/lib/use-reservations";
 
-const timeSlots = generateTimeSlots();
-const durationOptions = [30, 60, 90, 120, 150, 180, 210, 240];
-const steps = ["날짜", "시간", "강의실", "예약자", "접수"];
+const contactSchema = z.object({
+  name: z.string().trim().min(1, "이름을 입력해 주세요."),
+  phone: z.string().trim().min(1, "연락처를 입력해 주세요."),
+});
+
+type ContactValues = z.infer<typeof contactSchema>;
+type BookingStep = "room" | "time" | "contact" | "done";
+type SelectedTime = {
+  startMinutes: number;
+  endMinutes: number;
+  label: string;
+};
+
+function dateToValue(date: Date) {
+  const offset = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 10);
+}
+
+function valueToDate(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
 
 function todayValue() {
-  const now = new Date();
-  const offset = now.getTimezoneOffset() * 60_000;
-  return new Date(now.getTime() - offset).toISOString().slice(0, 10);
+  return dateToValue(new Date());
 }
 
 export default function ReservationPage() {
   const { reservations, addReservation, isReady } = useReservations();
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState<BookingStep>("room");
   const [date, setDate] = useState(todayValue);
-  const [startMinutes, setStartMinutes] = useState(600);
-  const [duration, setDuration] = useState(60);
   const [roomId, setRoomId] = useState("");
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [note, setNote] = useState("");
-  const [message, setMessage] = useState("");
+  const [firstRangePoint, setFirstRangePoint] = useState<number | null>(null);
+  const [selectedTime, setSelectedTime] = useState<SelectedTime | null>(null);
 
-  const endMinutes = Math.min(startMinutes + duration, 1440);
-  const canUseSelectedDuration = startMinutes + duration <= 1440;
+  const form = useForm<ContactValues>({
+    resolver: zodResolver(contactSchema),
+    defaultValues: {
+      name: "",
+      phone: "",
+    },
+  });
 
-  const availableRooms = useMemo(
-    () =>
-      ROOMS.map((room) => ({
-        ...room,
-        conflict: findReservationConflict(reservations, {
-          date,
-          roomId: room.id,
-          startMinutes,
-          endMinutes,
-        }),
-      })),
-    [date, endMinutes, reservations, startMinutes],
-  );
+  const selectedRoomName = roomId ? getRoomName(roomId) : "";
+  const selectedDate = valueToDate(date);
+  const timePoints = useMemo(() => getSimpleBookingTimePoints(), []);
+  const timeSlots = useMemo(() => {
+    if (!roomId) return [];
 
-  const selectedRoomConflict =
-    roomId === ""
-      ? null
-      : findReservationConflict(reservations, {
-          date,
-          roomId,
-          startMinutes,
-          endMinutes,
-        });
+    return getRoomTimeSlots(reservations, {
+      date,
+      roomId,
+    });
+  }, [date, reservations, roomId]);
 
-  const dayReservations = useMemo(
-    () =>
-      reservations
-        .filter((reservation) => reservation.date === date)
-        .sort((a, b) => a.startMinutes - b.startMinutes || a.roomId.localeCompare(b.roomId)),
-    [date, reservations],
-  );
-
-  function moveNext() {
-    setMessage("");
-
-    if (step === 1 && !canUseSelectedDuration) {
-      setMessage("선택한 이용 시간이 24:00을 넘습니다.");
-      return;
-    }
-
-    if (step === 2 && !roomId) {
-      setMessage("예약 가능한 강의실을 선택해 주세요.");
-      return;
-    }
-
-    setStep((current) => Math.min(current + 1, steps.length - 1));
+  function clearTimeSelection() {
+    setFirstRangePoint(null);
+    setSelectedTime(null);
   }
 
-  function moveBack() {
-    setMessage("");
-    setStep((current) => Math.max(current - 1, 0));
+  function changeDate(nextDate: Date | undefined) {
+    if (!nextDate) return;
+
+    setDate(dateToValue(nextDate));
+    clearTimeSelection();
+    if (step !== "room") setStep(roomId ? "time" : "room");
   }
 
-  function submitReservation(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  function selectRoom(nextRoomId: string) {
+    setRoomId(nextRoomId);
+    clearTimeSelection();
+    setStep("time");
+  }
 
-    const draft: ReservationDraft = { date, roomId, startMinutes, endMinutes, name, phone, note };
-    const errors = validateReservationDraft(draft);
-    if (selectedRoomConflict) {
-      errors.push(`${getRoomName(roomId)} ${formatMinutes(selectedRoomConflict.startMinutes)} 예약과 시간이 겹칩니다.`);
-    }
-
-    if (errors.length > 0) {
-      setMessage(errors[0]);
+  function selectTimePoint(minutes: number) {
+    if (firstRangePoint === null) {
+      setFirstRangePoint(minutes);
+      setSelectedTime(null);
       return;
     }
 
-    const reservation = addReservation(draft);
-    setMessage(`${getRoomName(reservation.roomId)} ${formatMinutes(reservation.startMinutes)} 예약이 접수되었습니다.`);
-    setStep(4);
+    const range = buildTimeRange(firstRangePoint, minutes);
+    if (!range) {
+      clearTimeSelection();
+      return;
+    }
+
+    const conflict = findReservationConflict(reservations, {
+      date,
+      roomId,
+      startMinutes: range.startMinutes,
+      endMinutes: range.endMinutes,
+    });
+
+    if (conflict) {
+      toast.error("이미 예약된 시간이 포함되어 있습니다.");
+      setFirstRangePoint(minutes);
+      setSelectedTime(null);
+      return;
+    }
+
+    setSelectedTime(range);
+    setFirstRangePoint(null);
+  }
+
+  function moveToContact() {
+    if (!selectedTime) {
+      toast.error("시간을 선택해 주세요.");
+      return;
+    }
+
+    setStep("contact");
+  }
+
+  function submitReservation(values: ContactValues) {
+    if (!roomId || !selectedTime) {
+      setStep(roomId ? "time" : "room");
+      return;
+    }
+
+    const draft: ReservationDraft = {
+      date,
+      roomId,
+      startMinutes: selectedTime.startMinutes,
+      endMinutes: selectedTime.endMinutes,
+      name: values.name,
+      phone: values.phone,
+    };
+    const conflict = findReservationConflict(reservations, draft);
+
+    if (conflict) {
+      toast.error("이미 예약된 시간입니다.");
+      clearTimeSelection();
+      setStep("time");
+      return;
+    }
+
+    addReservation(draft);
+    setStep("done");
+    toast.success("접수되었습니다.");
   }
 
   function resetFlow() {
-    setStep(0);
+    setStep("room");
     setRoomId("");
-    setName("");
-    setPhone("");
-    setNote("");
-    setMessage("");
+    clearTimeSelection();
+    form.reset();
   }
 
   return (
-    <main className="mx-auto grid min-h-screen w-full max-w-7xl gap-6 px-5 py-6 lg:grid-cols-[1.05fr_0.95fr] lg:px-8">
-      <section className="grid content-start gap-6 py-2">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-sm font-bold text-[#dba24a]">DRUM ROOM BOOKING</p>
-            <h1 className="mt-3 max-w-2xl text-4xl font-black leading-tight text-[#fff7e8] sm:text-6xl">
-              JH 펄스랩
-              <span className="block text-[#d9c7a3]">단계별 예약</span>
-            </h1>
-          </div>
-          <Link
-            href="/admin"
-            className="rounded-md border border-[#f7f0df24] px-4 py-2 text-sm font-bold text-[#f7f0df] hover:border-[#dba24a]"
+    <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-5 px-4 py-5 sm:px-8">
+      <header className="flex items-center justify-between gap-3">
+        <Popover>
+          <PopoverTrigger
+            render={
+              <Button
+                variant="outline"
+                className="h-14 justify-start rounded-xl px-5 text-xl font-bold"
+                style={{ fontSize: "1.25rem", fontWeight: 700 }}
+              />
+            }
           >
-            관리자
-          </Link>
-        </div>
+            <CalendarIcon className="size-6" />
+            {date}
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-auto">
+            <Calendar mode="single" selected={selectedDate} onSelect={changeDate} />
+          </PopoverContent>
+        </Popover>
+        {step !== "room" && (
+          <Button
+            className="h-14 rounded-xl px-5 text-xl"
+            onClick={() => setStep("room")}
+            style={{ fontSize: "1.25rem", fontWeight: 700 }}
+            type="button"
+            variant="outline"
+          >
+            방 변경
+          </Button>
+        )}
+      </header>
 
-        <nav className="grid grid-cols-5 gap-2">
-          {steps.map((label, index) => (
-            <button
-              key={label}
-              className={`rounded-md border px-2 py-3 text-xs font-black sm:text-sm ${
-                index === step
-                  ? "border-[#dba24a] bg-[#dba24a] text-[#17120a]"
-                  : index < step
-                    ? "border-[#dba24a66] bg-[#dba24a18] text-[#f7f0df]"
-                    : "border-[#f7f0df18] bg-[#ffffff08] text-[#d7c9ad]"
-              }`}
-              onClick={() => {
-                if (index < step) setStep(index);
-              }}
-              type="button"
-            >
-              {index + 1}. {label}
-            </button>
-          ))}
-        </nav>
-
-        <form className="panel grid min-h-[31rem] content-between gap-6 p-5 sm:p-6" onSubmit={submitReservation}>
-          <div className="grid gap-5">
-            {step === 0 ? (
-              <section className="grid gap-5">
-                <div>
-                  <p className="text-sm font-bold text-[#dba24a]">1단계</p>
-                  <h2 className="mt-2 text-3xl font-black">예약 날짜 선택</h2>
-                </div>
-                <label className="field max-w-sm">
-                  <span className="field-label">날짜</span>
-                  <input className="input" type="date" value={date} onChange={(event) => setDate(event.target.value)} />
-                </label>
-              </section>
-            ) : null}
-
-            {step === 1 ? (
-              <section className="grid gap-5">
-                <div>
-                  <p className="text-sm font-bold text-[#dba24a]">2단계</p>
-                  <h2 className="mt-2 text-3xl font-black">시작 시간과 이용 시간 선택</h2>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="field">
-                    <span className="field-label">시작 시간</span>
-                    <select
-                      className="input"
-                      value={startMinutes}
-                      onChange={(event) => {
-                        setStartMinutes(Number(event.target.value));
-                        setRoomId("");
-                      }}
-                    >
-                      {timeSlots.map((slot) => (
-                        <option key={slot.value} value={slot.value}>
-                          {slot.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="field">
-                    <span className="field-label">이용 시간</span>
-                    <select
-                      className="input"
-                      value={duration}
-                      onChange={(event) => {
-                        setDuration(Number(event.target.value));
-                        setRoomId("");
-                      }}
-                    >
-                      {durationOptions.map((minutes) => (
-                        <option key={minutes} value={minutes} disabled={startMinutes + minutes > 1440}>
-                          {minutes / 60 >= 1 ? `${minutes / 60}시간` : `${minutes}분`}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-                <p className={canUseSelectedDuration ? "text-sm text-[#d7c9ad]" : "text-sm font-bold text-[#ffb199]"}>
-                  선택 시간: {formatMinutes(startMinutes)}-{formatMinutes(endMinutes)}
-                </p>
-              </section>
-            ) : null}
-
-            {step === 2 ? (
-              <section className="grid gap-5">
-                <div>
-                  <p className="text-sm font-bold text-[#dba24a]">3단계</p>
-                  <h2 className="mt-2 text-3xl font-black">예약 가능한 강의실 선택</h2>
-                  <p className="mt-2 text-sm text-[#d7c9ad]">
-                    {date} · {formatMinutes(startMinutes)}-{formatMinutes(endMinutes)}
-                  </p>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {availableRooms.map((room) => {
-                    const conflict = room.conflict;
-                    const isAvailable = !conflict;
-                    const isSelected = roomId === room.id;
-
-                    return (
-                      <button
-                        key={room.id}
-                        className={`rounded-md border p-5 text-left transition ${
-                          isSelected
-                            ? "border-[#dba24a] bg-[#dba24a22]"
-                            : isAvailable
-                              ? "border-[#f7f0df18] bg-[#ffffff08] hover:border-[#dba24a]"
-                              : "border-[#a8402d66] bg-[#a8402d24]"
-                        }`}
-                        disabled={!isAvailable}
-                        onClick={() => setRoomId(room.id)}
-                        type="button"
-                      >
-                        <span className="block text-xl font-black">{room.name}</span>
-                        <span className={isAvailable ? "mt-2 block text-sm text-[#d7c9ad]" : "mt-2 block text-sm text-[#ffb199]"}>
-                          {isAvailable
-                            ? "예약 가능"
-                            : `${formatMinutes(conflict.startMinutes)}-${formatMinutes(conflict.endMinutes)} 예약 있음`}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
-            ) : null}
-
-            {step === 3 ? (
-              <section className="grid gap-5">
-                <div>
-                  <p className="text-sm font-bold text-[#dba24a]">4단계</p>
-                  <h2 className="mt-2 text-3xl font-black">예약자 정보 입력</h2>
-                  <p className="mt-2 text-sm text-[#d7c9ad]">
-                    {date} · {getRoomName(roomId)} · {formatMinutes(startMinutes)}-{formatMinutes(endMinutes)}
-                  </p>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="field">
-                    <span className="field-label">예약자 이름</span>
-                    <input className="input" value={name} onChange={(event) => setName(event.target.value)} />
-                  </label>
-                  <label className="field">
-                    <span className="field-label">연락처</span>
-                    <input className="input" value={phone} onChange={(event) => setPhone(event.target.value)} />
-                  </label>
-                </div>
-                <label className="field">
-                  <span className="field-label">메모</span>
-                  <textarea
-                    className="input min-h-24 resize-none"
-                    value={note}
-                    onChange={(event) => setNote(event.target.value)}
-                  />
-                </label>
-              </section>
-            ) : null}
-
-            {step === 4 ? (
-              <section className="grid content-center gap-5 py-10 text-center">
-                <p className="text-sm font-bold text-[#dba24a]">5단계</p>
-                <h2 className="text-3xl font-black">예약 접수 완료</h2>
-                <p className="mx-auto max-w-lg text-[#d7c9ad]">
-                  관리자 확인 후 예약 상태가 확정됩니다. 같은 브라우저의 관리자 페이지에서 접수 내역을 확인할 수 있습니다.
-                </p>
-                {message ? <p className="rounded-md bg-[#ffffff12] px-4 py-3 text-sm font-bold text-[#fff7e8]">{message}</p> : null}
-              </section>
-            ) : null}
-          </div>
-
-          <div className="grid gap-3">
-            {message && step !== 4 ? (
-              <p className="rounded-md bg-[#ffffff12] px-4 py-3 text-sm font-bold text-[#fff7e8]">{message}</p>
-            ) : null}
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      {step === "room" && (
+        <section className="grid flex-1 content-start gap-5">
+          <h1 className="text-4xl font-bold tracking-normal sm:text-5xl">방 선택</h1>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {ROOMS.map((room) => (
               <button
-                className="rounded-md border border-[#f7f0df24] px-5 py-3 font-bold text-[#f7f0df] hover:border-[#dba24a]"
-                disabled={step === 0}
-                onClick={step === 4 ? resetFlow : moveBack}
+                key={room.id}
+                className="min-h-40 rounded-2xl border bg-card p-8 text-left text-4xl font-bold shadow-sm transition hover:border-primary hover:bg-primary/5 focus-visible:border-ring focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none sm:min-h-52 sm:text-5xl"
+                onClick={() => selectRoom(room.id)}
+                style={{ fontSize: "clamp(2.5rem, 6vw, 4rem)", fontWeight: 700 }}
                 type="button"
               >
-                {step === 4 ? "새 예약" : "이전"}
+                {room.name}
               </button>
-              {step < 3 ? (
-                <button
-                  className="rounded-md bg-[#dba24a] px-5 py-3 font-black text-[#17120a] hover:bg-[#f0b95f]"
-                  onClick={moveNext}
-                  type="button"
-                >
-                  다음
-                </button>
-              ) : step === 3 ? (
-                <button
-                  className="rounded-md bg-[#dba24a] px-5 py-3 font-black text-[#17120a] hover:bg-[#f0b95f]"
-                  disabled={!isReady}
-                  type="submit"
-                >
-                  접수
-                </button>
-              ) : (
-                <Link
-                  className="rounded-md bg-[#dba24a] px-5 py-3 text-center font-black text-[#17120a] hover:bg-[#f0b95f]"
-                  href="/admin"
-                >
-                  관리자에서 확인
-                </Link>
-              )}
-            </div>
+            ))}
           </div>
-        </form>
-      </section>
+        </section>
+      )}
 
-      <aside className="grid content-start gap-4 py-2">
-        <div className="panel p-5">
-          <p className="text-sm font-bold text-[#dba24a]">선택 내역</p>
-          <dl className="mt-4 grid gap-3 text-sm">
-            <div className="flex justify-between gap-4 border-b border-[#f7f0df12] pb-3">
-              <dt className="text-[#d7c9ad]">날짜</dt>
-              <dd className="font-bold">{date}</dd>
+      {step === "time" && (
+        <section className="grid flex-1 content-start gap-5">
+          <h1 className="text-4xl font-bold tracking-normal sm:text-5xl">{selectedRoomName}</h1>
+          <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+            <div className="grid grid-cols-[7rem_1fr] border-b bg-muted/50 text-xl font-bold sm:grid-cols-[10rem_1fr]">
+              <div className="p-4 text-center">시간</div>
+              <div className="p-4 text-center">선택</div>
             </div>
-            <div className="flex justify-between gap-4 border-b border-[#f7f0df12] pb-3">
-              <dt className="text-[#d7c9ad]">시간</dt>
-              <dd className="font-bold">
-                {formatMinutes(startMinutes)}-{formatMinutes(endMinutes)}
-              </dd>
-            </div>
-            <div className="flex justify-between gap-4">
-              <dt className="text-[#d7c9ad]">강의실</dt>
-              <dd className="font-bold">{roomId ? getRoomName(roomId) : "선택 전"}</dd>
-            </div>
-          </dl>
-        </div>
+            <div className="grid">
+              {timePoints.map((minutes) => {
+                const slot = timeSlots.find((timeSlot) => timeSlot.startMinutes === minutes);
+                const isBlockedStart = slot ? !slot.isAvailable : false;
+                const isPending = firstRangePoint === minutes;
+                const isSelected =
+                  selectedTime !== null && minutes >= selectedTime.startMinutes && minutes <= selectedTime.endMinutes;
+                const buttonClassName =
+                  isSelected || isPending
+                    ? "bg-emerald-600 text-white"
+                    : isBlockedStart
+                      ? "bg-muted text-muted-foreground"
+                      : "bg-blue-600 text-white hover:bg-blue-700";
+                const label = isSelected || isPending ? "선택됨" : isBlockedStart ? "이용불가" : "이용가능";
 
-        <div className="panel p-5">
-          <h2 className="text-xl font-black">해당 날짜 예약 현황</h2>
-          <div className="mt-4 grid gap-3">
-            {dayReservations.length === 0 ? (
-              <p className="rounded-md border border-dashed border-[#f7f0df24] p-5 text-center text-sm text-[#d7c9ad]">
-                예약이 없습니다.
-              </p>
-            ) : (
-              dayReservations.map((reservation) => (
-                <div key={reservation.id} className="rounded-md border border-[#f7f0df14] bg-[#ffffff08] p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <strong>{getRoomName(reservation.roomId)}</strong>
-                    <span className="text-sm text-[#dba24a]">{STATUS_LABELS[reservation.status]}</span>
+                return (
+                  <div key={minutes} className="grid min-h-20 grid-cols-[7rem_1fr] border-b last:border-b-0 sm:grid-cols-[10rem_1fr]">
+                    <div className="grid place-items-center border-r p-3 text-3xl font-bold">{formatMinutes(minutes)}</div>
+                    <button
+                      className={`m-3 min-h-14 rounded-xl px-4 text-2xl font-bold transition focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none ${buttonClassName}`}
+                      onClick={() => selectTimePoint(minutes)}
+                      style={{ fontSize: "clamp(1.5rem, 4vw, 2rem)", fontWeight: 700 }}
+                      type="button"
+                    >
+                      {label}
+                    </button>
                   </div>
-                  <p className="mt-2 text-sm text-[#d7c9ad]">
-                    {formatMinutes(reservation.startMinutes)}-{formatMinutes(reservation.endMinutes)} · {reservation.name}
-                  </p>
-                </div>
-              ))
-            )}
+                );
+              })}
+            </div>
           </div>
-        </div>
-      </aside>
+          <Button
+            className="h-16 rounded-xl text-2xl"
+            disabled={!selectedTime}
+            onClick={moveToContact}
+            style={{ fontSize: "1.5rem", fontWeight: 700 }}
+            type="button"
+          >
+            다음
+          </Button>
+        </section>
+      )}
+
+      {step === "contact" && selectedTime && (
+        <section className="grid flex-1 content-start gap-5">
+          <h1 className="text-4xl font-bold tracking-normal sm:text-5xl">
+            {selectedRoomName} {selectedTime.label}
+          </h1>
+          <Card className="rounded-2xl border bg-card shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-3xl">예약자 정보</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-5">
+              <label className="grid gap-2">
+                <span className="text-xl font-bold">이름</span>
+                <Input
+                  className="h-16 rounded-xl px-4 text-2xl md:text-2xl"
+                  placeholder="이름"
+                  style={{ fontSize: "1.5rem", fontWeight: 700 }}
+                  {...form.register("name")}
+                />
+                {form.formState.errors.name ? (
+                  <span className="text-lg font-bold text-destructive">{form.formState.errors.name.message}</span>
+                ) : null}
+              </label>
+              <label className="grid gap-2">
+                <span className="text-xl font-bold">연락처</span>
+                <Input
+                  className="h-16 rounded-xl px-4 text-2xl md:text-2xl"
+                  inputMode="tel"
+                  placeholder="010-0000-0000"
+                  style={{ fontSize: "1.5rem", fontWeight: 700 }}
+                  {...form.register("phone")}
+                />
+                {form.formState.errors.phone ? (
+                  <span className="text-lg font-bold text-destructive">{form.formState.errors.phone.message}</span>
+                ) : null}
+              </label>
+            </CardContent>
+            <CardFooter className="grid gap-3 sm:grid-cols-2">
+              <Button
+                className="h-16 rounded-xl text-2xl"
+                onClick={() => setStep("time")}
+                style={{ fontSize: "1.5rem", fontWeight: 700 }}
+                type="button"
+                variant="outline"
+              >
+                시간 변경
+              </Button>
+              <Button
+                className="h-16 rounded-xl text-2xl"
+                disabled={!isReady}
+                onClick={form.handleSubmit(submitReservation, (errors) => {
+                  toast.error(errors.name?.message ?? errors.phone?.message ?? "확인해 주세요.");
+                })}
+                style={{ fontSize: "1.5rem", fontWeight: 700 }}
+                type="button"
+              >
+                접수
+              </Button>
+            </CardFooter>
+          </Card>
+        </section>
+      )}
+
+      {step === "done" && selectedTime && (
+        <section className="grid flex-1 place-items-center">
+          <Card className="w-full rounded-2xl border bg-card text-center shadow-sm">
+            <CardContent className="grid gap-6 p-10">
+              <CheckCircle2Icon className="mx-auto size-20 text-primary" />
+              <h1 className="text-5xl font-bold">접수 완료</h1>
+              <p className="text-3xl font-bold">
+                {selectedRoomName} {selectedTime.label}
+              </p>
+              <Button
+                className="mx-auto h-16 rounded-xl px-10 text-2xl"
+                onClick={resetFlow}
+                style={{ fontSize: "1.5rem", fontWeight: 700 }}
+                type="button"
+              >
+                새 예약
+              </Button>
+            </CardContent>
+          </Card>
+        </section>
+      )}
     </main>
   );
 }

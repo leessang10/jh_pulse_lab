@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildTimeRange,
   findReservationConflict,
   formatMinutes,
+  getAvailableTimeSlots,
+  getRoomTimeSlots,
+  getSimpleBookingTimePoints,
   generateTimeSlots,
   validateReservationDraft,
   type Reservation,
@@ -32,6 +36,67 @@ describe("reservation rules", () => {
     expect(slots).toHaveLength(48);
     expect(slots[0]).toEqual({ value: 0, label: "00:00" });
     expect(slots[47]).toEqual({ value: 1410, label: "23:30" });
+  });
+
+  it("lists one-hour available slots for a room and date", () => {
+    const cancelled: Reservation = {
+      ...baseReservation,
+      id: "res-cancelled",
+      startMinutes: 720,
+      endMinutes: 780,
+      status: "cancelled",
+    };
+    const otherRoom: Reservation = { ...baseReservation, id: "res-other-room", roomId: "room-2" };
+
+    const slots = getAvailableTimeSlots([baseReservation, cancelled, otherRoom], {
+      date: "2026-05-28",
+      roomId: "room-1",
+    });
+
+    expect(slots).not.toContainEqual({ startMinutes: 600, endMinutes: 660, label: "10:00-11:00" });
+    expect(slots).toContainEqual({ startMinutes: 540, endMinutes: 600, label: "09:00-10:00" });
+    expect(slots).toContainEqual({ startMinutes: 720, endMinutes: 780, label: "12:00-13:00" });
+  });
+
+  it("lists all simple room slots with availability", () => {
+    const slots = getRoomTimeSlots([baseReservation], {
+      date: "2026-05-28",
+      roomId: "room-1",
+    });
+
+    expect(slots[0]).toEqual({
+      startMinutes: 540,
+      endMinutes: 600,
+      label: "09:00-10:00",
+      isAvailable: true,
+    });
+    expect(slots[1]).toEqual({
+      startMinutes: 600,
+      endMinutes: 660,
+      label: "10:00-11:00",
+      isAvailable: false,
+    });
+  });
+
+  it("lists simple booking time points including the final endpoint", () => {
+    const points = getSimpleBookingTimePoints();
+
+    expect(points[0]).toBe(540);
+    expect(points.at(-1)).toBe(1320);
+  });
+
+  it("builds a sorted range from two clicked times", () => {
+    expect(buildTimeRange(660, 840)).toEqual({
+      startMinutes: 660,
+      endMinutes: 840,
+      label: "11:00-14:00",
+    });
+    expect(buildTimeRange(840, 660)).toEqual({
+      startMinutes: 660,
+      endMinutes: 840,
+      label: "11:00-14:00",
+    });
+    expect(buildTimeRange(660, 660)).toBeNull();
   });
 
   it("finds conflicting reservations in the same room and date", () => {

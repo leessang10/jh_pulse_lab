@@ -43,6 +43,9 @@ export const STATUS_LABELS: Record<ReservationStatus, string> = {
 
 export const SLOT_MINUTES = 30;
 export const DAY_END_MINUTES = 24 * 60;
+export const SIMPLE_BOOKING_START_MINUTES = 9 * 60;
+export const SIMPLE_BOOKING_END_MINUTES = 22 * 60;
+export const SIMPLE_BOOKING_DURATION_MINUTES = 60;
 
 export function formatMinutes(minutes: number) {
   const hours = Math.floor(minutes / 60);
@@ -58,6 +61,71 @@ export function generateTimeSlots() {
     return {
       value,
       label: formatMinutes(value),
+    };
+  });
+}
+
+export function getSimpleBookingTimePoints() {
+  const pointCount = (SIMPLE_BOOKING_END_MINUTES - SIMPLE_BOOKING_START_MINUTES) / SIMPLE_BOOKING_DURATION_MINUTES + 1;
+
+  return Array.from(
+    { length: pointCount },
+    (_, index) => SIMPLE_BOOKING_START_MINUTES + index * SIMPLE_BOOKING_DURATION_MINUTES,
+  );
+}
+
+export function buildTimeRange(firstMinutes: number, secondMinutes: number) {
+  if (firstMinutes === secondMinutes) return null;
+
+  const startMinutes = Math.min(firstMinutes, secondMinutes);
+  const endMinutes = Math.max(firstMinutes, secondMinutes);
+
+  return {
+    startMinutes,
+    endMinutes,
+    label: `${formatMinutes(startMinutes)}-${formatMinutes(endMinutes)}`,
+  };
+}
+
+export function getAvailableTimeSlots(
+  reservations: Reservation[],
+  options: {
+    date: string;
+    roomId: string;
+    durationMinutes?: number;
+  },
+) {
+  return getRoomTimeSlots(reservations, options)
+    .filter((slot) => slot.isAvailable)
+    .map(({ isAvailable: _isAvailable, ...slot }) => slot);
+}
+
+export function getRoomTimeSlots(
+  reservations: Reservation[],
+  options: {
+    date: string;
+    roomId: string;
+    durationMinutes?: number;
+  },
+) {
+  const durationMinutes = options.durationMinutes ?? SIMPLE_BOOKING_DURATION_MINUTES;
+  const slotCount = (SIMPLE_BOOKING_END_MINUTES - SIMPLE_BOOKING_START_MINUTES) / durationMinutes;
+
+  return Array.from({ length: slotCount }, (_, index) => {
+    const startMinutes = SIMPLE_BOOKING_START_MINUTES + index * durationMinutes;
+    const endMinutes = startMinutes + durationMinutes;
+    const conflict = findReservationConflict(reservations, {
+      date: options.date,
+      roomId: options.roomId,
+      startMinutes,
+      endMinutes,
+    });
+
+    return {
+      startMinutes,
+      endMinutes,
+      label: `${formatMinutes(startMinutes)}-${formatMinutes(endMinutes)}`,
+      isAvailable: !conflict,
     };
   });
 }
