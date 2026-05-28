@@ -109,6 +109,26 @@ button:disabled {
     0 12px 28px oklch(0.21 0.007 255 / 10%);
 }
 
+.mobile-date-dialog {
+  top: auto;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  max-width: none;
+  transform: none;
+  padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+}
+
+.mobile-date-calendar {
+  --cell-size: 2.75rem;
+  --cell-radius: 0.75rem;
+}
+
+.mobile-date-calendar table {
+  width: 100%;
+}
+
 .field {
   display: grid;
   gap: 0.45rem;

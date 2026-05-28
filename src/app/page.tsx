@@ -3,13 +3,23 @@
 import { useMemo, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AnimatePresence, motion, MotionConfig } from "framer-motion";
-import { CalendarIcon, CheckCircle2Icon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import { CalendarIcon, CheckCircle2Icon, ChevronLeftIcon, ChevronRightIcon, XIcon } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -67,6 +77,8 @@ const tactileMotion = {
 export default function ReservationPage() {
   const [step, setStep] = useState<BookingStep>("room");
   const [date, setDate] = useState(todayKoreaValue);
+  const [isDateDialogOpen, setIsDateDialogOpen] = useState(false);
+  const [pendingDate, setPendingDate] = useState<Date>(() => valueToKoreaDate(todayKoreaValue()));
   const { reservations, addReservation, isReady, error } = useReservations({ date });
   const [roomId, setRoomId] = useState("");
   const [selectedPeriod, setSelectedPeriod] = useState<BookingPeriodId>("afternoon");
@@ -109,6 +121,16 @@ export default function ReservationPage() {
     setDate(dateToKoreaValue(nextDate));
     clearTimeSelection();
     if (step !== "room") setStep(roomId ? "time" : "room");
+  }
+
+  function openDateDialog(nextOpen: boolean) {
+    setIsDateDialogOpen(nextOpen);
+    if (nextOpen) setPendingDate(selectedDate);
+  }
+
+  function confirmPendingDate() {
+    changeDate(pendingDate);
+    setIsDateDialogOpen(false);
   }
 
   function selectRoom(nextRoomId: string) {
@@ -249,12 +271,12 @@ export default function ReservationPage() {
 
   return (
     <MotionConfig reducedMotion="user">
-    <main className="reservation-shell mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 sm:px-8">
-      <nav className="sticky top-0 z-20 -mx-4 border-b bg-background/95 px-4 py-3 shadow-sm backdrop-blur sm:-mx-8 sm:px-8">
-        <div className="mx-auto grid max-w-5xl gap-2">
-          <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
+    <main className="reservation-shell mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 sm:px-6">
+      <nav className="sticky top-0 z-20 -mx-4 border-b bg-background/95 px-4 py-3 shadow-sm backdrop-blur sm:-mx-6 sm:px-6">
+        <div className="mx-auto grid max-w-2xl gap-2">
+          <div className="grid grid-cols-[4.5rem_1fr_4.5rem] items-center gap-2">
             <Button
-              className="h-9 rounded-lg px-2 text-sm font-bold sm:px-3"
+              className="h-10 justify-center rounded-lg px-2 text-sm font-bold"
               disabled={!navigation.previousStep}
               onClick={movePrevious}
               type="button"
@@ -263,7 +285,7 @@ export default function ReservationPage() {
               <ChevronLeftIcon className="size-4" />
               이전
             </Button>
-            <div className="flex min-w-0 items-center justify-center gap-1 text-sm font-bold text-muted-foreground sm:text-base">
+            <div className="flex min-w-0 items-center justify-center gap-1 text-xs font-bold text-muted-foreground sm:text-sm">
               {BOOKING_STEP_ITEMS.map((item, index) => {
                 const isActive = step === item.id;
                 const isDone = step === "done";
@@ -279,7 +301,7 @@ export default function ReservationPage() {
               })}
             </div>
             <Button
-              className="h-9 rounded-lg px-2 text-sm font-bold sm:px-3"
+              className="h-10 justify-center rounded-lg px-2 text-sm font-bold"
               disabled={isNextDisabled}
               onClick={moveNext}
               type="button"
@@ -288,22 +310,95 @@ export default function ReservationPage() {
               {step !== "contact" && step !== "done" ? <ChevronRightIcon className="size-4" /> : null}
             </Button>
           </div>
-          <div className="truncate text-center text-sm font-bold text-muted-foreground">{reservationSummary}</div>
+          <div className="truncate text-center text-xs font-bold text-muted-foreground sm:text-sm">{reservationSummary}</div>
         </div>
       </nav>
 
-      <header className="flex items-center justify-between gap-3 pt-1">
+      <header className="grid gap-3 pt-2 sm:flex sm:items-center sm:justify-between">
+        <Dialog open={isDateDialogOpen} onOpenChange={openDateDialog}>
+          <DialogTrigger
+            render={
+              <Button
+                variant="outline"
+                className="h-12 w-full justify-start rounded-xl px-4 text-lg font-bold sm:hidden"
+                style={{ fontSize: "1.125rem", fontWeight: 700 }}
+              />
+            }
+          >
+            <CalendarIcon className="size-5" />
+            {formatKoreaDate(date)}
+          </DialogTrigger>
+          <DialogContent
+            className="mobile-date-dialog !top-auto !right-0 !bottom-0 !left-0 !w-full !max-w-none !translate-x-0 !translate-y-0 gap-5 rounded-t-2xl border-0 p-5 shadow-2xl ring-0 data-closed:slide-out-to-bottom data-open:slide-in-from-bottom data-open:zoom-in-100 data-closed:zoom-out-100 sm:hidden"
+            showCloseButton={false}
+          >
+            <DialogHeader className="flex-row items-start justify-between gap-4">
+              <div className="grid gap-1">
+                <DialogTitle className="text-2xl font-bold">날짜 선택</DialogTitle>
+                <DialogDescription className="sr-only">
+                  예약 날짜 선택
+                </DialogDescription>
+              </div>
+              <DialogClose
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon-lg"
+                    className="rounded-full"
+                    aria-label="날짜 선택 닫기"
+                  />
+                }
+              >
+                <XIcon className="size-5" />
+              </DialogClose>
+            </DialogHeader>
+            <Calendar
+              mode="single"
+              selected={pendingDate}
+              onSelect={(nextDate) => {
+                if (nextDate) setPendingDate(nextDate);
+              }}
+              disabled={(day) => isBeforeKoreaToday(dateToKoreaValue(day))}
+              className="mobile-date-calendar w-full p-0"
+              classNames={{
+                root: "w-full",
+                month: "w-full gap-5",
+                months: "relative flex w-full flex-col gap-4",
+                caption_label: "text-lg font-bold",
+                weekday: "flex-1 rounded-(--cell-radius) text-sm font-bold text-muted-foreground select-none",
+              }}
+            />
+            <DialogFooter className="-mx-5 -mb-5 grid grid-cols-[1fr_2fr] gap-2 rounded-b-none bg-background p-5 sm:grid-cols-[1fr_2fr]">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-12 rounded-xl text-base font-bold"
+                onClick={() => setPendingDate(valueToKoreaDate(todayKoreaValue()))}
+              >
+                오늘
+              </Button>
+              <Button
+                type="button"
+                className="h-12 rounded-xl text-base font-bold"
+                onClick={confirmPendingDate}
+              >
+                선택 완료
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         <Popover>
           <PopoverTrigger
             render={
               <Button
                 variant="outline"
-                className="h-14 justify-start rounded-xl px-5 text-xl font-bold"
-                style={{ fontSize: "1.25rem", fontWeight: 700 }}
+                className="hidden h-12 w-full justify-start rounded-xl px-4 text-lg font-bold sm:inline-flex sm:w-auto"
+                style={{ fontSize: "1.125rem", fontWeight: 700 }}
               />
             }
           >
-            <CalendarIcon className="size-6" />
+            <CalendarIcon className="size-5" />
             {formatKoreaDate(date)}
           </PopoverTrigger>
           <PopoverContent align="start" className="w-auto">
@@ -325,18 +420,18 @@ export default function ReservationPage() {
 
       <AnimatePresence mode="wait">
       {step === "room" && (
-        <motion.section key="room" className="grid flex-1 content-start gap-5" {...sectionMotion}>
-          <h1 className="text-4xl font-bold tracking-normal sm:text-5xl">강의실 선택</h1>
-          <div className="grid gap-4 sm:grid-cols-2">
+        <motion.section key="room" className="grid flex-1 content-start gap-4" {...sectionMotion}>
+          <h1 className="text-3xl font-bold tracking-normal sm:text-4xl">강의실 선택</h1>
+          <div className="grid gap-3 sm:grid-cols-2">
             {ROOMS.map((room, index) => (
               <motion.button
                 key={room.id}
-                className="min-h-28 rounded-2xl border bg-card p-6 text-left text-4xl font-bold shadow-sm transition-colors hover:border-primary hover:bg-primary/5 focus-visible:border-ring focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none sm:min-h-52 sm:p-8 sm:text-5xl"
+                className="min-h-24 rounded-xl border bg-card p-5 text-left text-3xl font-bold shadow-sm transition-colors hover:border-primary hover:bg-primary/5 focus-visible:border-ring focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none sm:min-h-36 sm:p-6 sm:text-4xl"
                 {...itemMotion}
                 {...tactileMotion}
                 transition={{ ...itemMotion.transition, delay: index * 0.06 }}
                 onClick={() => selectRoom(room.id)}
-                style={{ fontSize: "clamp(2.15rem, 9vw, 4rem)", fontWeight: 700 }}
+                style={{ fontSize: "clamp(1.85rem, 7vw, 2.75rem)", fontWeight: 700 }}
                 type="button"
               >
                 {room.name}
@@ -347,14 +442,14 @@ export default function ReservationPage() {
       )}
 
       {step === "time" && (
-        <motion.section key="time" className="grid flex-1 content-start gap-5" {...sectionMotion}>
-          <h1 className="text-4xl font-bold tracking-normal sm:text-5xl">{selectedRoomName}</h1>
-          <div className="grid gap-5 rounded-2xl border bg-card p-4 shadow-sm sm:p-5">
+        <motion.section key="time" className="grid flex-1 content-start gap-4" {...sectionMotion}>
+          <h1 className="text-3xl font-bold tracking-normal sm:text-4xl">{selectedRoomName}</h1>
+          <div className="grid gap-4 rounded-xl border bg-card p-3 shadow-sm sm:p-5">
             <div className="grid grid-cols-4 gap-2">
               {BOOKING_PERIODS.map((period, index) => (
                 <motion.button
                   key={period.id}
-                  className={`h-14 rounded-xl border px-2 text-xl font-bold transition-colors focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none ${
+                  className={`h-11 rounded-lg border px-2 text-base font-bold transition-colors focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none sm:h-12 sm:text-lg ${
                     selectedPeriod === period.id
                       ? "motion-choice-selected border-primary bg-primary text-primary-foreground"
                       : "bg-background text-foreground hover:border-primary"
@@ -367,7 +462,7 @@ export default function ReservationPage() {
                   }}
                   transition={{ ...itemMotion.transition, delay: index * 0.025 }}
                   onClick={() => selectPeriod(period.id)}
-                  style={{ fontSize: "clamp(1rem, 3vw, 1.25rem)", fontWeight: 700 }}
+                  style={{ fontSize: "clamp(0.95rem, 3vw, 1.125rem)", fontWeight: 700 }}
                   type="button"
                 >
                   {period.label}
@@ -375,8 +470,8 @@ export default function ReservationPage() {
               ))}
             </div>
 
-            <div className="grid gap-3">
-              <div className="text-xl font-bold text-muted-foreground">시작 시간</div>
+            <div className="grid gap-2">
+              <div className="text-base font-bold text-muted-foreground sm:text-lg">시작 시간</div>
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
               {timePoints.map((minutes, index) => {
                 const isBlockedStart = !hasAvailableDuration(minutes);
@@ -391,7 +486,7 @@ export default function ReservationPage() {
                 return (
                   <motion.button
                     key={minutes}
-                    className={`h-16 rounded-xl px-3 text-2xl font-bold transition-colors focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none disabled:cursor-not-allowed ${buttonClassName}`}
+                    className={`h-13 rounded-lg px-2 text-xl font-bold transition-colors focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none disabled:cursor-not-allowed sm:h-14 ${buttonClassName}`}
                     disabled={isBlockedStart}
                     {...itemMotion}
                     {...(!isBlockedStart ? tactileMotion : {})}
@@ -401,19 +496,19 @@ export default function ReservationPage() {
                     }}
                     transition={{ ...itemMotion.transition, delay: index * 0.018 }}
                     onClick={() => selectStartTime(minutes)}
-                    style={{ fontSize: "clamp(1.35rem, 4vw, 1.75rem)", fontWeight: 700 }}
+                    style={{ fontSize: "clamp(1.15rem, 4vw, 1.45rem)", fontWeight: 700 }}
                     type="button"
                   >
                     <span className="block leading-tight">{formatMinutes(minutes)}</span>
-                    {isBlockedStart ? <span className="block text-sm font-bold leading-tight">예약 마감</span> : null}
+                    {isBlockedStart ? <span className="block text-xs font-bold leading-tight">예약 마감</span> : null}
                   </motion.button>
                 );
               })}
               </div>
             </div>
 
-            <div className="grid gap-3">
-              <div className="text-xl font-bold text-muted-foreground">이용 시간</div>
+            <div className="grid gap-2">
+              <div className="text-base font-bold text-muted-foreground sm:text-lg">이용 시간</div>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                 {durationOptions.map((option, index) => {
                   const isDisabled =
@@ -433,7 +528,7 @@ export default function ReservationPage() {
                   return (
                     <motion.button
                       key={option.minutes}
-                      className={`h-14 rounded-xl px-3 text-xl font-bold transition-colors focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none disabled:cursor-not-allowed ${
+                      className={`h-12 rounded-lg px-3 text-lg font-bold transition-colors focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none disabled:cursor-not-allowed ${
                         isSelected
                           ? "motion-choice-selected border-4 border-primary bg-background text-foreground"
                           : isDisabled
@@ -449,7 +544,7 @@ export default function ReservationPage() {
                       }}
                       transition={{ ...itemMotion.transition, delay: index * 0.03 }}
                       onClick={() => selectDuration(option.minutes)}
-                      style={{ fontSize: "clamp(1.1rem, 3vw, 1.25rem)", fontWeight: 700 }}
+                      style={{ fontSize: "clamp(1rem, 3vw, 1.125rem)", fontWeight: 700 }}
                       type="button"
                     >
                       <span className="block leading-tight">{option.label}</span>
@@ -461,49 +556,49 @@ export default function ReservationPage() {
             </div>
 
             <motion.div
-              className="min-h-20 rounded-xl border p-4"
+              className="min-h-18 rounded-xl border p-4"
               animate={{
                 backgroundColor: selectedTime ? "oklch(0.955 0.003 255)" : "var(--background)",
                 scale: selectedTime ? 1.01 : 1,
               }}
               transition={{ duration: 0.24, ease: "easeOut" }}
             >
-              <div className="text-base font-bold text-muted-foreground">선택한 시간</div>
-              <div className="mt-1 text-2xl font-bold">{selectedTime ? selectedTime.label : "시작 시간과 이용 시간을 선택해 주세요"}</div>
+              <div className="text-sm font-bold text-muted-foreground">선택한 시간</div>
+              <div className="mt-1 text-xl font-bold sm:text-2xl">{selectedTime ? selectedTime.label : "시작 시간과 이용 시간을 선택해 주세요"}</div>
             </motion.div>
           </div>
         </motion.section>
       )}
 
       {step === "contact" && selectedTime && (
-        <motion.section key="contact" className="grid flex-1 content-start gap-5" {...sectionMotion}>
-          <h1 className="text-4xl font-bold tracking-normal sm:text-5xl">
+        <motion.section key="contact" className="grid flex-1 content-start gap-4" {...sectionMotion}>
+          <h1 className="text-3xl font-bold tracking-normal sm:text-4xl">
             {selectedRoomName} {selectedTime.label}
           </h1>
-          <Card className="rounded-2xl border bg-card shadow-sm">
+          <Card className="rounded-xl border bg-card shadow-sm">
             <CardHeader>
-              <CardTitle className="text-3xl">예약자 정보</CardTitle>
+              <CardTitle className="text-2xl">예약자 정보</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-5">
+            <CardContent className="grid gap-4">
               <label className="grid gap-2">
-                <span className="text-xl font-bold">이름</span>
+                <span className="text-lg font-bold">이름</span>
                 <Input
-                  className="h-16 rounded-xl px-4 text-2xl md:text-2xl"
+                  className="h-14 rounded-xl px-4 text-xl md:text-xl"
                   placeholder="이름"
-                  style={{ fontSize: "1.5rem", fontWeight: 700 }}
+                  style={{ fontSize: "1.25rem", fontWeight: 700 }}
                   {...form.register("name")}
                 />
                 {form.formState.errors.name ? (
-                  <span className="text-lg font-bold text-destructive">{form.formState.errors.name.message}</span>
+                  <span className="text-base font-bold text-destructive">{form.formState.errors.name.message}</span>
                 ) : null}
               </label>
               <label className="grid gap-2">
-                <span className="text-xl font-bold">연락처</span>
+                <span className="text-lg font-bold">연락처</span>
                 <Input
-                  className="h-16 rounded-xl px-4 text-2xl md:text-2xl"
+                  className="h-14 rounded-xl px-4 text-xl md:text-xl"
                   inputMode="tel"
                   placeholder="010-0000-0000"
-                  style={{ fontSize: "1.5rem", fontWeight: 700 }}
+                  style={{ fontSize: "1.25rem", fontWeight: 700 }}
                   {...phoneRegistration}
                   onChange={(event) => {
                     event.currentTarget.value = formatKoreanPhoneNumber(event.currentTarget.value);
@@ -511,27 +606,27 @@ export default function ReservationPage() {
                   }}
                 />
                 {form.formState.errors.phone ? (
-                  <span className="text-lg font-bold text-destructive">{form.formState.errors.phone.message}</span>
+                  <span className="text-base font-bold text-destructive">{form.formState.errors.phone.message}</span>
                 ) : null}
               </label>
             </CardContent>
             <CardFooter className="grid gap-3 sm:grid-cols-2">
               <Button
-                className="motion-action h-16 rounded-xl text-2xl"
+                className="motion-action h-14 rounded-xl text-xl"
                 onClick={() => setStep("time")}
-                style={{ fontSize: "1.5rem", fontWeight: 700 }}
+                style={{ fontSize: "1.25rem", fontWeight: 700 }}
                 type="button"
                 variant="outline"
               >
                 시간 변경
               </Button>
               <Button
-                className="motion-action h-16 rounded-xl text-2xl"
+                className="motion-action h-14 rounded-xl text-xl"
                 disabled={!isReady || isSubmittingReservation}
                 onClick={form.handleSubmit(submitReservation, (errors) => {
                   toast.error(errors.name?.message ?? errors.phone?.message ?? "확인해 주세요.");
                 })}
-                style={{ fontSize: "1.5rem", fontWeight: 700 }}
+                style={{ fontSize: "1.25rem", fontWeight: 700 }}
                 type="button"
               >
                 {isSubmittingReservation ? "예약 중..." : "예약 확정"}
