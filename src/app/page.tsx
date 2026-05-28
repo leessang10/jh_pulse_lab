@@ -40,9 +40,9 @@ type SelectedTime = {
 };
 
 export default function ReservationPage() {
-  const { reservations, addReservation, isReady } = useReservations();
   const [step, setStep] = useState<BookingStep>("room");
   const [date, setDate] = useState(todayKoreaValue);
+  const { reservations, addReservation, isReady, error } = useReservations({ date });
   const [roomId, setRoomId] = useState("");
   const [selectedPeriod, setSelectedPeriod] = useState<BookingPeriodId>("afternoon");
   const [selectedStartMinutes, setSelectedStartMinutes] = useState<number | null>(null);
@@ -136,7 +136,7 @@ export default function ReservationPage() {
     setStep("contact");
   }
 
-  function submitReservation(values: ContactValues) {
+  async function submitReservation(values: ContactValues) {
     if (!roomId || !selectedTime) {
       setStep(roomId ? "time" : "room");
       return;
@@ -159,7 +159,14 @@ export default function ReservationPage() {
       return;
     }
 
-    addReservation(draft);
+    const result = await addReservation(draft);
+    if (!result.ok) {
+      toast.error(result.error);
+      clearTimeSelection();
+      setStep("time");
+      return;
+    }
+
     setStep("done");
     toast.success("접수되었습니다.");
   }
@@ -208,6 +215,12 @@ export default function ReservationPage() {
           </Button>
         )}
       </header>
+
+      {error ? (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 font-bold text-destructive">
+          {error}
+        </div>
+      ) : null}
 
       {step === "room" && (
         <section className="grid flex-1 content-start gap-5">

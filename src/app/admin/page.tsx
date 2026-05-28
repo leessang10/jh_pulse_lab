@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
@@ -19,10 +19,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { dateToKoreaValue, formatKoreaDate, todayKoreaValue, valueToKoreaDate } from "@/lib/korea-date";
+import { getAdminSession, loginAdmin, logoutAdmin } from "@/lib/admin-auth-actions";
 import { formatMinutes, getRoomName, ROOMS, STATUS_LABELS, type ReservationStatus } from "@/lib/reservations";
 import { useReservations } from "@/lib/use-reservations";
 
@@ -35,10 +37,42 @@ function statusVariant(status: ReservationStatus) {
 }
 
 export default function AdminPage() {
-  const { reservations, updateReservationStatus, removeReservation, isReady } = useReservations();
   const [date, setDate] = useState(todayKoreaValue);
   const [roomId, setRoomId] = useState("all");
   const [status, setStatus] = useState<ReservationStatus | "all">("all");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isSessionReady, setIsSessionReady] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { reservations, updateReservationStatus, removeReservation, isReady, error } = useReservations({
+    date,
+    admin: true,
+    enabled: isLoggedIn,
+    roomId,
+    status,
+  });
+
+  useEffect(() => {
+    let isMounted = true;
+
+    getAdminSession()
+      .then((user) => {
+        if (!isMounted) return;
+        setIsLoggedIn(Boolean(user));
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setIsLoggedIn(false);
+      })
+      .finally(() => {
+        if (!isMounted) return;
+        setIsSessionReady(true);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const filteredReservations = useMemo(
     () =>
@@ -50,13 +84,46 @@ export default function AdminPage() {
     [date, reservations, roomId, status],
   );
 
-  function changeStatus(id: string, nextStatus: ReservationStatus) {
-    updateReservationStatus(id, nextStatus);
+  async function submitLogin() {
+    const result = await loginAdmin(email, password);
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+
+    setIsLoggedIn(true);
+    setPassword("");
+    toast.success("로그인했습니다.");
+  }
+
+  async function submitLogout() {
+    const result = await logoutAdmin();
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+
+    setIsLoggedIn(false);
+    toast.success("로그아웃했습니다.");
+  }
+
+  async function changeStatus(id: string, nextStatus: ReservationStatus) {
+    const result = await updateReservationStatus(id, nextStatus);
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+
     toast.success(`예약 상태를 ${STATUS_LABELS[nextStatus]}로 변경했습니다.`);
   }
 
-  function deleteReservation(id: string) {
-    removeReservation(id);
+  async function deleteReservation(id: string) {
+    const result = await removeReservation(id);
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+
     toast.success("예약을 삭제했습니다.");
   }
 
@@ -69,11 +136,52 @@ export default function AdminPage() {
           </Badge>
           <h1 className="mt-2 text-4xl font-bold text-foreground sm:text-5xl">예약 관리</h1>
         </div>
-        <Button render={<Link href="/" />} variant="outline">
-          예약 페이지
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          {isLoggedIn ? (
+            <Button onClick={submitLogout} type="button" variant="outline">
+              로그아웃
+            </Button>
+          ) : null}
+          <Button render={<Link href="/" />} variant="outline">
+            예약 페이지
+          </Button>
+        </div>
       </header>
 
+      {!isSessionReady ? (
+        <Card className="mt-6 border bg-card shadow-sm">
+          <CardContent className="p-8 text-center text-muted-foreground">관리자 세션을 확인하는 중입니다.</CardContent>
+        </Card>
+      ) : !isLoggedIn ? (
+        <Card className="mt-6 border bg-card shadow-sm">
+          <CardHeader>
+            <CardTitle>관리자 로그인</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4">
+            <Input
+              autoComplete="email"
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="이메일"
+              type="email"
+              value={email}
+            />
+            <Input
+              autoComplete="current-password"
+              onChange={(event) => setPassword(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") void submitLogin();
+              }}
+              placeholder="비밀번호"
+              type="password"
+              value={password}
+            />
+            <Button onClick={submitLogin} type="button">
+              로그인
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
       <Card className="mt-6 border bg-card shadow-sm">
         <CardHeader>
           <CardTitle>필터</CardTitle>
@@ -135,6 +243,11 @@ export default function AdminPage() {
           <CardTitle>예약 목록</CardTitle>
         </CardHeader>
         <CardContent>
+          {error ? (
+            <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-4 font-bold text-destructive">
+              {error}
+            </div>
+          ) : null}
           {!isReady ? (
             <div className="p-8 text-center text-muted-foreground">예약 데이터를 불러오는 중입니다.</div>
           ) : filteredReservations.length === 0 ? (
@@ -209,6 +322,8 @@ export default function AdminPage() {
           )}
         </CardContent>
       </Card>
+        </>
+      )}
     </main>
   );
 }

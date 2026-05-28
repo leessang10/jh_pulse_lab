@@ -1,61 +1,109 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import {
-  createReservation,
-  type Reservation,
-  type ReservationDraft,
-  type ReservationStatus,
-} from "./reservations";
+  createPublicReservation,
+  deleteAdminReservation,
+  listAdminReservations,
+  listPublicReservationTimeBlocks,
+  updateAdminReservationStatus,
+  type ReservationActionResult,
+} from "@/lib/reservation-actions";
+import type { Reservation, ReservationDraft, ReservationStatus } from "@/lib/reservations";
+import type { PublicReservationTimeBlock } from "@/lib/supabase/reservation-mappers";
 
-const STORAGE_KEY = "jh-pulse-lab-reservations";
+type UseReservationsOptions = {
+  date: string;
+  admin?: boolean;
+  enabled?: boolean;
+  roomId?: string;
+  status?: ReservationStatus | "all";
+};
 
-function readReservations() {
-  if (typeof window === "undefined") return [];
-
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as Reservation[]) : [];
-  } catch {
-    return [];
-  }
+function toReservation(block: PublicReservationTimeBlock): Reservation {
+  return {
+    ...block,
+    name: "",
+    phone: "",
+  };
 }
 
-export function useReservations() {
+function emptyResult<T>(error: string): ReservationActionResult<T> {
+  return { ok: false, error };
+}
+
+export function useReservations(options: UseReservationsOptions) {
+  const enabled = options.enabled ?? true;
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [isReady, setIsReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
-  useEffect(() => {
-    setReservations(readReservations());
+  const refresh = useCallback(async () => {
+    if (!enabled) {
+      setReservations([]);
+      setError(null);
+      setIsReady(true);
+      return { ok: true, data: [] } satisfies ReservationActionResult<Reservation[]>;
+    }
+
+    setIsReady(false);
+    setError(null);
+
+    const result = options.admin
+      ? await listAdminReservations({
+          date: options.date,
+          roomId: options.roomId === "all" ? undefined : options.roomId,
+          status: !options.status || options.status === "all" ? undefined : options.status,
+        })
+      : await listPublicReservationTimeBlocks(options.date);
+
+    if (result.ok) {
+      const data: Reservation[] = options.admin ? (result.data as Reservation[]) : result.data.map(toReservation);
+      setReservations(data);
+      setIsReady(true);
+      return { ok: true, data } satisfies ReservationActionResult<Reservation[]>;
+    }
+
+    setReservations([]);
+    setError(result.error);
     setIsReady(true);
-  }, []);
+    return result;
+  }, [enabled, options.admin, options.date, options.roomId, options.status]);
 
   useEffect(() => {
-    if (!isReady) return;
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(reservations));
-  }, [isReady, reservations]);
+    startTransition(() => {
+      void refresh();
+    });
+  }, [refresh]);
 
   return useMemo(
     () => ({
       reservations,
       isReady,
-      addReservation(draft: ReservationDraft) {
-        const reservation = createReservation(draft);
-        setReservations((current) => [reservation, ...current]);
-        return reservation;
+      isPending,
+      error,
+      refresh,
+      async addReservation(draft: ReservationDraft) {
+        const result = await createPublicReservation(draft);
+        if (result.ok) await refresh();
+        return result;
       },
-      updateReservationStatus(id: string, status: ReservationStatus) {
-        setReservations((current) =>
-          current.map((reservation) => (reservation.id === id ? { ...reservation, status } : reservation)),
-        );
+      async updateReservationStatus(id: string, status: ReservationStatus) {
+        if (!options.admin) return emptyResult<null>("관리자 로그인이 필요합니다.");
+
+        const result = await updateAdminReservationStatus(id, status);
+        if (result.ok) await refresh();
+        return result;
       },
-      removeReservation(id: string) {
-        setReservations((current) => current.filter((reservation) => reservation.id !== id));
+      async removeReservation(id: string) {
+        if (!options.admin) return emptyResult<null>("관리자 로그인이 필요합니다.");
+
+        const result = await deleteAdminReservation(id);
+        if (result.ok) await refresh();
+        return result;
       },
     }),
-    [isReady, reservations],
+    [error, isPending, isReady, options.admin, refresh, reservations],
   );
 }
