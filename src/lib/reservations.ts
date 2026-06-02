@@ -25,6 +25,7 @@ export type ReservationDraft = {
   endMinutes: number;
   name: string;
   phone: string;
+  password: string;
   note?: string;
 };
 
@@ -322,13 +323,16 @@ export function validateReservationDraft(draft: ReservationDraft) {
   if (draft.endMinutes <= draft.startMinutes) errors.push("종료 시간은 시작 시간보다 늦어야 합니다.");
   if (!draft.name.trim()) errors.push("예약자 이름을 입력해 주세요.");
   if (!draft.phone.trim()) errors.push("연락처를 입력해 주세요.");
+  if (!/^\d{6}$/.test(draft.password)) errors.push("비밀번호는 숫자 6자리로 입력해 주세요.");
 
   return errors;
 }
 
 export function createReservation(draft: ReservationDraft): Reservation {
+  const { password: _password, ...reservationDraft } = draft;
+
   return {
-    ...draft,
+    ...reservationDraft,
     id: crypto.randomUUID(),
     status: "pending",
     createdAt: new Date().toISOString(),

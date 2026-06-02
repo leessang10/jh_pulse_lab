@@ -142,7 +142,7 @@ export default function AdminPage() {
               로그아웃
             </Button>
           ) : null}
-          <Button render={<Link href="/" />} variant="outline">
+          <Button render={<Link href="/reservation" />} variant="outline">
             예약 페이지
           </Button>
         </div>

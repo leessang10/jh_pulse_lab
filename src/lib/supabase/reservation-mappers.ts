@@ -1,4 +1,5 @@
 import type { Reservation, ReservationDraft, ReservationStatus } from "@/lib/reservations";
+import { hashReservationPassword } from "@/lib/reservation-credentials";
 
 export type ReservationRow = {
   id: string;
@@ -8,13 +9,14 @@ export type ReservationRow = {
   end_minutes: number;
   name: string;
   phone: string;
+  password_hash?: string | null;
   note: string | null;
   status: ReservationStatus;
   created_at: string;
   updated_at: string;
 };
 
-export type PublicReservationTimeBlock = Omit<Reservation, "name" | "phone" | "note">;
+export type PublicReservationTimeBlock = Omit<Reservation, "phone" | "note">;
 
 export type ReservationInsert = {
   date: string;
@@ -23,6 +25,7 @@ export type ReservationInsert = {
   end_minutes: number;
   name: string;
   phone: string;
+  password_hash: string;
   note: string | null;
   status: "pending";
 };
@@ -49,6 +52,7 @@ export function mapReservationRowToTimeBlock(row: ReservationRow): PublicReserva
     roomId: row.room_id,
     startMinutes: row.start_minutes,
     endMinutes: row.end_minutes,
+    name: row.name,
     status: row.status,
     createdAt: row.created_at,
   };
@@ -64,6 +68,7 @@ export function mapReservationDraftToInsert(draft: ReservationDraft): Reservatio
     end_minutes: draft.endMinutes,
     name: draft.name.trim(),
     phone: draft.phone.trim(),
+    password_hash: hashReservationPassword(draft.password),
     note: note || null,
     status: "pending",
   };

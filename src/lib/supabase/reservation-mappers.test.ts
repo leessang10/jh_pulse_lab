@@ -5,6 +5,7 @@ import {
   mapReservationRowToTimeBlock,
   type ReservationRow,
 } from "./reservation-mappers";
+import { hashReservationPassword } from "../reservation-credentials";
 
 const row: ReservationRow = {
   id: "67c5bdfa-fcf2-4fbb-8204-912c54f364e6",
@@ -15,6 +16,7 @@ const row: ReservationRow = {
   name: " Lee ",
   phone: " 010-0000-0000 ",
   note: " Bring sticks ",
+  password_hash: hashReservationPassword("123456"),
   status: "pending",
   created_at: "2026-05-29T00:00:00.000Z",
   updated_at: "2026-05-29T00:01:00.000Z",
@@ -36,13 +38,14 @@ describe("Supabase reservation mappers", () => {
     });
   });
 
-  it("maps a Supabase row to a public time block without private fields", () => {
+  it("maps a Supabase row to a public time block without contact fields", () => {
     expect(mapReservationRowToTimeBlock(row)).toEqual({
       id: row.id,
       date: "2026-05-29",
       roomId: "room-1",
       startMinutes: 600,
       endMinutes: 660,
+      name: " Lee ",
       status: "pending",
       createdAt: "2026-05-29T00:00:00.000Z",
     });
@@ -57,6 +60,7 @@ describe("Supabase reservation mappers", () => {
         endMinutes: 780,
         name: " Kim ",
         phone: " 010-1111-2222 ",
+        password: "654321",
         note: " ",
       }),
     ).toEqual({
@@ -66,6 +70,7 @@ describe("Supabase reservation mappers", () => {
       end_minutes: 780,
       name: "Kim",
       phone: "010-1111-2222",
+      password_hash: hashReservationPassword("654321"),
       note: null,
       status: "pending",
     });

@@ -344,6 +344,7 @@ describe("reservation rules", () => {
         endMinutes: 660,
         name: "Lee",
         phone: "010-0000-0000",
+        password: "123456",
       }),
     ).toEqual([]);
 
@@ -355,6 +356,7 @@ describe("reservation rules", () => {
         endMinutes: 600,
         name: "",
         phone: "",
+        password: "12345",
       }),
     ).toEqual([
       "날짜를 선택해 주세요.",
@@ -363,6 +365,7 @@ describe("reservation rules", () => {
       "종료 시간은 시작 시간보다 늦어야 합니다.",
       "예약자 이름을 입력해 주세요.",
       "연락처를 입력해 주세요.",
+      "비밀번호는 숫자 6자리로 입력해 주세요.",
     ]);
   });
 

@@ -1,463 +1,204 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useMemo, useState } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { AnimatePresence, motion, MotionConfig } from "framer-motion";
-import { CheckCircle2Icon, ChevronLeftIcon } from "lucide-react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
+import Link from "next/link";
+import { CalendarPlusIcon, ClipboardListIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import {
-  findReservationConflict,
-  getBookableRangeOptions,
-  getBookingDurationOptions,
-  getRoomName,
-  ROOMS,
-  type ReservationDraft,
-} from "@/lib/reservations";
-import { todayKoreaValue } from "@/lib/korea-date";
-import {
-  formatKoreanPhoneNumber,
-  getBookingHeaderState,
-  getBookingStepNavigation,
-  type BookingStep,
-} from "@/lib/reservation-ui";
+import { formatKoreaDate, todayKoreaValue } from "@/lib/korea-date";
+import { getLandingScheduleSlots, type LandingScheduleSlot } from "@/lib/landing-schedule";
+import { DAY_END_MINUTES, SLOT_MINUTES } from "@/lib/reservations";
 import { useReservations } from "@/lib/use-reservations";
 
-const contactSchema = z.object({
-  name: z.string().trim().min(1, "이름을 입력해 주세요."),
-  phone: z.string().trim().min(1, "연락처를 입력해 주세요."),
-});
+const scheduleSize = 360;
+const scheduleCenter = scheduleSize / 2;
+const scheduleRadius = 126;
+const hourMarkerRadius = 150;
+const hourLabelRadius = 166;
+const slotAngle = 360 / (DAY_END_MINUTES / SLOT_MINUTES);
+const hourMarkers = Array.from({ length: 24 }, (_, hour) => hour);
 
-type ContactValues = z.infer<typeof contactSchema>;
-type SelectedTime = {
-  startMinutes: number;
-  endMinutes: number;
-  label: string;
-};
+function pointOnCircle(angleDegrees: number, radius: number) {
+  const radians = ((angleDegrees - 90) * Math.PI) / 180;
 
-type BookableRangeOption = ReturnType<typeof getBookableRangeOptions>[number];
+  return {
+    x: scheduleCenter + radius * Math.cos(radians),
+    y: scheduleCenter + radius * Math.sin(radians),
+  };
+}
 
-const sectionMotion = {
-  initial: { opacity: 1, y: 0 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -8 },
-  transition: { duration: 0.18, ease: "easeOut" },
-} as const;
+function getSlotArcPath(index: number) {
+  const startAngle = index * slotAngle + 0.85;
+  const endAngle = (index + 1) * slotAngle - 0.85;
+  const start = pointOnCircle(startAngle, scheduleRadius);
+  const end = pointOnCircle(endAngle, scheduleRadius);
 
-const itemMotion = {
-  initial: { opacity: 0, y: 10, scale: 0.985 },
-  animate: { opacity: 1, y: 0, scale: 1 },
-  transition: { duration: 0.3, ease: "easeOut" },
-} as const;
+  return [
+    `M ${start.x.toFixed(2)} ${start.y.toFixed(2)}`,
+    `A ${scheduleRadius} ${scheduleRadius} 0 0 1 ${end.x.toFixed(2)} ${end.y.toFixed(2)}`,
+  ].join(" ");
+}
 
-const tactileMotion = {
-  whileHover: { y: -2 },
-  whileTap: { scale: 0.985, y: 0 },
-} as const;
+function getFloatingLabelStyle(slot: LandingScheduleSlot): CSSProperties {
+  const angle = (slot.index + 0.5) * slotAngle;
+  const radians = ((angle - 90) * Math.PI) / 180;
+  const radius = 43;
 
-export default function ReservationPage() {
-  const [step, setStep] = useState<BookingStep>("room");
+  return {
+    left: `${50 + radius * Math.cos(radians)}%`,
+    top: `${50 + radius * Math.sin(radians)}%`,
+    transform: "translate(-50%, -50%)",
+  };
+}
+
+function getSlotTitle(slot: LandingScheduleSlot) {
+  return `${slot.rangeLabel} ${slot.bookedByLabel}`;
+}
+
+function isFirstLabelSlot(slot: LandingScheduleSlot, index: number, slots: LandingScheduleSlot[]) {
+  const previous = slots[index - 1];
+
+  return !previous || previous.endMinutes !== slot.startMinutes || previous.bookedByLabel !== slot.bookedByLabel;
+}
+
+export default function HomePage() {
   const [date] = useState(todayKoreaValue);
-  const { reservations, addReservation, isReady, error } = useReservations({ date });
-  const [roomId, setRoomId] = useState("");
-  const [selectedDurationMinutes, setSelectedDurationMinutes] = useState(60);
-  const [selectedStartMinutes, setSelectedStartMinutes] = useState<number | null>(null);
-  const [selectedTime, setSelectedTime] = useState<SelectedTime | null>(null);
-  const [isSubmittingReservation, setIsSubmittingReservation] = useState(false);
-
-  const form = useForm<ContactValues>({
-    resolver: zodResolver(contactSchema),
-    defaultValues: {
-      name: "",
-      phone: "",
-    },
-  });
-
-  const selectedRoomName = roomId ? getRoomName(roomId) : "";
-  const navigation = getBookingStepNavigation({
-    step,
-    hasRoom: Boolean(roomId),
-    hasTime: Boolean(selectedTime),
-  });
-  const headerState = getBookingHeaderState(step);
-  const durationOptions = useMemo(() => getBookingDurationOptions(), []);
-  const rangeOptions = useMemo(
-    () =>
-      getBookableRangeOptions(reservations, {
-        date,
-        roomId,
-        durationMinutes: selectedDurationMinutes,
-      }),
-    [date, reservations, roomId, selectedDurationMinutes],
-  );
-  const phoneRegistration = form.register("phone");
-
-  function clearTimeSelection() {
-    setSelectedStartMinutes(null);
-    setSelectedTime(null);
-  }
-
-  function selectRoom(nextRoomId: string) {
-    setRoomId(nextRoomId);
-    clearTimeSelection();
-    setStep("time");
-  }
-
-  function selectDuration(durationMinutes: number) {
-    setSelectedDurationMinutes(durationMinutes);
-    clearTimeSelection();
-  }
-
-  function selectRange(option: BookableRangeOption) {
-    const conflict = findReservationConflict(reservations, {
-      date,
-      roomId,
-      startMinutes: option.startMinutes,
-      endMinutes: option.endMinutes,
-    });
-
-    if (conflict) {
-      toast.error("이미 예약된 시간이 포함되어 있습니다.");
-      setSelectedTime(null);
-      return;
-    }
-
-    setSelectedStartMinutes(option.startMinutes);
-    setSelectedTime({
-      startMinutes: option.startMinutes,
-      endMinutes: option.endMinutes,
-      label: option.label,
-    });
-  }
-
-  function moveToContact() {
-    if (!selectedTime) {
-      toast.error("시간을 선택해 주세요.");
-      return;
-    }
-
-    setStep("contact");
-  }
-
-  async function submitReservation(values: ContactValues) {
-    if (isSubmittingReservation) return;
-
-    if (!roomId || !selectedTime) {
-      setStep(roomId ? "time" : "room");
-      return;
-    }
-
-    const draft: ReservationDraft = {
-      date,
-      roomId,
-      startMinutes: selectedTime.startMinutes,
-      endMinutes: selectedTime.endMinutes,
-      name: values.name,
-      phone: values.phone,
-    };
-    const conflict = findReservationConflict(reservations, draft);
-
-    if (conflict) {
-      toast.error("이미 예약된 시간입니다.");
-      setStep("time");
-      return;
-    }
-
-    setIsSubmittingReservation(true);
-    try {
-      const result = await addReservation(draft);
-      if (!result.ok) {
-        toast.error(result.error);
-        return;
-      }
-
-      setStep("done");
-      toast.success("예약이 확정되었습니다.");
-    } finally {
-      setIsSubmittingReservation(false);
-    }
-  }
-
-  function resetFlow() {
-    setStep("room");
-    setRoomId("");
-    clearTimeSelection();
-    form.reset();
-  }
-
-  function movePrevious() {
-    if (navigation.previousStep) setStep(navigation.previousStep);
-  }
+  const { reservations, error } = useReservations({ date });
+  const slots = useMemo(() => getLandingScheduleSlots(reservations, date), [date, reservations]);
+  const bookedSlots = useMemo(() => slots.filter((slot) => slot.isBooked), [slots]);
+  const bookedLabelSlots = useMemo(() => bookedSlots.filter(isFirstLabelSlot), [bookedSlots]);
+  const dateLabel = useMemo(() => formatKoreaDate(date), [date]);
 
   return (
-    <MotionConfig reducedMotion="user">
-    <main className="reservation-shell mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 sm:px-6">
-      <nav className="sticky top-0 z-20 -mx-4 border-b bg-background/96 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
-        <div className="mx-auto grid max-w-2xl gap-2">
-          <div className="grid grid-cols-[2.5rem_1fr_2.5rem] items-center gap-3">
-            <Button
-              aria-label="이전 단계"
-              className="size-10 justify-center rounded-lg p-0"
-              disabled={!navigation.previousStep}
-              onClick={movePrevious}
-              type="button"
-              variant="outline"
+    <main className="min-h-screen bg-background px-3 py-4 text-foreground sm:px-6">
+      <section className="mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-5xl flex-col gap-4">
+        <header className="pt-3 text-center">
+          <p className="grid gap-1 text-base font-bold text-muted-foreground sm:text-lg">
+            <span>{dateLabel}</span>
+            <span>빈 시간을 보고 바로 예약하세요</span>
+          </p>
+        </header>
+
+        <section
+          aria-label="예약 현황"
+          className="grid flex-1 content-center"
+        >
+          {error ? (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm font-bold text-destructive">
+              {error}
+            </div>
+          ) : null}
+
+          <div className="relative mx-auto aspect-square w-full max-w-[min(100%,40rem,calc(100dvh-13rem))]">
+            <svg
+              aria-label="오늘 예약 시간을 시계처럼 보여주는 표"
+              className="size-full overflow-visible"
+              role="img"
+              viewBox={`0 0 ${scheduleSize} ${scheduleSize}`}
             >
-              <ChevronLeftIcon className="size-4" />
-            </Button>
-            <div className="min-w-0 text-center">
-              <div className="text-[0.72rem] font-bold text-muted-foreground sm:text-xs">{headerState.stepLabel}</div>
-              <div className="truncate text-xl font-bold leading-tight tracking-normal sm:text-2xl">
-                {headerState.title}
+              <circle
+                className="fill-background stroke-border"
+                cx={scheduleCenter}
+                cy={scheduleCenter}
+                r={scheduleRadius - 24}
+                strokeWidth="1"
+              />
+              <circle
+                className="fill-none stroke-muted"
+                cx={scheduleCenter}
+                cy={scheduleCenter}
+                r={scheduleRadius}
+                strokeWidth="1"
+              />
+              {slots.map((slot) => (
+                <path
+                  key={slot.startMinutes}
+                  className={
+                    slot.reservationCount > 1
+                      ? "fill-none stroke-pulse-warm"
+                      : slot.isBooked
+                        ? "fill-none stroke-pulse-accent"
+                        : "fill-none stroke-muted"
+                  }
+                  d={getSlotArcPath(slot.index)}
+                  opacity={slot.isBooked ? 1 : 0.62}
+                  strokeLinecap="round"
+                  strokeWidth={slot.isBooked ? 11 : 5}
+                >
+                  <title>{getSlotTitle(slot)}</title>
+                </path>
+              ))}
+              {hourMarkers.map((hour) => {
+                const angle = hour * 15;
+                const outer = pointOnCircle(angle, hourMarkerRadius);
+                const inner = pointOnCircle(angle, hour % 6 === 0 ? 132 : 140);
+                const label = pointOnCircle(angle, hourLabelRadius);
+
+                return (
+                  <g key={hour}>
+                    <line
+                      className={hour % 6 === 0 ? "stroke-foreground" : "stroke-muted-foreground"}
+                      opacity={hour % 6 === 0 ? 0.86 : 0.5}
+                      strokeLinecap="round"
+                      strokeWidth={hour % 6 === 0 ? 2.5 : 1.4}
+                      x1={inner.x}
+                      x2={outer.x}
+                      y1={inner.y}
+                      y2={outer.y}
+                    />
+                    <text
+                      className={hour % 6 === 0 ? "fill-foreground text-[0.72rem] font-bold" : "fill-muted-foreground text-[0.58rem] font-bold"}
+                      dominantBaseline="middle"
+                      textAnchor="middle"
+                      x={label.x}
+                      y={label.y}
+                    >
+                      {String(hour).padStart(2, "0")}
+                    </text>
+                  </g>
+                );
+              })}
+            </svg>
+
+            <div className="absolute inset-[30%] grid place-items-center rounded-full border bg-background/95 p-4 text-center shadow-sm backdrop-blur">
+              <div>
+                <div className="text-xs font-bold text-muted-foreground">오늘</div>
+                <div className="text-4xl font-bold leading-none">{bookedSlots.length}</div>
+                <div className="mt-1 text-xs font-bold text-muted-foreground">예약된 시간</div>
               </div>
             </div>
-            <div aria-hidden="true" />
-          </div>
-          <div className="h-1 overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full rounded-full bg-foreground transition-[width] duration-300 ease-out"
-              style={{ width: `${headerState.progressPercent}%` }}
-            />
-          </div>
-        </div>
-      </nav>
 
-      {error ? (
-        <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 font-bold text-destructive">
-          {error}
-        </div>
-      ) : null}
-
-      <AnimatePresence mode="wait">
-      {step === "room" && (
-        <motion.section key="room" className="grid flex-1 content-start gap-4" {...sectionMotion}>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {ROOMS.map((room, index) => (
-              <motion.button
-                key={room.id}
-                className="min-h-24 rounded-xl border bg-card p-5 text-left text-3xl font-bold shadow-sm transition-colors hover:border-primary hover:bg-primary/5 focus-visible:border-ring focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none sm:min-h-36 sm:p-6 sm:text-4xl"
-                {...itemMotion}
-                {...tactileMotion}
-                transition={{ ...itemMotion.transition, delay: index * 0.06 }}
-                onClick={() => selectRoom(room.id)}
-                style={{ fontSize: "clamp(1.85rem, 7vw, 2.75rem)", fontWeight: 700 }}
-                type="button"
+            {bookedLabelSlots.map((slot) => (
+              <div
+                key={`${slot.startMinutes}-${slot.bookedByLabel}`}
+                className="absolute max-w-28 truncate rounded-md border border-pulse-accent/30 bg-background/95 px-2 py-1 text-[0.68rem] font-bold text-foreground shadow-sm backdrop-blur sm:max-w-36 sm:text-xs"
+                style={getFloatingLabelStyle(slot)}
+                title={getSlotTitle(slot)}
               >
-                {room.name}
-              </motion.button>
+                {slot.bookedByLabel}
+              </div>
             ))}
           </div>
-        </motion.section>
-      )}
+        </section>
 
-      {step === "time" && (
-        <motion.section key="time" className="grid flex-1 content-start gap-5" {...sectionMotion}>
-          <div className="grid gap-5">
-            <div className="grid gap-3">
-              <div className="text-lg font-bold text-muted-foreground sm:text-xl">이용 시간</div>
-              <div className="grid grid-cols-3 gap-2">
-                {durationOptions.map((option, index) => {
-                  const isSelected = selectedDurationMinutes === option.minutes;
-
-                  return (
-                    <motion.button
-                      key={option.minutes}
-                        className={`h-13 rounded-xl px-2 text-lg font-bold transition-colors focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none disabled:cursor-not-allowed sm:h-15 sm:px-3 sm:text-xl ${
-                          isSelected
-                          ? "motion-choice-selected border border-primary bg-muted text-foreground ring-2 ring-primary/70 ring-inset"
-                          : "border border-border bg-background text-foreground hover:border-primary hover:bg-muted"
-                      }`}
-                      {...itemMotion}
-                      {...tactileMotion}
-                      animate={{
-                        ...itemMotion.animate,
-                        scale: isSelected ? 1.025 : 1,
-                      }}
-                      transition={{ ...itemMotion.transition, delay: index * 0.03 }}
-                      onClick={() => selectDuration(option.minutes)}
-                      style={{ fontSize: "clamp(0.95rem, 3vw, 1.25rem)", fontWeight: 700 }}
-                      type="button"
-                    >
-                      <span className="block leading-tight">{option.label}</span>
-                    </motion.button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="grid gap-3">
-              <div className="flex items-end justify-between gap-3">
-                <div className="text-lg font-bold text-muted-foreground sm:text-xl">예약 가능한 시간</div>
-                <div className="text-sm font-bold text-muted-foreground">{rangeOptions.length}개</div>
-              </div>
-              {rangeOptions.length > 0 ? (
-                <div className="range-scroll-area grid h-[min(22vh,14rem)] min-h-36 touch-pan-y gap-2 overflow-y-scroll overscroll-contain pr-1 pb-1 [-webkit-overflow-scrolling:touch]">
-                  {rangeOptions.map((option, index) => {
-                    const isSelected =
-                      selectedTime?.startMinutes === option.startMinutes && selectedTime.endMinutes === option.endMinutes;
-
-                    return (
-                      <motion.button
-                        key={option.startMinutes}
-                        className={`grid min-h-16 touch-pan-y select-none grid-cols-[1fr_auto] items-center gap-3 rounded-xl px-4 text-left font-bold transition-colors focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none ${
-                          isSelected
-                            ? "motion-choice-selected border border-primary bg-muted text-foreground ring-2 ring-primary/70 ring-inset"
-                            : "border border-border bg-background text-foreground hover:border-primary hover:bg-muted"
-                        }`}
-                        {...itemMotion}
-                        animate={{
-                          ...itemMotion.animate,
-                          scale: 1,
-                        }}
-                        transition={{ ...itemMotion.transition, delay: index * 0.012 }}
-                        onClick={() => selectRange(option)}
-                        type="button"
-                      >
-                        <span className="text-2xl leading-tight sm:text-3xl">{option.label}</span>
-                      </motion.button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="rounded-xl border bg-muted/45 p-5 text-lg font-bold text-muted-foreground">
-                  선택한 이용시간으로 예약 가능한 시간이 없습니다.
-                </div>
-              )}
-            </div>
-
-            <motion.div
-              className="min-h-18 rounded-xl border bg-muted/45 p-4"
-              animate={{
-                backgroundColor: selectedTime ? "oklch(0.955 0.003 255)" : "var(--background)",
-                scale: selectedTime ? 1.01 : 1,
-              }}
-              transition={{ duration: 0.24, ease: "easeOut" }}
-            >
-              <div className="text-sm font-bold text-muted-foreground">선택한 시간</div>
-              <div className="mt-1 text-xl font-bold sm:text-2xl">{selectedTime ? selectedTime.label : "이용 시간 선택 후 시작 시간을 선택해 주세요"}</div>
-            </motion.div>
-            <Button
-              className="motion-action h-14 rounded-xl text-xl"
-              disabled={!selectedTime}
-              onClick={moveToContact}
-              style={{ fontSize: "1.25rem", fontWeight: 700 }}
-              type="button"
-            >
-              정보 입력
-            </Button>
-          </div>
-        </motion.section>
-      )}
-
-      {step === "contact" && selectedTime && (
-        <motion.section key="contact" className="grid flex-1 content-start gap-4" {...sectionMotion}>
-          <h1 className="text-3xl font-bold tracking-normal sm:text-4xl">
-            {selectedRoomName} {selectedTime.label}
-          </h1>
-          <Card className="rounded-xl border bg-card shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-2xl">예약자 정보</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4">
-              <label className="grid gap-2">
-                <span className="text-lg font-bold">이름</span>
-                <Input
-                  className="h-14 rounded-xl px-4 text-xl md:text-xl"
-                  autoComplete="name"
-                  placeholder="이름"
-                  style={{ fontSize: "1.25rem", fontWeight: 700 }}
-                  {...form.register("name")}
-                />
-                {form.formState.errors.name ? (
-                  <span className="text-base font-bold text-destructive">{form.formState.errors.name.message}</span>
-                ) : null}
-              </label>
-              <label className="grid gap-2">
-                <span className="text-lg font-bold">연락처</span>
-                <Input
-                  className="h-14 rounded-xl px-4 text-xl md:text-xl"
-                  autoComplete="tel"
-                  inputMode="tel"
-                  placeholder="010-0000-0000"
-                  style={{ fontSize: "1.25rem", fontWeight: 700 }}
-                  type="tel"
-                  {...phoneRegistration}
-                  onChange={(event) => {
-                    event.currentTarget.value = formatKoreanPhoneNumber(event.currentTarget.value);
-                    void phoneRegistration.onChange(event);
-                  }}
-                />
-                {form.formState.errors.phone ? (
-                  <span className="text-base font-bold text-destructive">{form.formState.errors.phone.message}</span>
-                ) : null}
-              </label>
-            </CardContent>
-            <CardFooter className="grid gap-3 sm:grid-cols-2">
-              <Button
-                className="motion-action h-14 rounded-xl text-xl"
-                onClick={() => setStep("time")}
-                style={{ fontSize: "1.25rem", fontWeight: 700 }}
-                type="button"
-                variant="outline"
-              >
-                시간 변경
-              </Button>
-              <Button
-                className="motion-action h-14 rounded-xl text-xl"
-                disabled={!isReady || isSubmittingReservation}
-                onClick={form.handleSubmit(submitReservation, (errors) => {
-                  toast.error(errors.name?.message ?? errors.phone?.message ?? "확인해 주세요.");
-                })}
-                style={{ fontSize: "1.25rem", fontWeight: 700 }}
-                type="button"
-              >
-                {isSubmittingReservation ? "예약 중..." : "예약 확정"}
-              </Button>
-            </CardFooter>
-          </Card>
-        </motion.section>
-      )}
-
-      {step === "done" && selectedTime && (
-        <motion.section key="done" className="grid flex-1 place-items-center" {...sectionMotion}>
-          <motion.div
-            className="w-full"
-            initial={{ opacity: 0, scale: 0.94, y: 14 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: 0.42, ease: "easeOut" }}
+        <div className="grid gap-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:grid-cols-2">
+          <Button
+            className="motion-action h-14 rounded-xl text-base font-bold sm:text-lg"
+            render={<Link href="/reservation" />}
           >
-          <Card className="w-full rounded-2xl border bg-card text-center shadow-sm">
-            <CardContent className="grid gap-6 p-10">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.72, rotate: -8 }}
-                animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                transition={{ delay: 0.08, duration: 0.44, ease: "easeOut" }}
-              >
-                <CheckCircle2Icon className="mx-auto size-20 text-primary" />
-              </motion.div>
-              <h1 className="text-5xl font-bold">예약 완료</h1>
-              <p className="text-3xl font-bold">
-                {selectedRoomName} {selectedTime.label}
-              </p>
-              <Button
-                className="motion-action mx-auto h-16 rounded-xl px-10 text-2xl"
-                onClick={resetFlow}
-                style={{ fontSize: "1.5rem", fontWeight: 700 }}
-                type="button"
-              >
-                새 예약
-              </Button>
-            </CardContent>
-          </Card>
-          </motion.div>
-        </motion.section>
-      )}
-      </AnimatePresence>
+            <CalendarPlusIcon data-icon="inline-start" />
+            예약하기
+          </Button>
+          <Button
+            className="motion-action h-14 rounded-xl text-base font-bold sm:text-lg"
+            render={<Link href="/reservations" />}
+            variant="outline"
+          >
+            <ClipboardListIcon data-icon="inline-start" />
+            예약내역 보기
+          </Button>
+        </div>
+      </section>
     </main>
-    </MotionConfig>
   );
 }

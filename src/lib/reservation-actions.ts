@@ -8,6 +8,11 @@ import {
   type ReservationDraft,
   type ReservationStatus,
 } from "@/lib/reservations";
+import {
+  hashReservationPassword,
+  validateReservationLookup,
+  type ReservationLookup,
+} from "@/lib/reservation-credentials";
 import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
 import {
   mapReservationDraftToInsert,
@@ -77,10 +82,37 @@ export async function createPublicReservation(draft: ReservationDraft): Promise<
     if (error) throw error;
 
     revalidatePath("/");
+    revalidatePath("/reservation");
+    revalidatePath("/reservations");
     revalidatePath("/admin");
     return { ok: true, data: mapReservationRowToReservation(data as ReservationRow) };
   } catch (error) {
     return { ok: false, error: toActionError(error) };
+  }
+}
+
+export async function listPublicReservationsByLookup(
+  lookup: ReservationLookup,
+): Promise<ReservationActionResult<Reservation[]>> {
+  const validationErrors = validateReservationLookup(lookup);
+  if (validationErrors.length > 0) return { ok: false, error: validationErrors[0] };
+
+  try {
+    const supabase = createSupabaseServiceClient();
+    const { data, error } = await supabase
+      .from("reservations")
+      .select(RESERVATION_SELECT)
+      .eq("name", lookup.name.trim())
+      .eq("phone", lookup.phone.trim())
+      .eq("password_hash", hashReservationPassword(lookup.password))
+      .order("date", { ascending: false })
+      .order("start_minutes", { ascending: true });
+
+    if (error) throw error;
+
+    return { ok: true, data: ((data ?? []) as ReservationRow[]).map(mapReservationRowToReservation) };
+  } catch {
+    return { ok: false, error: GENERIC_MESSAGE };
   }
 }
 
@@ -118,8 +150,10 @@ export async function updateAdminReservationStatus(
     const { error } = await supabase.from("reservations").update({ status }).eq("id", id);
     if (error) throw error;
 
-    revalidatePath("/admin");
     revalidatePath("/");
+    revalidatePath("/reservation");
+    revalidatePath("/reservations");
+    revalidatePath("/admin");
     return { ok: true, data: null };
   } catch (error) {
     return { ok: false, error: toActionError(error) };
@@ -132,8 +166,10 @@ export async function deleteAdminReservation(id: string): Promise<ReservationAct
     const { error } = await supabase.from("reservations").delete().eq("id", id);
     if (error) throw error;
 
-    revalidatePath("/admin");
     revalidatePath("/");
+    revalidatePath("/reservation");
+    revalidatePath("/reservations");
+    revalidatePath("/admin");
     return { ok: true, data: null };
   } catch {
     return { ok: false, error: GENERIC_MESSAGE };

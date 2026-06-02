@@ -23,7 +23,6 @@ type UseReservationsOptions = {
 function toReservation(block: PublicReservationTimeBlock): Reservation {
   return {
     ...block,
-    name: "",
     phone: "",
   };
 }

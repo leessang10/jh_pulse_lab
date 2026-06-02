@@ -29,6 +29,10 @@
   --chart-3: oklch(0.48 0.008 255);
   --chart-4: oklch(0.35 0.007 255);
   --chart-5: oklch(0.24 0.006 255);
+  --pulse-accent: oklch(0.58 0.13 176);
+  --pulse-accent-foreground: oklch(0.985 0.003 176);
+  --pulse-accent-soft: oklch(0.94 0.035 176);
+  --pulse-warm: oklch(0.74 0.13 64);
   --radius: 0.625rem;
   --sidebar: oklch(0.982 0.003 255);
   --sidebar-foreground: oklch(0.21 0.007 255);
@@ -158,6 +162,10 @@ button:disabled {
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
+  --color-pulse-warm: var(--pulse-warm);
+  --color-pulse-accent-soft: var(--pulse-accent-soft);
+  --color-pulse-accent-foreground: var(--pulse-accent-foreground);
+  --color-pulse-accent: var(--pulse-accent);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -209,6 +217,10 @@ button:disabled {
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
+  --pulse-accent: oklch(0.75 0.11 176);
+  --pulse-accent-foreground: oklch(0.18 0.02 176);
+  --pulse-accent-soft: oklch(0.25 0.035 176);
+  --pulse-warm: oklch(0.82 0.11 64);
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.922 0 0);
