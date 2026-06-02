@@ -14,7 +14,7 @@ const scheduleSize = 360;
 const scheduleCenter = scheduleSize / 2;
 const scheduleRadius = 126;
 const hourMarkerRadius = 150;
-const hourLabelRadius = 166;
+const hourLabelRadius = 168;
 const slotAngle = 360 / (DAY_END_MINUTES / SLOT_MINUTES);
 const hourMarkers = Array.from({ length: 24 }, (_, hour) => hour);
 
@@ -72,7 +72,12 @@ export default function HomePage() {
   return (
     <main className="min-h-screen bg-background px-3 py-4 text-foreground sm:px-6">
       <section className="mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-5xl flex-col gap-4">
-        <header className="pt-3 text-center">
+        <header className="grid gap-2 pt-2 text-center sm:pt-3">
+          <div className="mx-auto flex items-baseline justify-center gap-2 text-2xl font-black tracking-normal text-foreground sm:text-3xl">
+            <span>JH</span>
+            <span>PULSE</span>
+            <span>LAB</span>
+          </div>
           <p className="grid gap-1 text-base font-bold text-muted-foreground sm:text-lg">
             <span>{dateLabel}</span>
             <span>빈 시간을 보고 바로 예약하세요</span>
@@ -147,7 +152,11 @@ export default function HomePage() {
                       y2={outer.y}
                     />
                     <text
-                      className={hour % 6 === 0 ? "fill-foreground text-[0.72rem] font-bold" : "fill-muted-foreground text-[0.58rem] font-bold"}
+                      className={
+                        hour % 6 === 0
+                          ? "fill-foreground text-[1.02rem] font-black"
+                          : "fill-muted-foreground text-[0.86rem] font-extrabold"
+                      }
                       dominantBaseline="middle"
                       textAnchor="middle"
                       x={label.x}

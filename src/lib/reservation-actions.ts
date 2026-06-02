@@ -13,6 +13,11 @@ import {
   validateReservationLookup,
   type ReservationLookup,
 } from "@/lib/reservation-credentials";
+import {
+  CONFLICT_MESSAGE,
+  GENERIC_MESSAGE,
+  toReservationActionErrorMessage,
+} from "@/lib/reservation-action-errors";
 import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
 import {
   mapReservationDraftToInsert,
@@ -24,14 +29,7 @@ import {
 
 export type ReservationActionResult<T> = { ok: true; data: T } | { ok: false; error: string };
 
-const CONFLICT_MESSAGE = "이미 예약된 시간입니다.";
-const GENERIC_MESSAGE = "예약 정보를 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.";
 const RESERVATION_SELECT = "id,date,room_id,start_minutes,end_minutes,status,created_at,updated_at,name,phone,note";
-
-function toActionError(error: unknown) {
-  if (error instanceof Error && error.message.includes("conflicts")) return CONFLICT_MESSAGE;
-  return GENERIC_MESSAGE;
-}
 
 function toConflictReservation(block: PublicReservationTimeBlock): Reservation {
   return {
@@ -56,8 +54,8 @@ export async function listPublicReservationTimeBlocks(
     if (error) throw error;
 
     return { ok: true, data: ((data ?? []) as ReservationRow[]).map(mapReservationRowToTimeBlock) };
-  } catch {
-    return { ok: false, error: GENERIC_MESSAGE };
+  } catch (error) {
+    return { ok: false, error: toReservationActionErrorMessage(error) };
   }
 }
 
@@ -87,7 +85,7 @@ export async function createPublicReservation(draft: ReservationDraft): Promise<
     revalidatePath("/admin");
     return { ok: true, data: mapReservationRowToReservation(data as ReservationRow) };
   } catch (error) {
-    return { ok: false, error: toActionError(error) };
+    return { ok: false, error: toReservationActionErrorMessage(error) };
   }
 }
 
@@ -111,8 +109,8 @@ export async function listPublicReservationsByLookup(
     if (error) throw error;
 
     return { ok: true, data: ((data ?? []) as ReservationRow[]).map(mapReservationRowToReservation) };
-  } catch {
-    return { ok: false, error: GENERIC_MESSAGE };
+  } catch (error) {
+    return { ok: false, error: toReservationActionErrorMessage(error) };
   }
 }
 
@@ -156,7 +154,7 @@ export async function updateAdminReservationStatus(
     revalidatePath("/admin");
     return { ok: true, data: null };
   } catch (error) {
-    return { ok: false, error: toActionError(error) };
+    return { ok: false, error: toReservationActionErrorMessage(error) };
   }
 }
 

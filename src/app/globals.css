@@ -1,3 +1,4 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -33,6 +34,12 @@
   --pulse-accent-foreground: oklch(0.985 0.003 176);
   --pulse-accent-soft: oklch(0.94 0.035 176);
   --pulse-warm: oklch(0.74 0.13 64);
+  --font-sans:
+    "Pretendard",
+    "Noto Sans KR",
+    ui-sans-serif,
+    system-ui,
+    sans-serif;
   --radius: 0.625rem;
   --sidebar: oklch(0.982 0.003 255);
   --sidebar-foreground: oklch(0.21 0.007 255);
