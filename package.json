@@ -37,6 +37,8 @@
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "dotenv": "^17.4.2",
+    "prisma": "^6.19.3",
     "tailwindcss": "latest",
     "typescript": "latest",
     "vitest": "latest"
