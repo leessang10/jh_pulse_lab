@@ -2,12 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import {
-  findReservationConflict,
   validateReservationDraft,
   type Reservation,
   type ReservationDraft,
   type ReservationStatus,
 } from "@/lib/reservations";
+import { findReservationConflict } from "@/lib/booking-availability";
 import {
   hashReservationPassword,
   validateReservationLookup,
@@ -30,14 +30,6 @@ import {
 export type ReservationActionResult<T> = { ok: true; data: T } | { ok: false; error: string };
 
 const RESERVATION_SELECT = "id,date,room_id,start_minutes,end_minutes,status,created_at,updated_at,name,phone,note";
-
-function toConflictReservation(block: PublicReservationTimeBlock): Reservation {
-  return {
-    ...block,
-    name: "",
-    phone: "",
-  };
-}
 
 export async function listPublicReservationTimeBlocks(
   date: string,
@@ -68,7 +60,7 @@ export async function createPublicReservation(draft: ReservationDraft): Promise<
     const current = await listPublicReservationTimeBlocks(draft.date);
     if (!current.ok) return current;
 
-    const conflict = findReservationConflict(current.data.map(toConflictReservation), draft);
+    const conflict = findReservationConflict(current.data, draft);
     if (conflict) return { ok: false, error: CONFLICT_MESSAGE };
 
     const { data, error } = await supabase

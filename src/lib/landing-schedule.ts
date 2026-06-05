@@ -1,11 +1,11 @@
 import {
   DAY_END_MINUTES,
   SLOT_MINUTES,
-  findReservationConflict,
   formatMinutes,
   getRoomName,
-  type Reservation,
+  type ReservationTimeBlock,
 } from "./reservations";
+import { getReservationsCoveringTimeBlock } from "./booking-availability";
 
 export type LandingScheduleSlot = {
   index: number;
@@ -16,14 +16,14 @@ export type LandingScheduleSlot = {
   isBooked: boolean;
   bookedByLabel: string;
   reservationCount: number;
-  reservations: Reservation[];
+  reservations: ReservationTimeBlock[];
 };
 
-function getReservationName(reservation: Reservation) {
+function getReservationName(reservation: ReservationTimeBlock) {
   return reservation.name.trim() || "예약자";
 }
 
-function getBookedByLabel(reservations: Reservation[]) {
+function getBookedByLabel(reservations: ReservationTimeBlock[]) {
   if (reservations.length === 0) return "비어 있어요";
   if (reservations.length === 1) {
     const reservation = reservations[0];
@@ -34,24 +34,11 @@ function getBookedByLabel(reservations: Reservation[]) {
   return `${getReservationName(reservations[0])}님 외 ${reservations.length - 1}명`;
 }
 
-export function getLandingScheduleSlots(reservations: Reservation[], date: string): LandingScheduleSlot[] {
+export function getLandingScheduleSlots(reservations: ReservationTimeBlock[], date: string): LandingScheduleSlot[] {
   return Array.from({ length: DAY_END_MINUTES / SLOT_MINUTES }, (_, index) => {
     const startMinutes = index * SLOT_MINUTES;
     const endMinutes = startMinutes + SLOT_MINUTES;
-    const slotReservations = reservations.filter(
-      (reservation) =>
-        reservation.status !== "cancelled" &&
-        findReservationConflict(
-          [reservation],
-          {
-            date,
-            roomId: reservation.roomId,
-            startMinutes,
-            endMinutes,
-          },
-          undefined,
-        ) !== null,
-    );
+    const slotReservations = getReservationsCoveringTimeBlock(reservations, { date, startMinutes, endMinutes });
 
     return {
       index,

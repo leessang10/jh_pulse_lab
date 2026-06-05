@@ -1,22 +1,24 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildTimeRange,
-  findReservationConflict,
   formatMinutes,
-  getBookingHalfDayTimePoints,
-  getBookingDurationOptions,
-  getBookableRangeOptions,
-  getBookingStartOptions,
-  getAvailableTimeSlots,
   getRoomName,
-  getRoomTimeSlots,
   getSimpleBookingTimePoints,
   generateTimeSlots,
-  isBookingDurationAvailable,
   BOOKING_HALF_DAY_PERIODS,
   validateReservationDraft,
   type Reservation,
 } from "./reservations";
+import {
+  buildTimeRange,
+  findReservationConflict,
+  getAvailableTimeSlots,
+  getBookableRangeOptions,
+  getBookingDurationOptions,
+  getBookingHalfDayTimePoints,
+  getBookingStartOptions,
+  getRoomTimeSlots,
+  isBookingDurationAvailable,
+} from "./booking-availability";
 
 const baseReservation: Reservation = {
   id: "res-1",
@@ -200,8 +202,8 @@ describe("reservation rules", () => {
       label: "21:00",
       isReservedSlot: false,
       hasReservedSlotInRange: false,
-      hasUnavailableSlotInRange: true,
-      isAvailable: false,
+      hasUnavailableSlotInRange: false,
+      isAvailable: true,
     });
     expect(options.find((option) => option.startMinutes === 1410)).toMatchObject({
       label: "23:30",
@@ -211,7 +213,7 @@ describe("reservation rules", () => {
     });
   });
 
-  it("blocks a range when any included slot is unavailable for the selected duration", () => {
+  it("keeps a range available when it ends exactly at the day boundary", () => {
     const options = getBookingStartOptions([], {
       date: "2026-05-28",
       roomId: "room-1",
@@ -221,14 +223,14 @@ describe("reservation rules", () => {
     expect(options.find((option) => option.startMinutes === 1380)).toMatchObject({
       label: "23:00",
       selectedSlotMinutes: [1380, 1410],
-      hasUnavailableSlotInRange: true,
-      isAvailable: false,
-    });
-    expect(options.find((option) => option.startMinutes === 1350)).toMatchObject({
-      label: "22:30",
-      selectedSlotMinutes: [1350, 1380],
       hasUnavailableSlotInRange: false,
       isAvailable: true,
+    });
+    expect(options.find((option) => option.startMinutes === 1410)).toMatchObject({
+      label: "23:30",
+      selectedSlotMinutes: [1410, 1440],
+      hasUnavailableSlotInRange: true,
+      isAvailable: false,
     });
   });
 
@@ -244,7 +246,11 @@ describe("reservation rules", () => {
       startMinutes: 1350,
       endMinutes: 1410,
     });
-    expect(options.some((option) => option.startMinutes === 1380)).toBe(false);
+    expect(options.find((option) => option.startMinutes === 1380)).toMatchObject({
+      label: "23:00-24:00",
+      startMinutes: 1380,
+      endMinutes: 1440,
+    });
     expect(options.some((option) => option.startMinutes === 1410)).toBe(false);
   });
 
@@ -291,6 +297,12 @@ describe("reservation rules", () => {
       rangeLabel: "21:00-24:00",
       selectedSlotMinutes: [1260, 1290, 1320, 1350, 1380, 1410],
       hasReservedSlotInRange: false,
+      hasUnavailableSlotInRange: false,
+      isAvailable: true,
+    });
+    expect(options.find((option) => option.startMinutes === 1290)).toMatchObject({
+      label: "21:30",
+      rangeLabel: "21:30-24:30",
       hasUnavailableSlotInRange: true,
       isAvailable: false,
     });

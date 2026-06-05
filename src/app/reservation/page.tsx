@@ -11,9 +11,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
-  findReservationConflict,
-  getBookableRangeOptions,
-  getBookingDurationOptions,
+  getBookingAvailability,
+  selectBookableRange,
+  validateBookableDraftTime,
+  type BookableRangeOption,
+  type SelectedBookingTime,
+} from "@/lib/booking-availability";
+import {
   getRoomName,
   ROOMS,
   type ReservationDraft,
@@ -34,13 +38,6 @@ const contactSchema = z.object({
 });
 
 type ContactValues = z.infer<typeof contactSchema>;
-type SelectedTime = {
-  startMinutes: number;
-  endMinutes: number;
-  label: string;
-};
-
-type BookableRangeOption = ReturnType<typeof getBookableRangeOptions>[number];
 
 const sectionMotion = {
   initial: { opacity: 1, y: 0 },
@@ -67,7 +64,7 @@ export default function ReservationPage() {
   const [roomId, setRoomId] = useState("");
   const [selectedDurationMinutes, setSelectedDurationMinutes] = useState(60);
   const [selectedStartMinutes, setSelectedStartMinutes] = useState<number | null>(null);
-  const [selectedTime, setSelectedTime] = useState<SelectedTime | null>(null);
+  const [selectedTime, setSelectedTime] = useState<SelectedBookingTime | null>(null);
   const [isSubmittingReservation, setIsSubmittingReservation] = useState(false);
 
   const form = useForm<ContactValues>({
@@ -86,16 +83,16 @@ export default function ReservationPage() {
     hasTime: Boolean(selectedTime),
   });
   const headerState = getBookingHeaderState(step);
-  const durationOptions = useMemo(() => getBookingDurationOptions(), []);
-  const rangeOptions = useMemo(
+  const availability = useMemo(
     () =>
-      getBookableRangeOptions(reservations, {
+      getBookingAvailability(reservations, {
         date,
         roomId,
         durationMinutes: selectedDurationMinutes,
       }),
     [date, reservations, roomId, selectedDurationMinutes],
   );
+  const { durationOptions, rangeOptions } = availability;
   const phoneRegistration = form.register("phone");
   const passwordRegistration = form.register("password");
 
@@ -116,25 +113,20 @@ export default function ReservationPage() {
   }
 
   function selectRange(option: BookableRangeOption) {
-    const conflict = findReservationConflict(reservations, {
+    const result = selectBookableRange(reservations, {
       date,
       roomId,
-      startMinutes: option.startMinutes,
-      endMinutes: option.endMinutes,
+      option,
     });
 
-    if (conflict) {
-      toast.error("이미 예약된 시간이 포함되어 있습니다.");
+    if (!result.ok) {
+      toast.error(result.error);
       setSelectedTime(null);
       return;
     }
 
-    setSelectedStartMinutes(option.startMinutes);
-    setSelectedTime({
-      startMinutes: option.startMinutes,
-      endMinutes: option.endMinutes,
-      label: option.label,
-    });
+    setSelectedStartMinutes(result.selectedTime.startMinutes);
+    setSelectedTime(result.selectedTime);
   }
 
   function moveToContact() {
@@ -163,10 +155,10 @@ export default function ReservationPage() {
       phone: values.phone,
       password: values.password,
     };
-    const conflict = findReservationConflict(reservations, draft);
+    const timeAvailability = validateBookableDraftTime(reservations, draft);
 
-    if (conflict) {
-      toast.error("이미 예약된 시간입니다.");
+    if (!timeAvailability.ok) {
+      toast.error(timeAvailability.error);
       setStep("time");
       return;
     }

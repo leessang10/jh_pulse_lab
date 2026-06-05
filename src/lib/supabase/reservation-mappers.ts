@@ -1,4 +1,4 @@
-import type { Reservation, ReservationDraft, ReservationStatus } from "@/lib/reservations";
+import type { Reservation, ReservationDraft, ReservationStatus, ReservationTimeBlock } from "@/lib/reservations";
 import { hashReservationPassword } from "@/lib/reservation-credentials";
 
 export type ReservationRow = {
@@ -16,7 +16,7 @@ export type ReservationRow = {
   updated_at: string;
 };
 
-export type PublicReservationTimeBlock = Omit<Reservation, "phone" | "note">;
+export type PublicReservationTimeBlock = ReservationTimeBlock;
 
 export type ReservationInsert = {
   date: string;
