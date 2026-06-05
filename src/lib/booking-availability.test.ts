@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Reservation, ReservationDraft, ReservationTimeBlock } from "./reservations";
+import * as bookingAvailability from "./booking-availability";
 import {
   getBookingAvailability,
   getReservationsCoveringTimeBlock,
@@ -20,6 +21,18 @@ const baseReservation: Reservation = {
 };
 
 describe("booking availability", () => {
+  it("keeps legacy slot helpers out of the module interface", () => {
+    expect(Object.keys(bookingAvailability).sort()).toEqual([
+      "BOOKING_DRAFT_CONFLICT_MESSAGE",
+      "BOOKING_RANGE_CONFLICT_MESSAGE",
+      "findReservationConflict",
+      "getBookingAvailability",
+      "getReservationsCoveringTimeBlock",
+      "selectBookableRange",
+      "validateBookableDraftTime",
+    ]);
+  });
+
   it("checks public time blocks without contact fields", () => {
     const publicTimeBlock: ReservationTimeBlock = {
       id: "public-block-1",
@@ -69,6 +82,21 @@ describe("booking availability", () => {
       label: "09:00-10:00",
     });
     expect(availability.rangeOptions.some((option) => option.startMinutes === 570)).toBe(false);
+  });
+
+  it("keeps ranges ending at midnight bookable and later ranges hidden", () => {
+    const availability = getBookingAvailability([], {
+      date: "2026-06-05",
+      roomId: "room-1",
+      durationMinutes: 60,
+    });
+
+    expect(availability.rangeOptions).toContainEqual({
+      startMinutes: 1380,
+      endMinutes: 1440,
+      label: "23:00-24:00",
+    });
+    expect(availability.rangeOptions.some((option) => option.startMinutes === 1410)).toBe(false);
   });
 
   it("turns a range option into selected booking time only when it is still available", () => {

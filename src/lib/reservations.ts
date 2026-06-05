@@ -49,38 +49,6 @@ export const STATUS_LABELS: Record<ReservationStatus, string> = {
 
 export const SLOT_MINUTES = 30;
 export const DAY_END_MINUTES = 24 * 60;
-export const SIMPLE_BOOKING_START_MINUTES = 9 * 60;
-export const SIMPLE_BOOKING_END_MINUTES = 22 * 60;
-export const SIMPLE_BOOKING_DURATION_MINUTES = 60;
-
-export type BookingHalfDayPeriodId = "first-half" | "second-half";
-export type BookingPeriodId = "morning" | "afternoon" | "evening" | "night";
-
-export type BookingPeriod = {
-  id: BookingPeriodId;
-  label: string;
-  startMinutes: number;
-  endMinutes: number;
-};
-
-export type BookingHalfDayPeriod = {
-  id: BookingHalfDayPeriodId;
-  label: string;
-  startMinutes: number;
-  endMinutes: number;
-};
-
-export const BOOKING_HALF_DAY_PERIODS: BookingHalfDayPeriod[] = [
-  { id: "first-half", label: "00:00-12:00", startMinutes: 0, endMinutes: 12 * 60 },
-  { id: "second-half", label: "12:00-24:00", startMinutes: 12 * 60, endMinutes: DAY_END_MINUTES },
-];
-
-export const BOOKING_PERIODS: BookingPeriod[] = [
-  { id: "morning", label: "오전", startMinutes: 6 * 60, endMinutes: 12 * 60 },
-  { id: "afternoon", label: "오후", startMinutes: 12 * 60, endMinutes: 18 * 60 },
-  { id: "evening", label: "저녁", startMinutes: 18 * 60, endMinutes: DAY_END_MINUTES },
-  { id: "night", label: "심야", startMinutes: 0, endMinutes: 6 * 60 },
-];
 
 export const BOOKING_DURATION_OPTIONS = [
   { minutes: 30, label: "30분" },
@@ -107,24 +75,6 @@ export function generateTimeSlots() {
       label: formatMinutes(value),
     };
   });
-}
-
-export function getSimpleBookingTimePoints() {
-  const pointCount = (SIMPLE_BOOKING_END_MINUTES - SIMPLE_BOOKING_START_MINUTES) / SIMPLE_BOOKING_DURATION_MINUTES + 1;
-
-  return Array.from(
-    { length: pointCount },
-    (_, index) => SIMPLE_BOOKING_START_MINUTES + index * SIMPLE_BOOKING_DURATION_MINUTES,
-  );
-}
-
-export function getBookingPeriodTimePoints(periodId: BookingPeriodId) {
-  const period = BOOKING_PERIODS.find((item) => item.id === periodId);
-  if (!period) return [];
-
-  const pointCount = (period.endMinutes - period.startMinutes) / SLOT_MINUTES;
-
-  return Array.from({ length: pointCount }, (_, index) => period.startMinutes + index * SLOT_MINUTES);
 }
 
 export function validateReservationDraft(draft: ReservationDraft) {

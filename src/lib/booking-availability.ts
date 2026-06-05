@@ -1,14 +1,9 @@
 import {
   BOOKING_DURATION_OPTIONS,
-  BOOKING_HALF_DAY_PERIODS,
   DAY_END_MINUTES,
-  SIMPLE_BOOKING_DURATION_MINUTES,
-  SIMPLE_BOOKING_END_MINUTES,
-  SIMPLE_BOOKING_START_MINUTES,
   SLOT_MINUTES,
   formatMinutes,
   generateTimeSlots,
-  type BookingHalfDayPeriodId,
   type ReservationDraft,
   type ReservationTimeBlock,
 } from "./reservations";
@@ -29,19 +24,6 @@ export type BookingAvailability = {
   rangeOptions: BookableRangeOption[];
 };
 
-export function getBookingHalfDayTimePoints(periodId: BookingHalfDayPeriodId) {
-  const period = BOOKING_HALF_DAY_PERIODS.find((item) => item.id === periodId);
-  if (!period) return [];
-
-  const pointCount = (period.endMinutes - period.startMinutes) / SLOT_MINUTES;
-
-  return Array.from({ length: pointCount }, (_, index) => period.startMinutes + index * SLOT_MINUTES);
-}
-
-export function getBookingDurationOptions() {
-  return BOOKING_DURATION_OPTIONS;
-}
-
 export function findReservationConflict(
   reservations: ReservationTimeBlock[],
   draft: Pick<ReservationDraft, "date" | "roomId" | "startMinutes" | "endMinutes">,
@@ -59,7 +41,7 @@ export function findReservationConflict(
   );
 }
 
-export function isBookingDurationAvailable(
+function isBookingDurationAvailable(
   reservations: ReservationTimeBlock[],
   options: {
     date: string;
@@ -81,18 +63,15 @@ export function isBookingDurationAvailable(
   );
 }
 
-export function getBookingStartOptions(
+function getBookingStartOptions(
   reservations: ReservationTimeBlock[],
   options: {
     date: string;
     roomId: string;
-    periodId?: BookingHalfDayPeriodId;
     durationMinutes: number;
   },
 ) {
-  const startMinutesList = options.periodId
-    ? getBookingHalfDayTimePoints(options.periodId)
-    : generateTimeSlots().map((slot) => slot.value);
+  const startMinutesList = generateTimeSlots().map((slot) => slot.value);
 
   return startMinutesList.map((startMinutes) => {
     const endMinutes = startMinutes + options.durationMinutes;
@@ -139,7 +118,7 @@ export function getBookingStartOptions(
   });
 }
 
-export function getBookableRangeOptions(
+function getBookableRangeOptions(
   reservations: ReservationTimeBlock[],
   options: {
     date: string;
@@ -165,7 +144,7 @@ export function getBookingAvailability(
   },
 ): BookingAvailability {
   return {
-    durationOptions: getBookingDurationOptions(),
+    durationOptions: BOOKING_DURATION_OPTIONS,
     rangeOptions: getBookableRangeOptions(reservations, options),
   };
 }
@@ -208,62 +187,6 @@ export function validateBookableDraftTime(
   if (conflict) return { ok: false, error: BOOKING_DRAFT_CONFLICT_MESSAGE };
 
   return { ok: true };
-}
-
-export function buildTimeRange(firstMinutes: number, secondMinutes: number) {
-  if (firstMinutes === secondMinutes) return null;
-
-  const startMinutes = Math.min(firstMinutes, secondMinutes);
-  const endMinutes = Math.max(firstMinutes, secondMinutes);
-
-  return {
-    startMinutes,
-    endMinutes,
-    label: `${formatMinutes(startMinutes)}-${formatMinutes(endMinutes)}`,
-  };
-}
-
-export function getAvailableTimeSlots(
-  reservations: ReservationTimeBlock[],
-  options: {
-    date: string;
-    roomId: string;
-    durationMinutes?: number;
-  },
-) {
-  return getRoomTimeSlots(reservations, options)
-    .filter((slot) => slot.isAvailable)
-    .map(({ isAvailable: _isAvailable, ...slot }) => slot);
-}
-
-export function getRoomTimeSlots(
-  reservations: ReservationTimeBlock[],
-  options: {
-    date: string;
-    roomId: string;
-    durationMinutes?: number;
-  },
-) {
-  const durationMinutes = options.durationMinutes ?? SIMPLE_BOOKING_DURATION_MINUTES;
-  const slotCount = (SIMPLE_BOOKING_END_MINUTES - SIMPLE_BOOKING_START_MINUTES) / durationMinutes;
-
-  return Array.from({ length: slotCount }, (_, index) => {
-    const startMinutes = SIMPLE_BOOKING_START_MINUTES + index * durationMinutes;
-    const endMinutes = startMinutes + durationMinutes;
-    const conflict = findReservationConflict(reservations, {
-      date: options.date,
-      roomId: options.roomId,
-      startMinutes,
-      endMinutes,
-    });
-
-    return {
-      startMinutes,
-      endMinutes,
-      label: `${formatMinutes(startMinutes)}-${formatMinutes(endMinutes)}`,
-      isAvailable: !conflict,
-    };
-  });
 }
 
 export function getReservationsCoveringTimeBlock(
