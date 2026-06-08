@@ -3,6 +3,7 @@ import {
   buildTimeRange,
   findReservationConflict,
   formatMinutes,
+  ACTIVE_ROOM_IDS,
   getBookingHalfDayTimePoints,
   getBookingDurationOptions,
   getBookableRangeOptions,
@@ -14,6 +15,7 @@ import {
   generateTimeSlots,
   isBookingDurationAvailable,
   BOOKING_HALF_DAY_PERIODS,
+  ROOMS,
   validateReservationDraft,
   type Reservation,
 } from "./reservations";
@@ -31,6 +33,15 @@ const baseReservation: Reservation = {
 };
 
 describe("reservation rules", () => {
+  it("exposes three active classrooms for public booking", () => {
+    expect(ROOMS).toEqual([
+      { id: "room-1", name: "강의실 1" },
+      { id: "room-2", name: "강의실 2" },
+      { id: "room-3", name: "강의실 3" },
+    ]);
+    expect(ACTIVE_ROOM_IDS).toEqual(["room-1", "room-2", "room-3"]);
+  });
+
   it("formats minutes as 24-hour time", () => {
     expect(formatMinutes(0)).toBe("00:00");
     expect(formatMinutes(570)).toBe("09:30");

@@ -33,8 +33,11 @@ export const ROOMS: Room[] = [
   { id: "room-1", name: "강의실 1" },
   { id: "room-2", name: "강의실 2" },
   { id: "room-3", name: "강의실 3" },
-  { id: "room-4", name: "강의실 4" },
 ];
+
+export const ACTIVE_ROOM_IDS = ROOMS.map((room) => room.id);
+
+const ROOM_NAMES = new Map<string, string>([...ROOMS, { id: "room-4", name: "강의실 4" }].map((room) => [room.id, room.name]));
 
 export const STATUS_LABELS: Record<ReservationStatus, string> = {
   pending: "대기",
@@ -343,5 +346,5 @@ export function createReservation(draft: ReservationDraft): Reservation {
 }
 
 export function getRoomName(roomId: string) {
-  return ROOMS.find((room) => room.id === roomId)?.name ?? roomId;
+  return ROOM_NAMES.get(roomId) ?? roomId;
 }

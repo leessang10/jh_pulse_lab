@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import {
   findReservationConflict,
   validateReservationDraft,
+  ACTIVE_ROOM_IDS,
   type Reservation,
   type ReservationDraft,
   type ReservationStatus,
@@ -48,6 +49,7 @@ export async function listPublicReservationTimeBlocks(
       .from("reservations")
       .select(RESERVATION_SELECT)
       .eq("date", date)
+      .in("room_id", ACTIVE_ROOM_IDS)
       .neq("status", "cancelled")
       .order("start_minutes", { ascending: true });
 
@@ -103,6 +105,7 @@ export async function listPublicReservationsByLookup(
       .eq("name", lookup.name.trim())
       .eq("phone", lookup.phone.trim())
       .eq("password_hash", hashReservationPassword(lookup.password))
+      .in("room_id", ACTIVE_ROOM_IDS)
       .order("date", { ascending: false })
       .order("start_minutes", { ascending: true });
 
@@ -125,6 +128,7 @@ export async function listAdminReservations(filters: {
       .from("reservations")
       .select(RESERVATION_SELECT)
       .eq("date", filters.date)
+      .in("room_id", ACTIVE_ROOM_IDS)
       .order("start_minutes", { ascending: true });
 
     if (filters.roomId) query = query.eq("room_id", filters.roomId);

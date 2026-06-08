@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Reservation } from "./reservations";
-import { getLandingScheduleSlots } from "./landing-schedule";
+import { getLandingRoomScheduleSummaries, getLandingScheduleSlots } from "./landing-schedule";
 
 const reservation: Reservation = {
   id: "res-1",
@@ -75,6 +75,48 @@ describe("landing schedule", () => {
     expect(slots.find((slot) => slot.startMinutes === 570)).toMatchObject({
       reservationCount: 3,
       bookedByLabel: "민수님 외 2명",
+    });
+  });
+
+  it("filters detailed slots to one selected active room", () => {
+    const slots = getLandingScheduleSlots(
+      [
+        { ...reservation, id: "room-1-res", roomId: "room-1", name: "서연" },
+        reservation,
+      ],
+      "2026-06-02",
+      { roomId: "room-2" },
+    );
+
+    expect(slots.find((slot) => slot.startMinutes === 570)).toMatchObject({
+      reservationCount: 1,
+      bookedByLabel: "민수님 · 강의실 2",
+    });
+  });
+
+  it("builds active room summaries and excludes hidden room reservations", () => {
+    const summaries = getLandingRoomScheduleSummaries(
+      [
+        reservation,
+        { ...reservation, id: "room-4-res", roomId: "room-4", name: "숨김" },
+      ],
+      "2026-06-02",
+    );
+
+    expect(summaries.map((summary) => summary.roomId)).toEqual(["room-1", "room-2", "room-3"]);
+    expect(summaries.find((summary) => summary.roomId === "room-2")).toMatchObject({
+      roomName: "강의실 2",
+      bookedSlotCount: 2,
+      totalSlotCount: 48,
+      bookedPercent: 4,
+      nextBookedSlot: {
+        startMinutes: 570,
+        rangeLabel: "09:30-10:00",
+      },
+    });
+    expect(summaries.find((summary) => summary.roomId === "room-1")).toMatchObject({
+      bookedSlotCount: 0,
+      nextBookedSlot: null,
     });
   });
 });
