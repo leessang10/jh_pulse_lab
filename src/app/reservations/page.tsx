@@ -97,6 +97,7 @@ export default function ReservationsPage() {
           <Button
             aria-label="처음으로"
             className="size-10 justify-center rounded-lg p-0"
+            nativeButton={false}
             render={<Link href="/" />}
             type="button"
             variant="outline"
@@ -211,6 +212,7 @@ export default function ReservationsPage() {
         {RESERVATIONS_PAGE_HEADER.showCreateReservationLink ? (
           <Button
             className="motion-action h-14 rounded-xl text-base font-bold sm:text-lg"
+            nativeButton={false}
             render={<Link href="/reservation" />}
             variant="outline"
           >
