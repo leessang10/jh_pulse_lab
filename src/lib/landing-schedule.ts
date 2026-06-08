@@ -2,11 +2,11 @@ import {
   DAY_END_MINUTES,
   ROOMS,
   SLOT_MINUTES,
-  findReservationConflict,
   formatMinutes,
   getRoomName,
-  type Reservation,
+  type ReservationTimeBlock,
 } from "./reservations";
+import { findReservationConflict } from "./booking-availability";
 
 export type LandingScheduleSlot = {
   index: number;
@@ -17,7 +17,7 @@ export type LandingScheduleSlot = {
   isBooked: boolean;
   bookedByLabel: string;
   reservationCount: number;
-  reservations: Reservation[];
+  reservations: ReservationTimeBlock[];
 };
 
 export type LandingRoomScheduleSummary = {
@@ -30,11 +30,11 @@ export type LandingRoomScheduleSummary = {
   slots: LandingScheduleSlot[];
 };
 
-function getReservationName(reservation: Reservation) {
+function getReservationName(reservation: ReservationTimeBlock) {
   return reservation.name.trim() || "예약자";
 }
 
-function getBookedByLabel(reservations: Reservation[]) {
+function getBookedByLabel(reservations: ReservationTimeBlock[]) {
   if (reservations.length === 0) return "비어 있어요";
   if (reservations.length === 1) {
     const reservation = reservations[0];
@@ -46,7 +46,7 @@ function getBookedByLabel(reservations: Reservation[]) {
 }
 
 export function getLandingScheduleSlots(
-  reservations: Reservation[],
+  reservations: ReservationTimeBlock[],
   date: string,
   options: { roomId?: string } = {},
 ): LandingScheduleSlot[] {
@@ -84,7 +84,7 @@ export function getLandingScheduleSlots(
 }
 
 export function getLandingRoomScheduleSummaries(
-  reservations: Reservation[],
+  reservations: ReservationTimeBlock[],
   date: string,
 ): LandingRoomScheduleSummary[] {
   return ROOMS.map((room) => {

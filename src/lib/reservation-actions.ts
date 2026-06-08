@@ -1,8 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { findReservationConflict } from "@/lib/booking-availability";
 import {
-  findReservationConflict,
   validateReservationDraft,
   ACTIVE_ROOM_IDS,
   type Reservation,
