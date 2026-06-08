@@ -72,10 +72,10 @@ describe("landing detail schedule layout", () => {
 
   it("adds a crisp border around reservation blocks", () => {
     expect(getLandingDetailReservationBlockBorder()).toEqual({
-      stroke: "#000000",
+      stroke: "oklch(0.21 0.007 255 / 0.9)",
       strokeLinecap: "round",
       strokeLinejoin: "round",
-      strokeWidth: 2.5,
+      strokeWidth: 1.8,
       vectorEffect: "non-scaling-stroke",
     });
   });
