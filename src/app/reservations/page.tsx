@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { formatKoreaDate } from "@/lib/korea-date";
 import { listPublicReservationsByLookup } from "@/lib/reservation-actions";
 import { formatKoreanPhoneNumber } from "@/lib/reservation-ui";
+import { RESERVATIONS_PAGE_HEADER } from "@/lib/reservations-page-header";
 import { formatMinutes, getRoomName, STATUS_LABELS, type Reservation } from "@/lib/reservations";
 
 const lookupSchema = z.object({
@@ -103,16 +104,24 @@ export default function ReservationsPage() {
             <ChevronLeftIcon className="size-4" />
           </Button>
           <div className="min-w-0 text-center">
-            <div className="text-[0.72rem] font-bold text-muted-foreground sm:text-xs">내 예약</div>
-            <h1 className="truncate text-2xl font-bold tracking-normal sm:text-3xl">예약내역 보기</h1>
+            {RESERVATIONS_PAGE_HEADER.eyebrow ? (
+              <div className="text-[0.72rem] font-bold text-muted-foreground sm:text-xs">
+                {RESERVATIONS_PAGE_HEADER.eyebrow}
+              </div>
+            ) : null}
+            <h1 className="text-xl font-bold leading-tight tracking-normal sm:text-2xl">
+              {RESERVATIONS_PAGE_HEADER.title}
+            </h1>
           </div>
           <div aria-hidden="true" />
         </nav>
 
         <Card className="rounded-xl border bg-card shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-2xl">예약할 때 입력한 정보</CardTitle>
-          </CardHeader>
+          {RESERVATIONS_PAGE_HEADER.lookupFormTitle ? (
+            <CardHeader>
+              <CardTitle className="text-2xl">{RESERVATIONS_PAGE_HEADER.lookupFormTitle}</CardTitle>
+            </CardHeader>
+          ) : null}
           <CardContent>
             <form className="grid gap-4" onSubmit={form.handleSubmit(submitLookup)}>
               <label className="grid gap-2">
@@ -199,14 +208,16 @@ export default function ReservationsPage() {
           ))}
         </section>
 
-        <Button
-          className="motion-action h-14 rounded-xl text-base font-bold sm:text-lg"
-          render={<Link href="/reservation" />}
-          variant="outline"
-        >
-          <CalendarPlusIcon data-icon="inline-start" />
-          새 예약하기
-        </Button>
+        {RESERVATIONS_PAGE_HEADER.showCreateReservationLink ? (
+          <Button
+            className="motion-action h-14 rounded-xl text-base font-bold sm:text-lg"
+            render={<Link href="/reservation" />}
+            variant="outline"
+          >
+            <CalendarPlusIcon data-icon="inline-start" />
+            새 예약하기
+          </Button>
+        ) : null}
       </section>
     </main>
   );

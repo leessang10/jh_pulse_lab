@@ -52,14 +52,13 @@ export const STATUS_LABELS: Record<ReservationStatus, string> = {
 
 export const SLOT_MINUTES = 30;
 export const DAY_END_MINUTES = 24 * 60;
+export const MAX_BOOKING_DURATION_MINUTES = 120;
 
 export const BOOKING_DURATION_OPTIONS = [
   { minutes: 30, label: "30분" },
   { minutes: 60, label: "1시간" },
   { minutes: 90, label: "1시간 30분" },
   { minutes: 120, label: "2시간" },
-  { minutes: 150, label: "2시간 30분" },
-  { minutes: 180, label: "3시간" },
 ];
 
 export function formatMinutes(minutes: number) {
@@ -92,6 +91,9 @@ export function validateReservationDraft(draft: ReservationDraft) {
     errors.push("예약 시간은 00:00부터 24:00 사이여야 합니다.");
   }
   if (draft.endMinutes <= draft.startMinutes) errors.push("종료 시간은 시작 시간보다 늦어야 합니다.");
+  if (draft.endMinutes - draft.startMinutes > MAX_BOOKING_DURATION_MINUTES) {
+    errors.push("예약 시간은 최대 2시간까지 가능합니다.");
+  }
   if (!draft.name.trim()) errors.push("예약자 이름을 입력해 주세요.");
   if (!draft.phone.trim()) errors.push("연락처를 입력해 주세요.");
   if (!/^\d{6}$/.test(draft.password)) errors.push("비밀번호는 숫자 6자리로 입력해 주세요.");
@@ -115,4 +117,8 @@ export function createReservation(draft: ReservationDraft): Reservation {
 
 export function getRoomName(roomId: string) {
   return ROOM_NAMES.get(roomId) ?? roomId;
+}
+
+export function getInitialReservationRoomId(roomId: string | null | undefined) {
+  return ACTIVE_ROOM_IDS.includes(roomId ?? "") ? roomId! : ACTIVE_ROOM_IDS[0];
 }

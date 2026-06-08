@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { Reservation } from "./reservations";
-import { getLandingRoomScheduleSummaries, getLandingScheduleSlots } from "./landing-schedule";
+import {
+  LANDING_RESERVATION_SEGMENT_COLORS,
+  getLandingRoomScheduleSummaries,
+  getLandingScheduleSlots,
+} from "./landing-schedule";
 
 const reservation: Reservation = {
   id: "res-1",
@@ -15,6 +19,17 @@ const reservation: Reservation = {
 };
 
 describe("landing schedule", () => {
+  it("uses a vivid reservation segment palette that matches the primary green accent", () => {
+    expect(LANDING_RESERVATION_SEGMENT_COLORS).toEqual([
+      "#ef6f7f",
+      "#f08a45",
+      "#e6b13f",
+      "#0f9f8f",
+      "#42a5db",
+      "#9b7cf2",
+    ]);
+  });
+
   it("builds 48 half-hour slots across a full day", () => {
     const slots = getLandingScheduleSlots([], "2026-06-02");
 
@@ -107,6 +122,18 @@ describe("landing schedule", () => {
     expect(summaries.find((summary) => summary.roomId === "room-2")).toMatchObject({
       roomName: "강의실 2",
       bookedSlotCount: 2,
+      bookedMinutes: 60,
+      bookedHourLabel: "1",
+      bookedDurationLabel: "1시간",
+      reservationSegments: [
+        {
+          reservationId: "res-1",
+          startMinutes: 570,
+          endMinutes: 630,
+          nameLabel: "민수",
+          rangeLabel: "09:30-10:30",
+        },
+      ],
       totalSlotCount: 48,
       bookedPercent: 4,
       nextBookedSlot: {
@@ -118,5 +145,53 @@ describe("landing schedule", () => {
       bookedSlotCount: 0,
       nextBookedSlot: null,
     });
+  });
+
+  it("summarizes booked time as hours instead of half-hour slot count", () => {
+    const twoHourReservation: Reservation = {
+      ...reservation,
+      roomId: "room-1",
+      startMinutes: 60,
+      endMinutes: 180,
+    };
+    const summaries = getLandingRoomScheduleSummaries([twoHourReservation], "2026-06-02");
+
+    expect(summaries.find((summary) => summary.roomId === "room-1")).toMatchObject({
+      bookedSlotCount: 4,
+      bookedMinutes: 120,
+      bookedHourLabel: "2",
+      bookedDurationLabel: "2시간",
+    });
+  });
+
+  it("cycles reservation segment colors in red orange yellow green blue purple order", () => {
+    const summaries = getLandingRoomScheduleSummaries(
+      [
+        { ...reservation, id: "res-a", roomId: "room-1", startMinutes: 0, endMinutes: 30, name: "가" },
+        { ...reservation, id: "res-b", roomId: "room-1", startMinutes: 30, endMinutes: 60, name: "나" },
+        { ...reservation, id: "res-c", roomId: "room-1", startMinutes: 60, endMinutes: 90, name: "다" },
+        { ...reservation, id: "res-d", roomId: "room-1", startMinutes: 90, endMinutes: 120, name: "라" },
+        { ...reservation, id: "res-e", roomId: "room-1", startMinutes: 120, endMinutes: 150, name: "마" },
+        { ...reservation, id: "res-f", roomId: "room-1", startMinutes: 150, endMinutes: 180, name: "바" },
+        { ...reservation, id: "res-g", roomId: "room-1", startMinutes: 180, endMinutes: 210, name: "사" },
+      ],
+      "2026-06-02",
+    );
+    const segments = summaries.find((summary) => summary.roomId === "room-1")?.reservationSegments ?? [];
+
+    expect(segments).toHaveLength(7);
+    expect(segments[0]).toMatchObject({
+      nameLabel: "가",
+      rangeLabel: "00:00-00:30",
+    });
+    expect(segments.map((segment) => segment.color)).toEqual([
+      "#ef6f7f",
+      "#f08a45",
+      "#e6b13f",
+      "#0f9f8f",
+      "#42a5db",
+      "#9b7cf2",
+      "#ef6f7f",
+    ]);
   });
 });

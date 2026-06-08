@@ -25,10 +25,32 @@ export type LandingRoomScheduleSummary = {
   roomName: string;
   totalSlotCount: number;
   bookedSlotCount: number;
+  bookedMinutes: number;
+  bookedHourLabel: string;
+  bookedDurationLabel: string;
+  reservationSegments: LandingReservationSegment[];
   bookedPercent: number;
   nextBookedSlot: LandingScheduleSlot | null;
   slots: LandingScheduleSlot[];
 };
+
+export type LandingReservationSegment = {
+  reservationId: string;
+  startMinutes: number;
+  endMinutes: number;
+  nameLabel: string;
+  rangeLabel: string;
+  color: string;
+};
+
+export const LANDING_RESERVATION_SEGMENT_COLORS = [
+  "#ef6f7f",
+  "#f08a45",
+  "#e6b13f",
+  "#0f9f8f",
+  "#42a5db",
+  "#9b7cf2",
+];
 
 function getReservationName(reservation: ReservationTimeBlock) {
   return reservation.name.trim() || "예약자";
@@ -43,6 +65,47 @@ function getBookedByLabel(reservations: ReservationTimeBlock[]) {
   }
 
   return `${getReservationName(reservations[0])}님 외 ${reservations.length - 1}명`;
+}
+
+function formatBookedHourLabel(minutes: number) {
+  const hours = minutes / 60;
+
+  return Number.isInteger(hours) ? String(hours) : hours.toFixed(1);
+}
+
+function formatBookedDurationLabel(minutes: number) {
+  if (minutes === 0) return "0시간";
+
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  const parts: string[] = [];
+
+  if (hours > 0) parts.push(`${hours}시간`);
+  if (remainingMinutes > 0) parts.push(`${remainingMinutes}분`);
+
+  return parts.join(" ");
+}
+
+function getLandingReservationSegments(
+  reservations: ReservationTimeBlock[],
+  date: string,
+  roomId: string,
+): LandingReservationSegment[] {
+  return reservations
+    .filter((reservation) => reservation.status !== "cancelled" && reservation.date === date && reservation.roomId === roomId)
+    .sort((a, b) => a.startMinutes - b.startMinutes || a.endMinutes - b.endMinutes || a.id.localeCompare(b.id))
+    .map((reservation, index) => {
+      const nameLabel = getReservationName(reservation);
+
+      return {
+        reservationId: reservation.id,
+        startMinutes: reservation.startMinutes,
+        endMinutes: reservation.endMinutes,
+        nameLabel,
+        rangeLabel: `${formatMinutes(reservation.startMinutes)}-${formatMinutes(reservation.endMinutes)}`,
+        color: LANDING_RESERVATION_SEGMENT_COLORS[index % LANDING_RESERVATION_SEGMENT_COLORS.length],
+      };
+    });
 }
 
 export function getLandingScheduleSlots(
@@ -90,12 +153,18 @@ export function getLandingRoomScheduleSummaries(
   return ROOMS.map((room) => {
     const slots = getLandingScheduleSlots(reservations, date, { roomId: room.id });
     const bookedSlots = slots.filter((slot) => slot.isBooked);
+    const bookedMinutes = bookedSlots.length * SLOT_MINUTES;
+    const reservationSegments = getLandingReservationSegments(reservations, date, room.id);
 
     return {
       roomId: room.id,
       roomName: room.name,
       totalSlotCount: slots.length,
       bookedSlotCount: bookedSlots.length,
+      bookedMinutes,
+      bookedHourLabel: formatBookedHourLabel(bookedMinutes),
+      bookedDurationLabel: formatBookedDurationLabel(bookedMinutes),
+      reservationSegments,
       bookedPercent: Math.round((bookedSlots.length / slots.length) * 100),
       nextBookedSlot: bookedSlots[0] ?? null,
       slots,

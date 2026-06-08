@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   formatMinutes,
   ACTIVE_ROOM_IDS,
+  getInitialReservationRoomId,
   getRoomName,
   generateTimeSlots,
   ROOMS,
@@ -66,8 +67,28 @@ describe("reservation rules", () => {
     ]);
   });
 
+  it("rejects reservations longer than two hours", () => {
+    expect(
+      validateReservationDraft({
+        date: "2026-05-28",
+        roomId: "room-1",
+        startMinutes: 600,
+        endMinutes: 750,
+        name: "Lee",
+        phone: "010-0000-0000",
+        password: "123456",
+      }),
+    ).toContain("예약 시간은 최대 2시간까지 가능합니다.");
+  });
+
   it("uses Korean classroom labels for public room names", () => {
     expect(getRoomName("room-1")).toBe("강의실 1");
     expect(getRoomName("room-4")).toBe("강의실 4");
+  });
+
+  it("falls back to the first active classroom for reservation entry", () => {
+    expect(getInitialReservationRoomId("room-3")).toBe("room-3");
+    expect(getInitialReservationRoomId("room-9")).toBe("room-1");
+    expect(getInitialReservationRoomId(null)).toBe("room-1");
   });
 });

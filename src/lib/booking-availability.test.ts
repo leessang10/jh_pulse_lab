@@ -73,8 +73,6 @@ describe("booking availability", () => {
       "1시간",
       "1시간 30분",
       "2시간",
-      "2시간 30분",
-      "3시간",
     ]);
     expect(availability.rangeOptions).toContainEqual({
       startMinutes: 540,

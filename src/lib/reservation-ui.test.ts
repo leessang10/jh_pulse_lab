@@ -2,18 +2,31 @@ import { describe, expect, it } from "vitest";
 import {
   BOOKING_STEP_ITEMS,
   formatKoreanPhoneNumber,
+  getBookingCompletionReturnAction,
   getBookingHeaderState,
   getBookingStepNavigation,
   getReservationSummary,
+  getRoomReservationHref,
 } from "./reservation-ui";
 
 describe("reservation UI helpers", () => {
   it("uses compact Korean labels for the public booking steps", () => {
     expect(BOOKING_STEP_ITEMS).toEqual([
-      { id: "room", label: "강의실" },
       { id: "time", label: "시간" },
       { id: "contact", label: "정보" },
     ]);
+  });
+
+  it("builds reservation links for the selected landing room", () => {
+    expect(getRoomReservationHref("room-2")).toBe("/reservation?roomId=room-2");
+    expect(getRoomReservationHref(null)).toBe("/reservation");
+  });
+
+  it("returns users to the landing page after completing a reservation", () => {
+    expect(getBookingCompletionReturnAction()).toEqual({
+      href: "/",
+      label: "메인으로",
+    });
   });
 
   it("formats Korean mobile phone input while the user types", () => {
@@ -43,41 +56,30 @@ describe("reservation UI helpers", () => {
   });
 
   it("returns lean header state for the active booking step", () => {
-    expect(getBookingHeaderState("room")).toEqual({
-      title: "강의실 선택",
-      stepLabel: "1/3",
-      progressPercent: 33.33333333333333,
-    });
-
     expect(getBookingHeaderState("time")).toEqual({
       title: "시간 선택",
-      stepLabel: "2/3",
-      progressPercent: 66.66666666666666,
+      stepLabel: "1/2",
+      progressPercent: 50,
     });
 
     expect(getBookingHeaderState("contact")).toEqual({
       title: "예약자 정보",
-      stepLabel: "3/3",
+      stepLabel: "2/2",
       progressPercent: 100,
     });
   });
 
   it("returns previous and next navigation state for each booking step", () => {
-    expect(getBookingStepNavigation({ step: "room", hasRoom: false, hasTime: false })).toEqual({
-      previousStep: null,
-      nextStep: "time",
-      nextLabel: "다음",
-      isNextDisabled: true,
-    });
-
     expect(getBookingStepNavigation({ step: "time", hasRoom: true, hasTime: false })).toEqual({
-      previousStep: "room",
+      previousHref: "/",
+      previousStep: null,
       nextStep: "contact",
       nextLabel: "다음",
       isNextDisabled: true,
     });
 
     expect(getBookingStepNavigation({ step: "contact", hasRoom: true, hasTime: true })).toEqual({
+      previousHref: null,
       previousStep: "time",
       nextStep: null,
       nextLabel: "예약 확정",
@@ -85,9 +87,10 @@ describe("reservation UI helpers", () => {
     });
 
     expect(getBookingStepNavigation({ step: "done", hasRoom: true, hasTime: true })).toEqual({
+      previousHref: null,
       previousStep: null,
-      nextStep: "room",
-      nextLabel: "새 예약",
+      nextStep: null,
+      nextLabel: "메인으로",
       isNextDisabled: false,
     });
   });

@@ -1,6 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion, MotionConfig } from "framer-motion";
 import { CheckCircle2Icon, ChevronLeftIcon } from "lucide-react";
@@ -18,13 +20,14 @@ import {
   type SelectedBookingTime,
 } from "@/lib/booking-availability";
 import {
+  getInitialReservationRoomId,
   getRoomName,
-  ROOMS,
   type ReservationDraft,
 } from "@/lib/reservations";
 import { todayKoreaValue } from "@/lib/korea-date";
 import {
   formatKoreanPhoneNumber,
+  getBookingCompletionReturnAction,
   getBookingHeaderState,
   getBookingStepNavigation,
   type BookingStep,
@@ -57,11 +60,23 @@ const tactileMotion = {
   whileTap: { scale: 0.985, y: 0 },
 } as const;
 
-export default function ReservationPage() {
-  const [step, setStep] = useState<BookingStep>("room");
+function ReservationPageFallback() {
+  return (
+    <main className="reservation-shell mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 sm:px-6">
+      <div className="rounded-xl border bg-card p-5 text-lg font-bold text-muted-foreground shadow-sm">
+        예약 화면을 준비하는 중입니다.
+      </div>
+    </main>
+  );
+}
+
+function ReservationFlow() {
+  const searchParams = useSearchParams();
+  const initialRoomId = getInitialReservationRoomId(searchParams.get("roomId"));
+  const [step, setStep] = useState<BookingStep>("time");
   const [date] = useState(todayKoreaValue);
   const { reservations, addReservation, isReady, error } = useReservations({ date });
-  const [roomId, setRoomId] = useState("");
+  const [roomId] = useState(initialRoomId);
   const [selectedDurationMinutes, setSelectedDurationMinutes] = useState(60);
   const [selectedStartMinutes, setSelectedStartMinutes] = useState<number | null>(null);
   const [selectedTime, setSelectedTime] = useState<SelectedBookingTime | null>(null);
@@ -76,7 +91,8 @@ export default function ReservationPage() {
     },
   });
 
-  const selectedRoomName = roomId ? getRoomName(roomId) : "";
+  const selectedRoomName = getRoomName(roomId);
+  const completionReturnAction = getBookingCompletionReturnAction();
   const navigation = getBookingStepNavigation({
     step,
     hasRoom: Boolean(roomId),
@@ -99,12 +115,6 @@ export default function ReservationPage() {
   function clearTimeSelection() {
     setSelectedStartMinutes(null);
     setSelectedTime(null);
-  }
-
-  function selectRoom(nextRoomId: string) {
-    setRoomId(nextRoomId);
-    clearTimeSelection();
-    setStep("time");
   }
 
   function selectDuration(durationMinutes: number) {
@@ -141,8 +151,8 @@ export default function ReservationPage() {
   async function submitReservation(values: ContactValues) {
     if (isSubmittingReservation) return;
 
-    if (!roomId || !selectedTime) {
-      setStep(roomId ? "time" : "room");
+    if (!selectedTime) {
+      setStep("time");
       return;
     }
 
@@ -178,13 +188,6 @@ export default function ReservationPage() {
     }
   }
 
-  function resetFlow() {
-    setStep("room");
-    setRoomId("");
-    clearTimeSelection();
-    form.reset();
-  }
-
   function movePrevious() {
     if (navigation.previousStep) setStep(navigation.previousStep);
   }
@@ -195,16 +198,28 @@ export default function ReservationPage() {
       <nav className="sticky top-0 z-20 -mx-4 border-b bg-background/96 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
         <div className="mx-auto grid max-w-2xl gap-2">
           <div className="grid grid-cols-[2.5rem_1fr_2.5rem] items-center gap-3">
-            <Button
-              aria-label="이전 단계"
-              className="size-10 justify-center rounded-lg p-0"
-              disabled={!navigation.previousStep}
-              onClick={movePrevious}
-              type="button"
-              variant="outline"
-            >
-              <ChevronLeftIcon className="size-4" />
-            </Button>
+            {navigation.previousHref ? (
+              <Button
+                aria-label="처음으로"
+                className="size-10 justify-center rounded-lg p-0"
+                render={<Link href={navigation.previousHref} />}
+                type="button"
+                variant="outline"
+              >
+                <ChevronLeftIcon className="size-4" />
+              </Button>
+            ) : (
+              <Button
+                aria-label="이전 단계"
+                className="size-10 justify-center rounded-lg p-0"
+                disabled={!navigation.previousStep}
+                onClick={movePrevious}
+                type="button"
+                variant="outline"
+              >
+                <ChevronLeftIcon className="size-4" />
+              </Button>
+            )}
             <div className="min-w-0 text-center">
               <div className="text-[0.72rem] font-bold text-muted-foreground sm:text-xs">{headerState.stepLabel}</div>
               <div className="truncate text-xl font-bold leading-tight tracking-normal sm:text-2xl">
@@ -228,29 +243,12 @@ export default function ReservationPage() {
         </div>
       ) : null}
 
-      {step === "room" && (
-        <motion.section key="room" className="grid flex-1 content-start gap-4" {...sectionMotion}>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {ROOMS.map((room, index) => (
-              <motion.button
-                key={room.id}
-                className="min-h-24 rounded-xl border bg-card p-5 text-left text-3xl font-bold shadow-sm transition-colors hover:border-primary hover:bg-primary/5 focus-visible:border-ring focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none sm:min-h-36 sm:p-6 sm:text-4xl"
-                {...itemMotion}
-                {...tactileMotion}
-                transition={{ ...itemMotion.transition, delay: index * 0.06 }}
-                onClick={() => selectRoom(room.id)}
-                style={{ fontSize: "clamp(1.85rem, 7vw, 2.75rem)", fontWeight: 700 }}
-                type="button"
-              >
-                {room.name}
-              </motion.button>
-            ))}
-          </div>
-        </motion.section>
-      )}
-
       {step === "time" && (
         <motion.section key="time" className="grid flex-1 content-start gap-5" {...sectionMotion}>
+          <div className="rounded-xl border bg-card p-4 shadow-sm">
+            <div className="text-sm font-bold text-muted-foreground">예약 강의실</div>
+            <div className="mt-1 text-3xl font-bold tracking-normal">{selectedRoomName}</div>
+          </div>
           <div className="grid gap-5">
             <div className="grid gap-3">
               <div className="text-lg font-bold text-muted-foreground sm:text-xl">이용 시간</div>
@@ -460,11 +458,11 @@ export default function ReservationPage() {
               </p>
               <Button
                 className="motion-action mx-auto h-16 rounded-xl px-10 text-2xl"
-                onClick={resetFlow}
+                nativeButton={false}
+                render={<Link href={completionReturnAction.href} />}
                 style={{ fontSize: "1.5rem", fontWeight: 700 }}
-                type="button"
               >
-                새 예약
+                {completionReturnAction.label}
               </Button>
             </CardContent>
           </Card>
@@ -473,5 +471,13 @@ export default function ReservationPage() {
       )}
     </main>
     </MotionConfig>
+  );
+}
+
+export default function ReservationPage() {
+  return (
+    <Suspense fallback={<ReservationPageFallback />}>
+      <ReservationFlow />
+    </Suspense>
   );
 }
