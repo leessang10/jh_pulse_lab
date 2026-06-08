@@ -240,7 +240,7 @@ export default function HomePage() {
   const [date] = useState(todayKoreaValue);
   const { reservations, error } = useReservations({ date });
   const summaries = useMemo(() => getLandingRoomScheduleSummaries(reservations, date), [date, reservations]);
-  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
+  const [selectedRoomId, setSelectedRoomId] = useState<string | null>("room-1");
   const selectedSummary = useMemo(
     () => summaries.find((summary) => summary.roomId === selectedRoomId) ?? null,
     [selectedRoomId, summaries],
