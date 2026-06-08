@@ -13,7 +13,7 @@ export function getLandingDetailScheduleGeometry() {
 }
 
 export function getLandingDetailCenterPanelClassName() {
-  return "absolute inset-[34%] grid place-items-center rounded-full border bg-background/95 p-2 text-center shadow-sm backdrop-blur";
+  return "absolute inset-[34%] grid place-items-center rounded-full border border-border/80 bg-card/95 p-2 text-center shadow-[0_10px_24px_oklch(0.21_0.007_255_/_10%)] backdrop-blur";
 }
 
 export function getLandingDetailHourMarkers() {
@@ -46,10 +46,10 @@ export function getLandingDetailReservationLabelClassName() {
 
 export function getLandingDetailReservationBlockBorder() {
   return {
-    stroke: "#000000",
+    stroke: "oklch(0.21 0.007 255 / 0.9)",
     strokeLinecap: "round",
     strokeLinejoin: "round",
-    strokeWidth: 2.5,
+    strokeWidth: 1.8,
     vectorEffect: "non-scaling-stroke",
   } as const;
 }

@@ -39,6 +39,14 @@ const detailHourMarkers = getLandingDetailHourMarkers();
 const detailCardinalTimeLabels = getLandingDetailCardinalTimeLabels();
 const detailReservationBlockBorder = getLandingDetailReservationBlockBorder();
 const slotAngle = 360 / (DAY_END_MINUTES / SLOT_MINUTES);
+const reservationSegmentToneFills = [
+  "oklch(0.63 0.1 176)",
+  "oklch(0.69 0.078 176)",
+  "oklch(0.76 0.058 176)",
+  "oklch(0.67 0.052 198)",
+  "oklch(0.73 0.038 215)",
+  "oklch(0.79 0.024 235)",
+];
 
 function pointOnCircle(angleDegrees: number, radius: number) {
   return getStableCirclePoint(angleDegrees, radius, scheduleCenter);
@@ -87,6 +95,10 @@ function getSegmentTitle(segment: LandingReservationSegment) {
   return `${segment.nameLabel} ${segment.rangeLabel}`;
 }
 
+function getReservationSegmentToneFill(index: number) {
+  return reservationSegmentToneFills[index % reservationSegmentToneFills.length];
+}
+
 function RoomSummaryTile({
   isSelected,
   onSelect,
@@ -106,11 +118,11 @@ function RoomSummaryTile({
       onClick={onSelect}
       type="button"
     >
-      <div className="truncate text-sm font-black leading-tight tracking-normal text-foreground sm:text-2xl">
+      <div className="truncate text-[0.82rem] font-black leading-tight tracking-normal text-foreground sm:text-xl">
         {summary.roomName}
       </div>
 
-      <div className="relative mx-auto aspect-square w-full max-w-[7.25rem] self-center sm:w-[92%] sm:max-w-none">
+      <div className="relative mx-auto aspect-square w-full max-w-[4.65rem] self-center sm:max-w-[5.9rem]">
         <svg
           aria-hidden="true"
           className="size-full overflow-visible"
@@ -136,8 +148,13 @@ function RoomSummaryTile({
           ))}
         </svg>
         <div className="pointer-events-none absolute inset-0 grid place-items-center">
-          <span className="text-xl font-black leading-none tracking-normal text-foreground sm:text-3xl">
-            {summary.bookedHourLabel}
+          <span className="grid place-items-center gap-0.5 text-foreground">
+            <span className="text-lg font-black leading-none tracking-normal sm:text-3xl">
+              {summary.bookedHourLabel}
+            </span>
+            <span className="text-[0.55rem] font-black leading-none text-muted-foreground sm:text-[0.68rem]">
+              시간
+            </span>
           </span>
         </div>
       </div>
@@ -147,12 +164,24 @@ function RoomSummaryTile({
 
 function RoomDetailSchedule({ summary }: { summary: LandingRoomScheduleSummary }) {
   return (
-    <section aria-label={`${summary.roomName} 상세 예약 현황`} className="grid gap-4">
-      <div className="grid gap-1 text-center">
-        <h2 className="text-2xl font-black tracking-normal text-foreground sm:text-3xl">{summary.roomName}</h2>
+    <section
+      aria-label={`${summary.roomName} 상세 예약 현황`}
+      className="grid gap-3 rounded-md border border-border/80 bg-card p-3 shadow-[0_16px_36px_oklch(0.21_0.007_255_/_8%)] sm:grid-cols-[minmax(11rem,14rem)_minmax(0,1fr)] sm:items-center sm:gap-5 sm:p-4"
+    >
+      <div className="flex items-end justify-between gap-3 sm:grid sm:content-start sm:items-start sm:gap-6">
+        <div className="min-w-0 text-left">
+          <p className="text-xs font-black text-muted-foreground">실시간 예약 현황</p>
+          <h2 className="truncate text-2xl font-black tracking-normal text-foreground sm:text-3xl">
+            {summary.roomName}
+          </h2>
+        </div>
+        <div className="grid shrink-0 gap-0.5 rounded-md bg-muted px-3 py-2 text-right sm:text-left">
+          <span className="text-[0.66rem] font-black text-muted-foreground">오늘 예약</span>
+          <strong className="text-sm font-black leading-none sm:text-base">{summary.bookedDurationLabel}</strong>
+        </div>
       </div>
 
-      <div className="relative mx-auto aspect-square w-full max-w-[min(100%,35rem,calc(100dvh-20rem))] min-w-0">
+      <div className="relative mx-auto aspect-square w-full max-w-[min(100%,clamp(20rem,calc(100dvh-25rem),25.5rem))] min-w-0 sm:max-w-[min(100%,26rem)] lg:max-w-[min(100%,28rem)]">
         <svg
           aria-label={`${summary.roomName} 오늘 예약 시간을 시계처럼 보여주는 표`}
           className="size-full overflow-visible"
@@ -178,11 +207,11 @@ function RoomDetailSchedule({ summary }: { summary: LandingRoomScheduleSummary }
               <title>{getSlotTitle(slot)}</title>
             </path>
           ))}
-          {summary.reservationSegments.map((segment) => (
+          {summary.reservationSegments.map((segment, index) => (
             <path
               key={segment.reservationId}
               d={getTimeSectorPath(segment.startMinutes, segment.endMinutes)}
-              fill={segment.color}
+              fill={getReservationSegmentToneFill(index)}
               opacity={0.95}
               stroke={detailReservationBlockBorder.stroke}
               strokeLinecap={detailReservationBlockBorder.strokeLinecap}
@@ -266,17 +295,37 @@ export default function HomePage() {
   const dateLabel = useMemo(() => formatKoreaDate(date), [date]);
 
   return (
-    <main className="min-h-screen bg-background px-3 py-4 text-foreground sm:px-6">
-      <section className="mx-auto grid min-h-[calc(100vh-2rem)] w-full max-w-5xl content-start gap-5">
-        <header className="grid gap-2 pt-2 text-center sm:pt-3">
-          <div className="mx-auto flex items-baseline justify-center gap-2 text-2xl font-black tracking-normal text-foreground sm:text-3xl">
-            <span>JH</span>
-            <span>PULSE</span>
-            <span>LAB</span>
+    <main className="min-h-screen bg-[oklch(0.972_0.004_255)] px-3 py-3 text-foreground sm:px-6 sm:py-5">
+      <section className="mx-auto grid w-full max-w-5xl content-start gap-3 sm:gap-4">
+        <header className="grid gap-3 border-b border-border/80 pb-3 sm:grid-cols-[1fr_auto] sm:items-end">
+          <div className="grid gap-1 text-left">
+            <div className="flex items-baseline gap-2 text-2xl font-black tracking-normal text-foreground sm:text-3xl">
+              <span>JH</span>
+              <span>PULSE</span>
+              <span>LAB</span>
+            </div>
+            <p className="text-sm font-black text-muted-foreground sm:text-base">{dateLabel}</p>
           </div>
-          <p className="grid gap-1 text-base font-bold text-muted-foreground sm:text-lg">
-            <span>{dateLabel}</span>
-          </p>
+
+          <div className="grid grid-cols-[1.2fr_1fr] gap-2 sm:min-w-[22rem]">
+            <Button
+              className="motion-action h-11 rounded-md text-sm font-black sm:text-base"
+              nativeButton={false}
+              render={<Link href={reservationHref} />}
+            >
+              <CalendarPlusIcon data-icon="inline-start" />
+              예약하기
+            </Button>
+            <Button
+              className="motion-action h-11 rounded-md bg-card text-sm font-black sm:text-base"
+              nativeButton={false}
+              render={<Link href="/reservations" />}
+              variant="outline"
+            >
+              <ClipboardListIcon data-icon="inline-start" />
+              예약내역
+            </Button>
+          </div>
         </header>
 
         {error ? (
@@ -297,26 +346,6 @@ export default function HomePage() {
         </section>
 
         {selectedSummary ? <RoomDetailSchedule summary={selectedSummary} /> : null}
-
-        <div className="grid gap-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:grid-cols-2">
-          <Button
-            className="motion-action h-14 rounded-xl text-base font-bold sm:text-lg"
-            nativeButton={false}
-            render={<Link href={reservationHref} />}
-          >
-            <CalendarPlusIcon data-icon="inline-start" />
-            예약하기
-          </Button>
-          <Button
-            className="motion-action h-14 rounded-xl text-base font-bold sm:text-lg"
-            nativeButton={false}
-            render={<Link href="/reservations" />}
-            variant="outline"
-          >
-            <ClipboardListIcon data-icon="inline-start" />
-            예약내역 보기
-          </Button>
-        </div>
       </section>
     </main>
   );
