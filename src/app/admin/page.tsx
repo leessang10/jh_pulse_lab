@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Trash2Icon } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { CalendarCheckIcon, ExternalLinkIcon, LogOutIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -22,7 +23,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ADMIN_SIDEBAR_ITEMS, getAdminSidebarItemState } from "@/lib/admin-navigation";
 import { dateToKoreaValue, formatKoreaDate, todayKoreaValue, valueToKoreaDate } from "@/lib/korea-date";
 import { getAdminSession, loginAdmin, logoutAdmin } from "@/lib/admin-auth-actions";
 import { formatMinutes, getRoomName, ROOMS, STATUS_LABELS, type ReservationStatus } from "@/lib/reservations";
@@ -36,7 +52,12 @@ function statusVariant(status: ReservationStatus) {
   return "secondary";
 }
 
+function getAdminSidebarIcon(href: string) {
+  return href === "/admin" ? CalendarCheckIcon : ExternalLinkIcon;
+}
+
 export default function AdminPage() {
+  const pathname = usePathname();
   const [date, setDate] = useState(todayKoreaValue);
   const [roomId, setRoomId] = useState("all");
   const [status, setStatus] = useState<ReservationStatus | "all">("all");
@@ -127,7 +148,8 @@ export default function AdminPage() {
     toast.success("예약을 삭제했습니다.");
   }
 
-  return (
+  if (!isSessionReady || !isLoggedIn) {
+    return (
     <main className="mx-auto min-h-screen w-full max-w-7xl px-5 py-6 lg:px-8">
       <header className="flex flex-col gap-4 py-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -137,11 +159,6 @@ export default function AdminPage() {
           <h1 className="mt-2 text-4xl font-bold text-foreground sm:text-5xl">예약 관리</h1>
         </div>
         <div className="flex flex-wrap gap-2">
-          {isLoggedIn ? (
-            <Button onClick={submitLogout} type="button" variant="outline">
-              로그아웃
-            </Button>
-          ) : null}
           <Button render={<Link href="/reservation" />} variant="outline">
             예약 페이지
           </Button>
@@ -180,8 +197,78 @@ export default function AdminPage() {
             </Button>
           </CardContent>
         </Card>
-      ) : (
-        <>
+      ) : null}
+    </main>
+    );
+  }
+
+  return (
+    <SidebarProvider>
+      <Sidebar>
+        <SidebarHeader>
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+              <CalendarCheckIcon className="size-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="truncate text-sm font-bold">JH Pulse Lab</div>
+              <div className="text-xs text-muted-foreground">관리자</div>
+            </div>
+          </div>
+        </SidebarHeader>
+        <SidebarContent>
+          <SidebarGroup>
+            <SidebarGroupLabel>관리 메뉴</SidebarGroupLabel>
+            <SidebarMenu>
+              {ADMIN_SIDEBAR_ITEMS.map((item) => {
+                const Icon = getAdminSidebarIcon(item.href);
+                const { isActive } = getAdminSidebarItemState(item.href, pathname);
+
+                return (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton render={<Link href={item.href} />} isActive={isActive}>
+                      <Icon />
+                      <span className="grid min-w-0 gap-0.5">
+                        <span className="truncate">{item.title}</span>
+                        <span className="truncate text-xs font-normal text-muted-foreground">{item.description}</span>
+                      </span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroup>
+        </SidebarContent>
+        <SidebarFooter>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton onClick={submitLogout} type="button">
+                <LogOutIcon />
+                <span>로그아웃</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
+      </Sidebar>
+
+      <SidebarInset>
+        <main className="min-h-screen w-full px-5 py-6 lg:px-8">
+          <header className="flex flex-col gap-4 border-b pb-5 sm:flex-row sm:items-end sm:justify-between">
+            <div className="flex items-start gap-3">
+              <SidebarTrigger className="mt-1 md:hidden" />
+              <div>
+                <Badge variant="outline" className="border-primary/30 bg-card text-primary">
+                  예약 관리
+                </Badge>
+                <h1 className="mt-2 text-3xl font-bold text-foreground sm:text-4xl">예약 관리</h1>
+              </div>
+            </div>
+            <Button render={<Link href="/reservation" />} variant="outline">
+              <ExternalLinkIcon />
+              예약 페이지
+            </Button>
+          </header>
+
       <Card className="mt-6 border bg-card shadow-sm">
         <CardHeader>
           <CardTitle>필터</CardTitle>
@@ -322,8 +409,8 @@ export default function AdminPage() {
           )}
         </CardContent>
       </Card>
-        </>
-      )}
-    </main>
+        </main>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

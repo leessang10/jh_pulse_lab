@@ -72,7 +72,7 @@ Enable Row Level Security on `reservations`.
 
 The MVP treats every authenticated Supabase user in this project as an admin. This matches the selected email/password admin-account approach and avoids adding a separate roles table before it is needed. If multiple staff roles become necessary later, add an `admin_users` allowlist table and tighten policies to that table.
 
-Server actions may use the service role key for public availability reads and public inserts, but only on the server. Those actions must validate input before writing and must never return private fields to unauthenticated clients.
+Server actions may use the secret key for public availability reads and public inserts, but only on the server. Those actions must validate input before writing and must never return private fields to unauthenticated clients.
 
 ## Data Flow
 
@@ -106,10 +106,10 @@ Admin:
 - Add a Supabase SQL migration under `supabase/migrations`.
 - Add `.env.local.example` with:
   - `NEXT_PUBLIC_SUPABASE_URL`
-  - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-  - `SUPABASE_SERVICE_ROLE_KEY`
+  - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+  - `SUPABASE_SECRET_KEY`
 
-Do not expose the service role key to the browser. Use it only in server-only modules and keep public action responses limited to non-private fields.
+Do not expose the secret key to the browser. Use it only in server-only modules and keep public action responses limited to non-private fields.
 
 ## Error Handling
 

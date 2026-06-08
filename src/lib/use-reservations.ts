@@ -9,31 +9,49 @@ import {
   updateAdminReservationStatus,
   type ReservationActionResult,
 } from "@/lib/reservation-actions";
-import type { Reservation, ReservationDraft, ReservationStatus } from "@/lib/reservations";
+import type { Reservation, ReservationDraft, ReservationStatus, ReservationTimeBlock } from "@/lib/reservations";
 import type { PublicReservationTimeBlock } from "@/lib/supabase/reservation-mappers";
 
-type UseReservationsOptions = {
+type UseReservationsBaseOptions = {
   date: string;
-  admin?: boolean;
   enabled?: boolean;
+};
+
+type UsePublicReservationsOptions = UseReservationsBaseOptions & {
+  admin?: false;
+};
+
+type UseAdminReservationsOptions = UseReservationsBaseOptions & {
+  admin: true;
   roomId?: string;
   status?: ReservationStatus | "all";
 };
 
-function toReservation(block: PublicReservationTimeBlock): Reservation {
-  return {
-    ...block,
-    phone: "",
-  };
-}
+type UseReservationsOptions = UsePublicReservationsOptions | UseAdminReservationsOptions;
+
+type UseReservationsResult<TReservation extends ReservationTimeBlock> = {
+  reservations: TReservation[];
+  isReady: boolean;
+  isPending: boolean;
+  error: string | null;
+  refresh: () => Promise<ReservationActionResult<TReservation[]>>;
+  addReservation: (draft: ReservationDraft) => Promise<ReservationActionResult<Reservation>>;
+  updateReservationStatus: (id: string, status: ReservationStatus) => Promise<ReservationActionResult<null>>;
+  removeReservation: (id: string) => Promise<ReservationActionResult<null>>;
+};
 
 function emptyResult<T>(error: string): ReservationActionResult<T> {
   return { ok: false, error };
 }
 
+export function useReservations(options: UseAdminReservationsOptions): UseReservationsResult<Reservation>;
+export function useReservations(options: UsePublicReservationsOptions): UseReservationsResult<PublicReservationTimeBlock>;
 export function useReservations(options: UseReservationsOptions) {
   const enabled = options.enabled ?? true;
-  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const isAdmin = options.admin === true;
+  const adminRoomId = isAdmin ? options.roomId : undefined;
+  const adminStatus = isAdmin ? options.status : undefined;
+  const [reservations, setReservations] = useState<Array<Reservation | PublicReservationTimeBlock>>([]);
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -43,32 +61,32 @@ export function useReservations(options: UseReservationsOptions) {
       setReservations([]);
       setError(null);
       setIsReady(true);
-      return { ok: true, data: [] } satisfies ReservationActionResult<Reservation[]>;
+      return { ok: true, data: [] } satisfies ReservationActionResult<Array<Reservation | PublicReservationTimeBlock>>;
     }
 
     setIsReady(false);
     setError(null);
 
-    const result = options.admin
+    const result = isAdmin
       ? await listAdminReservations({
           date: options.date,
-          roomId: options.roomId === "all" ? undefined : options.roomId,
-          status: !options.status || options.status === "all" ? undefined : options.status,
+          roomId: adminRoomId === "all" ? undefined : adminRoomId,
+          status: !adminStatus || adminStatus === "all" ? undefined : adminStatus,
         })
       : await listPublicReservationTimeBlocks(options.date);
 
     if (result.ok) {
-      const data: Reservation[] = options.admin ? (result.data as Reservation[]) : result.data.map(toReservation);
+      const data = result.data;
       setReservations(data);
       setIsReady(true);
-      return { ok: true, data } satisfies ReservationActionResult<Reservation[]>;
+      return { ok: true, data } satisfies ReservationActionResult<Array<Reservation | PublicReservationTimeBlock>>;
     }
 
     setReservations([]);
     setError(result.error);
     setIsReady(true);
     return result;
-  }, [enabled, options.admin, options.date, options.roomId, options.status]);
+  }, [adminRoomId, adminStatus, enabled, isAdmin, options.date]);
 
   useEffect(() => {
     startTransition(() => {
@@ -89,20 +107,20 @@ export function useReservations(options: UseReservationsOptions) {
         return result;
       },
       async updateReservationStatus(id: string, status: ReservationStatus) {
-        if (!options.admin) return emptyResult<null>("관리자 로그인이 필요합니다.");
+        if (!isAdmin) return emptyResult<null>("관리자 로그인이 필요합니다.");
 
         const result = await updateAdminReservationStatus(id, status);
         if (result.ok) await refresh();
         return result;
       },
       async removeReservation(id: string) {
-        if (!options.admin) return emptyResult<null>("관리자 로그인이 필요합니다.");
+        if (!isAdmin) return emptyResult<null>("관리자 로그인이 필요합니다.");
 
         const result = await deleteAdminReservation(id);
         if (result.ok) await refresh();
         return result;
       },
     }),
-    [error, isPending, isReady, options.admin, refresh, reservations],
-  );
+    [error, isAdmin, isPending, isReady, refresh, reservations],
+  ) as UseReservationsResult<Reservation> | UseReservationsResult<PublicReservationTimeBlock>;
 }

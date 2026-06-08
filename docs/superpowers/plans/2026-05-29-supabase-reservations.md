@@ -14,7 +14,7 @@
 
 - Create `supabase/migrations/20260529000000_create_reservations.sql`: reservation table, enum, RLS policies, updated timestamp trigger, and overlap guard.
 - Create `.env.local.example`: Supabase environment variable documentation.
-- Create `src/lib/supabase/server.ts`: server-only Supabase clients for cookie auth and service-role operations.
+- Create `src/lib/supabase/server.ts`: server-only Supabase clients for cookie auth and secret-key operations.
 - Create `src/lib/supabase/reservation-mappers.ts`: pure row/payload mapping used by actions and tests.
 - Create `src/lib/supabase/reservation-mappers.test.ts`: mapper and validation tests.
 - Create `src/lib/reservation-actions.ts`: server actions for public availability reads, public reservation creation, admin reads, status updates, and deletes.
@@ -49,8 +49,8 @@ Create `.env.local.example`:
 
 ```dotenv
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
+SUPABASE_SECRET_KEY=your-secret-key
 ```
 
 - [ ] **Step 3: Verify install**
@@ -405,22 +405,22 @@ function getSupabaseUrl() {
   return url;
 }
 
-function getSupabaseAnonKey() {
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!key) throw new Error("NEXT_PUBLIC_SUPABASE_ANON_KEY is required");
+function getSupabasePublishableKey() {
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (!key) throw new Error("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY is required");
   return key;
 }
 
-function getSupabaseServiceRoleKey() {
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!key) throw new Error("SUPABASE_SERVICE_ROLE_KEY is required");
+function getSupabaseSecretKey() {
+  const key = process.env.SUPABASE_SECRET_KEY;
+  if (!key) throw new Error("SUPABASE_SECRET_KEY is required");
   return key;
 }
 
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
 
-  return createServerClient(getSupabaseUrl(), getSupabaseAnonKey(), {
+  return createServerClient(getSupabaseUrl(), getSupabasePublishableKey(), {
     cookies: {
       getAll() {
         return cookieStore.getAll();
@@ -435,7 +435,7 @@ export async function createSupabaseServerClient() {
 }
 
 export function createSupabaseServiceClient() {
-  return createClient(getSupabaseUrl(), getSupabaseServiceRoleKey(), {
+  return createClient(getSupabaseUrl(), getSupabaseSecretKey(), {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
