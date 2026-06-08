@@ -16,6 +16,15 @@ describe("reservation action errors", () => {
     ).toBe(SCHEMA_SYNC_MESSAGE);
   });
 
+  it("reports a missing cached reservation password column as a schema sync problem", () => {
+    expect(
+      toReservationActionErrorMessage({
+        code: "PGRST204",
+        message: "Could not find the 'password_hash' column of 'reservations' in the schema cache",
+      }),
+    ).toBe(SCHEMA_SYNC_MESSAGE);
+  });
+
   it("keeps reservation conflict errors user-friendly", () => {
     expect(toReservationActionErrorMessage(new Error("reservations_no_overlap conflicts"))).toBe(CONFLICT_MESSAGE);
   });

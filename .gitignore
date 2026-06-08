@@ -5,6 +5,7 @@ out/
 dist/
 coverage/
 .review-screenshots/
+supabase/.temp/
 
 .env
 .env.local

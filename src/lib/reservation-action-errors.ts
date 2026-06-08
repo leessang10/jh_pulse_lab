@@ -10,7 +10,7 @@ export function toReservationActionErrorMessage(error: unknown) {
   if (error instanceof Error && error.message.includes("conflicts")) return CONFLICT_MESSAGE;
   if (
     isObjectWithMessage(error) &&
-    error.code === "42703" &&
+    (error.code === "42703" || error.code === "PGRST204") &&
     typeof error.message === "string" &&
     error.message.includes("password_hash")
   ) {
