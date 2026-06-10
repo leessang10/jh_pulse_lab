@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   BOOKING_STEP_ITEMS,
-  formatKoreanPhoneNumber,
   getBookingCompletionReturnAction,
   getBookingHeaderState,
   getBookingStepNavigation,
@@ -27,14 +26,6 @@ describe("reservation UI helpers", () => {
       href: "/",
       label: "메인으로",
     });
-  });
-
-  it("formats Korean mobile phone input while the user types", () => {
-    expect(formatKoreanPhoneNumber("010")).toBe("010");
-    expect(formatKoreanPhoneNumber("0101234")).toBe("010-1234");
-    expect(formatKoreanPhoneNumber("01012345678")).toBe("010-1234-5678");
-    expect(formatKoreanPhoneNumber("010-1234-5678")).toBe("010-1234-5678");
-    expect(formatKoreanPhoneNumber("010 1234 5678 999")).toBe("010-1234-5678");
   });
 
   it("builds a compact reservation summary from selected values", () => {

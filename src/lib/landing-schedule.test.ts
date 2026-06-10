@@ -13,7 +13,6 @@ const reservation: Reservation = {
   startMinutes: 570,
   endMinutes: 630,
   name: "민수",
-  phone: "",
   status: "confirmed",
   createdAt: "2026-06-02T00:00:00.000Z",
 };

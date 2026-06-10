@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>JH PULSE LAB - 홈 모바일</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="phone-page">
+      <section class="phone-frame mobile-page">
+        <header class="mobile-top">
+          <div class="mobile-brand">JH PULSE LAB</div>
+          <div class="mobile-muted">2026.06.11 목요일</div>
+          <div class="mobile-actions">
+            <a class="button primary" href="./reservation-mobile.html">예약하기</a>
+            <a class="button ghost" href="./reservations-mobile.html">예약내역</a>
+          </div>
+        </header>
+
+        <section class="mobile-section">
+          <span class="eyebrow">오늘 예약</span>
+          <h1 class="section-title">오늘 예약 현황</h1>
+          <p class="section-copy">강의실을 선택해 예약된 시간을 확인하세요.</p>
+        </section>
+
+        <section class="mobile-room-list">
+          <button class="mobile-room active" type="button" data-room-select="강의실 1">
+            <span><strong>강의실 1</strong><span>A룸</span></span>
+            <strong>3.5h</strong>
+          </button>
+          <button class="mobile-room" type="button" data-room-select="강의실 2">
+            <span><strong>강의실 2</strong><span>B룸</span></span>
+            <strong>2h</strong>
+          </button>
+          <button class="mobile-room" type="button" data-room-select="강의실 3">
+            <span><strong>강의실 3</strong><span>C룸</span></span>
+            <strong>4h</strong>
+          </button>
+        </section>
+
+        <section class="mobile-section">
+          <h2 class="section-title" data-selected-room>강의실 1</h2>
+          <div class="radial-wrap mobile-radial">
+            <div class="radial-schedule" aria-label="모바일 오늘 예약 시간 분포">
+              <span class="time-label t0">00</span>
+              <span class="time-label t6">06</span>
+              <span class="time-label t12">12</span>
+              <span class="time-label t18">18</span>
+              <div class="radial-center"><span><strong>06.11</strong><span>목</span></span></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="mobile-section">
+          <div class="plain-list">
+            <div class="plain-row"><strong>10:00</strong><span>1시간</span><span>확정</span></div>
+            <div class="plain-row"><strong>15:00</strong><span>1시간</span><span>확정</span></div>
+            <div class="plain-row"><strong>18:30</strong><span>30분</span><span>대기</span></div>
+          </div>
+        </section>
+      </section>
+    </main>
+    <script src="./script.js"></script>
+  </body>
+</html>

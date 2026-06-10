@@ -15,7 +15,7 @@ import {
   type ReservationRow,
 } from "@/lib/supabase/reservation-mappers";
 
-export const RESERVATION_SELECT = "id,date,room_id,start_minutes,end_minutes,status,created_at,updated_at,name,phone,note";
+export const RESERVATION_SELECT = "id,date,room_id,start_minutes,end_minutes,status,created_at,updated_at,name,note";
 export { RESERVATION_REVALIDATION_PATHS };
 
 const RESERVATION_CONFLICT_ERROR_MESSAGE = "reservation time conflicts with an existing reservation";
@@ -63,7 +63,6 @@ export async function listPublicReservationsByLookup(lookup: ReservationLookup):
     .from("reservations")
     .select(RESERVATION_SELECT)
     .eq("name", lookup.name.trim())
-    .eq("phone", lookup.phone.trim())
     .eq("password_hash", hashReservationPassword(lookup.password))
     .order("date", { ascending: false })
     .order("start_minutes", { ascending: true });

@@ -4,10 +4,12 @@ import { revalidatePath } from "next/cache";
 import { findReservationConflict } from "@/lib/booking-availability";
 import {
   validateReservationDraft,
+  validateReservationTimeChange,
   ACTIVE_ROOM_IDS,
   type Reservation,
   type ReservationDraft,
   type ReservationStatus,
+  type ReservationTimeChange,
 } from "@/lib/reservations";
 import {
   hashReservationPassword,
@@ -30,15 +32,8 @@ import {
 
 export type ReservationActionResult<T> = { ok: true; data: T } | { ok: false; error: string };
 
-const RESERVATION_SELECT = "id,date,room_id,start_minutes,end_minutes,status,created_at,updated_at,name,phone,note";
-
-function toConflictReservation(block: PublicReservationTimeBlock): Reservation {
-  return {
-    ...block,
-    name: "",
-    phone: "",
-  };
-}
+const RESERVATION_SELECT = "id,date,room_id,start_minutes,end_minutes,status,created_at,updated_at,name,note";
+const OWNER_RESERVATION_NOT_FOUND_MESSAGE = "예약 정보를 찾을 수 없습니다.";
 
 export async function listPublicReservationTimeBlocks(
   date: string,
@@ -70,7 +65,7 @@ export async function createPublicReservation(draft: ReservationDraft): Promise<
     const current = await listPublicReservationTimeBlocks(draft.date);
     if (!current.ok) return current;
 
-    const conflict = findReservationConflict(current.data.map(toConflictReservation), draft);
+    const conflict = findReservationConflict(current.data, draft);
     if (conflict) return { ok: false, error: CONFLICT_MESSAGE };
 
     const { data, error } = await supabase
@@ -103,7 +98,6 @@ export async function listPublicReservationsByLookup(
       .from("reservations")
       .select(RESERVATION_SELECT)
       .eq("name", lookup.name.trim())
-      .eq("phone", lookup.phone.trim())
       .eq("password_hash", hashReservationPassword(lookup.password))
       .in("room_id", ACTIVE_ROOM_IDS)
       .order("date", { ascending: false })
@@ -112,6 +106,92 @@ export async function listPublicReservationsByLookup(
     if (error) throw error;
 
     return { ok: true, data: ((data ?? []) as ReservationRow[]).map(mapReservationRowToReservation) };
+  } catch (error) {
+    return { ok: false, error: toReservationActionErrorMessage(error) };
+  }
+}
+
+export async function cancelPublicReservation(
+  reservationId: string,
+  lookup: ReservationLookup,
+): Promise<ReservationActionResult<Reservation>> {
+  if (!reservationId) return { ok: false, error: OWNER_RESERVATION_NOT_FOUND_MESSAGE };
+
+  const validationErrors = validateReservationLookup(lookup);
+  if (validationErrors.length > 0) return { ok: false, error: validationErrors[0] };
+
+  try {
+    const supabase = createSupabaseServiceClient();
+    const { data, error } = await supabase
+      .from("reservations")
+      .update({ status: "cancelled" })
+      .eq("id", reservationId)
+      .eq("name", lookup.name.trim())
+      .eq("password_hash", hashReservationPassword(lookup.password))
+      .in("room_id", ACTIVE_ROOM_IDS)
+      .neq("status", "cancelled")
+      .select(RESERVATION_SELECT)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!data) return { ok: false, error: OWNER_RESERVATION_NOT_FOUND_MESSAGE };
+
+    revalidatePath("/");
+    revalidatePath("/reservation");
+    revalidatePath("/reservations");
+    revalidatePath("/admin");
+    return { ok: true, data: mapReservationRowToReservation(data as ReservationRow) };
+  } catch (error) {
+    return { ok: false, error: toReservationActionErrorMessage(error) };
+  }
+}
+
+export async function updatePublicReservationTime(
+  reservationId: string,
+  lookup: ReservationLookup,
+  change: ReservationTimeChange,
+): Promise<ReservationActionResult<Reservation>> {
+  if (!reservationId) return { ok: false, error: OWNER_RESERVATION_NOT_FOUND_MESSAGE };
+
+  const lookupErrors = validateReservationLookup(lookup);
+  if (lookupErrors.length > 0) return { ok: false, error: lookupErrors[0] };
+
+  const timeErrors = validateReservationTimeChange(change);
+  if (timeErrors.length > 0) return { ok: false, error: timeErrors[0] };
+
+  try {
+    const supabase = createSupabaseServiceClient();
+    const current = await listPublicReservationTimeBlocks(change.date);
+    if (!current.ok) return current;
+
+    const conflict = findReservationConflict(current.data, change, reservationId);
+    if (conflict) return { ok: false, error: CONFLICT_MESSAGE };
+
+    const { data, error } = await supabase
+      .from("reservations")
+      .update({
+        date: change.date,
+        room_id: change.roomId,
+        start_minutes: change.startMinutes,
+        end_minutes: change.endMinutes,
+        status: "pending",
+      })
+      .eq("id", reservationId)
+      .eq("name", lookup.name.trim())
+      .eq("password_hash", hashReservationPassword(lookup.password))
+      .in("room_id", ACTIVE_ROOM_IDS)
+      .neq("status", "cancelled")
+      .select(RESERVATION_SELECT)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!data) return { ok: false, error: OWNER_RESERVATION_NOT_FOUND_MESSAGE };
+
+    revalidatePath("/");
+    revalidatePath("/reservation");
+    revalidatePath("/reservations");
+    revalidatePath("/admin");
+    return { ok: true, data: mapReservationRowToReservation(data as ReservationRow) };
   } catch (error) {
     return { ok: false, error: toReservationActionErrorMessage(error) };
   }

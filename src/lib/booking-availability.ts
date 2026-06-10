@@ -48,18 +48,23 @@ function isBookingDurationAvailable(
     roomId: string;
     startMinutes: number;
     durationMinutes: number;
+    ignoredReservationId?: string;
   },
 ) {
   const endMinutes = options.startMinutes + options.durationMinutes;
   if (options.startMinutes < 0 || endMinutes > DAY_END_MINUTES) return false;
 
   return (
-    findReservationConflict(reservations, {
-      date: options.date,
-      roomId: options.roomId,
-      startMinutes: options.startMinutes,
-      endMinutes,
-    }) === null
+    findReservationConflict(
+      reservations,
+      {
+        date: options.date,
+        roomId: options.roomId,
+        startMinutes: options.startMinutes,
+        endMinutes,
+      },
+      options.ignoredReservationId,
+    ) === null
   );
 }
 
@@ -69,6 +74,7 @@ function getBookingStartOptions(
     date: string;
     roomId: string;
     durationMinutes: number;
+    ignoredReservationId?: string;
   },
 ) {
   const startMinutesList = generateTimeSlots().map((slot) => slot.value);
@@ -81,27 +87,36 @@ function getBookingStartOptions(
     );
     const isReservedSlot =
       startMinutes + SLOT_MINUTES <= DAY_END_MINUTES &&
-      findReservationConflict(reservations, {
-        date: options.date,
-        roomId: options.roomId,
-        startMinutes,
-        endMinutes: startMinutes + SLOT_MINUTES,
-      }) !== null;
+      findReservationConflict(
+        reservations,
+        {
+          date: options.date,
+          roomId: options.roomId,
+          startMinutes,
+          endMinutes: startMinutes + SLOT_MINUTES,
+        },
+        options.ignoredReservationId,
+      ) !== null;
     const hasReservedSlotInRange = selectedSlotMinutes.some(
       (slotStartMinutes) =>
         slotStartMinutes + SLOT_MINUTES <= DAY_END_MINUTES &&
-        findReservationConflict(reservations, {
-          date: options.date,
-          roomId: options.roomId,
-          startMinutes: slotStartMinutes,
-          endMinutes: slotStartMinutes + SLOT_MINUTES,
-        }) !== null,
+        findReservationConflict(
+          reservations,
+          {
+            date: options.date,
+            roomId: options.roomId,
+            startMinutes: slotStartMinutes,
+            endMinutes: slotStartMinutes + SLOT_MINUTES,
+          },
+          options.ignoredReservationId,
+        ) !== null,
     );
     const hasUnavailableSlotInRange = !isBookingDurationAvailable(reservations, {
       date: options.date,
       roomId: options.roomId,
       startMinutes,
       durationMinutes: options.durationMinutes,
+      ignoredReservationId: options.ignoredReservationId,
     });
 
     return {
@@ -124,6 +139,7 @@ function getBookableRangeOptions(
     date: string;
     roomId: string;
     durationMinutes: number;
+    ignoredReservationId?: string;
   },
 ) {
   return getBookingStartOptions(reservations, options)
@@ -141,6 +157,7 @@ export function getBookingAvailability(
     date: string;
     roomId: string;
     durationMinutes: number;
+    ignoredReservationId?: string;
   },
 ): BookingAvailability {
   return {
@@ -155,14 +172,19 @@ export function selectBookableRange(
     date: string;
     roomId: string;
     option: BookableRangeOption;
+    ignoredReservationId?: string;
   },
 ): { ok: true; selectedTime: SelectedBookingTime } | { ok: false; error: string } {
-  const conflict = findReservationConflict(reservations, {
-    date: options.date,
-    roomId: options.roomId,
-    startMinutes: options.option.startMinutes,
-    endMinutes: options.option.endMinutes,
-  });
+  const conflict = findReservationConflict(
+    reservations,
+    {
+      date: options.date,
+      roomId: options.roomId,
+      startMinutes: options.option.startMinutes,
+      endMinutes: options.option.endMinutes,
+    },
+    options.ignoredReservationId,
+  );
 
   if (conflict) {
     return { ok: false, error: BOOKING_RANGE_CONFLICT_MESSAGE };
@@ -181,8 +203,9 @@ export function selectBookableRange(
 export function validateBookableDraftTime(
   reservations: ReservationTimeBlock[],
   draft: Pick<ReservationDraft, "date" | "roomId" | "startMinutes" | "endMinutes">,
+  ignoredReservationId?: string,
 ): { ok: true } | { ok: false; error: string } {
-  const conflict = findReservationConflict(reservations, draft);
+  const conflict = findReservationConflict(reservations, draft, ignoredReservationId);
 
   if (conflict) return { ok: false, error: BOOKING_DRAFT_CONFLICT_MESSAGE };
 

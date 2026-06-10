@@ -347,7 +347,6 @@ export default function AdminPage() {
                     <TableHead>시간</TableHead>
                     <TableHead>강의실</TableHead>
                     <TableHead>예약자</TableHead>
-                    <TableHead>연락처</TableHead>
                     <TableHead>상태</TableHead>
                     <TableHead className="text-right">관리</TableHead>
                   </TableRow>
@@ -363,7 +362,6 @@ export default function AdminPage() {
                         <div className="font-bold">{reservation.name}</div>
                         {reservation.note ? <div className="mt-1 text-xs text-muted-foreground">{reservation.note}</div> : null}
                       </TableCell>
-                      <TableCell>{reservation.phone}</TableCell>
                       <TableCell>
                         <Badge variant={statusVariant(reservation.status)}>{STATUS_LABELS[reservation.status]}</Badge>
                       </TableCell>

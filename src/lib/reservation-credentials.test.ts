@@ -1,42 +1,40 @@
 import { describe, expect, it } from "vitest";
 import {
   hashReservationPassword,
-  isSixDigitReservationPassword,
+  isFourDigitReservationPassword,
   validateReservationLookup,
 } from "./reservation-credentials";
 
 describe("reservation credentials", () => {
-  it("accepts only six numeric digits for reservation passwords", () => {
-    expect(isSixDigitReservationPassword("123456")).toBe(true);
-    expect(isSixDigitReservationPassword("12345")).toBe(false);
-    expect(isSixDigitReservationPassword("1234567")).toBe(false);
-    expect(isSixDigitReservationPassword("12345a")).toBe(false);
+  it("accepts only four numeric digits for reservation passwords", () => {
+    expect(isFourDigitReservationPassword("1234")).toBe(true);
+    expect(isFourDigitReservationPassword("123")).toBe(false);
+    expect(isFourDigitReservationPassword("12345")).toBe(false);
+    expect(isFourDigitReservationPassword("123a")).toBe(false);
   });
 
   it("hashes a reservation password without returning the raw value", () => {
-    const firstHash = hashReservationPassword("123456");
-    const secondHash = hashReservationPassword("123456");
+    const firstHash = hashReservationPassword("1234");
+    const secondHash = hashReservationPassword("1234");
 
     expect(firstHash).toBe(secondHash);
-    expect(firstHash).not.toContain("123456");
+    expect(firstHash).not.toContain("1234");
     expect(firstHash).toHaveLength(64);
   });
 
-  it("validates lookup credentials before querying private reservations", () => {
+  it("validates lookup credentials with only name and password", () => {
     expect(
       validateReservationLookup({
         name: " Lee ",
-        phone: " 010-0000-0000 ",
-        password: "123456",
+        password: "1234",
       }),
     ).toEqual([]);
 
     expect(
       validateReservationLookup({
         name: "",
-        phone: "",
-        password: "12345",
+        password: "123",
       }),
-    ).toEqual(["이름을 입력해 주세요.", "연락처를 입력해 주세요.", "비밀번호는 숫자 6자리로 입력해 주세요."]);
+    ).toEqual(["이름을 입력해 주세요.", "비밀번호는 숫자 4자리로 입력해 주세요."]);
   });
 });

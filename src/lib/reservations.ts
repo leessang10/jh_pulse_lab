@@ -12,7 +12,6 @@ export type Reservation = {
   startMinutes: number;
   endMinutes: number;
   name: string;
-  phone: string;
   note?: string;
   status: ReservationStatus;
   createdAt: string;
@@ -29,10 +28,11 @@ export type ReservationDraft = {
   startMinutes: number;
   endMinutes: number;
   name: string;
-  phone: string;
   password: string;
   note?: string;
 };
+
+export type ReservationTimeChange = Pick<ReservationDraft, "date" | "roomId" | "startMinutes" | "endMinutes">;
 
 export const ROOMS: Room[] = [
   { id: "room-1", name: "강의실 1" },
@@ -79,7 +79,7 @@ export function generateTimeSlots() {
   });
 }
 
-export function validateReservationDraft(draft: ReservationDraft) {
+function validateReservationTimeFields(draft: ReservationTimeChange) {
   const errors: string[] = [];
   const roomIds = new Set(ROOMS.map((room) => room.id));
   const isOnGrid = draft.startMinutes % SLOT_MINUTES === 0 && draft.endMinutes % SLOT_MINUTES === 0;
@@ -94,9 +94,19 @@ export function validateReservationDraft(draft: ReservationDraft) {
   if (draft.endMinutes - draft.startMinutes > MAX_BOOKING_DURATION_MINUTES) {
     errors.push("예약 시간은 최대 2시간까지 가능합니다.");
   }
+
+  return errors;
+}
+
+export function validateReservationTimeChange(change: ReservationTimeChange) {
+  return validateReservationTimeFields(change);
+}
+
+export function validateReservationDraft(draft: ReservationDraft) {
+  const errors = validateReservationTimeFields(draft);
+
   if (!draft.name.trim()) errors.push("예약자 이름을 입력해 주세요.");
-  if (!draft.phone.trim()) errors.push("연락처를 입력해 주세요.");
-  if (!/^\d{6}$/.test(draft.password)) errors.push("비밀번호는 숫자 6자리로 입력해 주세요.");
+  if (!/^\d{4}$/.test(draft.password)) errors.push("비밀번호는 숫자 4자리로 입력해 주세요.");
 
   return errors;
 }
@@ -110,7 +120,6 @@ export function createReservation(draft: ReservationDraft): Reservation {
     status: "pending",
     createdAt: new Date().toISOString(),
     name: draft.name.trim(),
-    phone: draft.phone.trim(),
     note: draft.note?.trim() || undefined,
   };
 }

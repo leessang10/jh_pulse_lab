@@ -26,7 +26,6 @@ import {
 } from "@/lib/reservations";
 import { todayKoreaValue } from "@/lib/korea-date";
 import {
-  formatKoreanPhoneNumber,
   getBookingCompletionReturnAction,
   getBookingHeaderState,
   getBookingStepNavigation,
@@ -36,8 +35,7 @@ import { useReservations } from "@/lib/use-reservations";
 
 const contactSchema = z.object({
   name: z.string().trim().min(1, "이름을 입력해 주세요."),
-  phone: z.string().trim().min(1, "연락처를 입력해 주세요."),
-  password: z.string().regex(/^\d{6}$/, "비밀번호는 숫자 6자리로 입력해 주세요."),
+  password: z.string().regex(/^\d{4}$/, "비밀번호는 숫자 4자리로 입력해 주세요."),
 });
 
 type ContactValues = z.infer<typeof contactSchema>;
@@ -86,7 +84,6 @@ function ReservationFlow() {
     resolver: zodResolver(contactSchema),
     defaultValues: {
       name: "",
-      phone: "",
       password: "",
     },
   });
@@ -109,7 +106,6 @@ function ReservationFlow() {
     [date, reservations, roomId, selectedDurationMinutes],
   );
   const { durationOptions, rangeOptions } = availability;
-  const phoneRegistration = form.register("phone");
   const passwordRegistration = form.register("password");
 
   function clearTimeSelection() {
@@ -162,7 +158,6 @@ function ReservationFlow() {
       startMinutes: selectedTime.startMinutes,
       endMinutes: selectedTime.endMinutes,
       name: values.name,
-      phone: values.phone,
       password: values.password,
     };
     const timeAvailability = validateBookableDraftTime(reservations, draft);
@@ -370,37 +365,18 @@ function ReservationFlow() {
                 ) : null}
               </label>
               <label className="grid gap-2">
-                <span className="text-lg font-bold">연락처</span>
-                <Input
-                  className="h-14 rounded-xl px-4 text-xl md:text-xl"
-                  autoComplete="tel"
-                  inputMode="tel"
-                  placeholder="010-0000-0000"
-                  style={{ fontSize: "1.25rem", fontWeight: 700 }}
-                  type="tel"
-                  {...phoneRegistration}
-                  onChange={(event) => {
-                    event.currentTarget.value = formatKoreanPhoneNumber(event.currentTarget.value);
-                    void phoneRegistration.onChange(event);
-                  }}
-                />
-                {form.formState.errors.phone ? (
-                  <span className="text-base font-bold text-destructive">{form.formState.errors.phone.message}</span>
-                ) : null}
-              </label>
-              <label className="grid gap-2">
                 <span className="text-lg font-bold">비밀번호</span>
                 <Input
                   className="h-14 rounded-xl px-4 text-xl md:text-xl"
                   autoComplete="new-password"
                   inputMode="numeric"
-                  maxLength={6}
-                  placeholder="숫자 6자리"
+                  maxLength={4}
+                  placeholder="숫자 4자리"
                   style={{ fontSize: "1.25rem", fontWeight: 700 }}
                   type="password"
                   {...passwordRegistration}
                   onChange={(event) => {
-                    event.currentTarget.value = event.currentTarget.value.replace(/\D/g, "").slice(0, 6);
+                    event.currentTarget.value = event.currentTarget.value.replace(/\D/g, "").slice(0, 4);
                     void passwordRegistration.onChange(event);
                   }}
                 />
@@ -423,7 +399,7 @@ function ReservationFlow() {
                 className="motion-action h-14 rounded-xl text-xl"
                 disabled={!isReady || isSubmittingReservation}
                 onClick={form.handleSubmit(submitReservation, (errors) => {
-                  toast.error(errors.name?.message ?? errors.phone?.message ?? errors.password?.message ?? "확인해 주세요.");
+                  toast.error(errors.name?.message ?? errors.password?.message ?? "확인해 주세요.");
                 })}
                 style={{ fontSize: "1.25rem", fontWeight: 700 }}
                 type="button"

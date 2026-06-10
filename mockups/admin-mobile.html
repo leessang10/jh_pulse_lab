@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>JH PULSE LAB - 관리자 모바일</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="phone-page">
+      <section class="phone-frame mobile-page">
+        <header class="mobile-top">
+          <div class="mobile-brand">JH PULSE LAB</div>
+          <span class="eyebrow">관리자</span>
+          <h1 class="section-title">예약 관리</h1>
+        </header>
+
+        <section class="metric-grid">
+          <div class="metric"><span>오늘 예약</span><strong>18</strong></div>
+          <div class="metric"><span>확정</span><strong>12</strong></div>
+          <div class="metric"><span>대기</span><strong>2</strong></div>
+          <div class="metric"><span>취소</span><strong>1</strong></div>
+        </section>
+
+        <section class="mobile-filter">
+          <input class="input" value="06.11" />
+          <select class="input"><option>전체</option><option>확정</option></select>
+        </section>
+
+        <section class="mobile-table-list">
+          <article class="mobile-table-row">
+            <div class="mobile-row-head"><strong>09:00 - 10:00</strong><span class="badge confirmed">확정</span></div>
+            <div class="mobile-muted">강의실 1 · 김민수 · 010-1234-5678</div>
+            <div class="action-row"><button class="mini-button">대기</button><button class="mini-button danger">취소</button></div>
+          </article>
+          <article class="mobile-table-row">
+            <div class="mobile-row-head"><strong>10:30 - 11:00</strong><span class="badge pending">대기</span></div>
+            <div class="mobile-muted">강의실 2 · 이서현 · 010-2345-6789</div>
+            <div class="action-row"><button class="mini-button">확정</button><button class="mini-button danger">취소</button></div>
+          </article>
+          <article class="mobile-table-row">
+            <div class="mobile-row-head"><strong>15:00 - 15:30</strong><span class="badge confirmed">확정</span></div>
+            <div class="mobile-muted">강의실 1 · 최지우 · 010-4567-8901</div>
+            <div class="action-row"><button class="mini-button">대기</button><button class="mini-button danger">취소</button></div>
+          </article>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>

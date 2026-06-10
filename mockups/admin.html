@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>JH PULSE LAB - 관리자</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="canvas">
+      <section class="mock-frame admin-shell">
+        <aside class="sidebar">
+          <div class="brand small">JH PULSE LAB</div>
+          <nav class="side-menu">
+            <a class="side-link active" href="./admin.html">예약 관리</a>
+            <a class="side-link" href="./reservation.html">예약 페이지</a>
+            <a class="side-link" href="./home.html">홈 화면</a>
+          </nav>
+          <a class="button ghost" href="#">로그아웃</a>
+        </aside>
+
+        <section class="admin-main">
+          <header class="admin-head">
+            <div class="lead-block">
+              <span class="eyebrow">관리자</span>
+              <h1 class="section-title large">예약 관리</h1>
+            </div>
+            <a class="button ghost" href="./reservation.html">예약 페이지</a>
+          </header>
+
+          <section class="metric-grid">
+            <div class="metric"><span>오늘 예약</span><strong>18</strong></div>
+            <div class="metric"><span>확정</span><strong>12</strong></div>
+            <div class="metric"><span>대기</span><strong>2</strong></div>
+            <div class="metric"><span>취소</span><strong>1</strong></div>
+          </section>
+
+          <section class="filter-bar">
+            <input class="input" value="2026.06.11" />
+            <select class="input"><option>전체 강의실</option><option>강의실 1</option></select>
+            <select class="input"><option>전체 상태</option><option>확정</option></select>
+            <input class="input" placeholder="예약자, 연락처 검색" />
+          </section>
+
+          <section class="table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>시간</th>
+                  <th>강의실</th>
+                  <th>예약자</th>
+                  <th>연락처</th>
+                  <th>상태</th>
+                  <th style="text-align: right">관리</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>09:00 - 10:00</strong></td>
+                  <td>강의실 1</td>
+                  <td>김민수</td>
+                  <td>010-1234-5678</td>
+                  <td><span class="badge confirmed">확정</span></td>
+                  <td><div class="table-actions"><button class="mini-button">대기</button><button class="mini-button danger">취소</button></div></td>
+                </tr>
+                <tr>
+                  <td><strong>10:30 - 11:00</strong></td>
+                  <td>강의실 2</td>
+                  <td>이서현</td>
+                  <td>010-2345-6789</td>
+                  <td><span class="badge pending">대기</span></td>
+                  <td><div class="table-actions"><button class="mini-button">확정</button><button class="mini-button danger">취소</button></div></td>
+                </tr>
+                <tr>
+                  <td><strong>13:00 - 14:00</strong></td>
+                  <td>강의실 3</td>
+                  <td>박준호</td>
+                  <td>010-3456-7890</td>
+                  <td><span class="badge confirmed">확정</span></td>
+                  <td><div class="table-actions"><button class="mini-button">대기</button><button class="mini-button danger">취소</button></div></td>
+                </tr>
+                <tr>
+                  <td><strong>15:00 - 15:30</strong></td>
+                  <td>강의실 1</td>
+                  <td>최지우</td>
+                  <td>010-4567-8901</td>
+                  <td><span class="badge confirmed">확정</span></td>
+                  <td><div class="table-actions"><button class="mini-button">대기</button><button class="mini-button danger">취소</button></div></td>
+                </tr>
+                <tr>
+                  <td><strong>18:30 - 19:00</strong></td>
+                  <td>강의실 2</td>
+                  <td>정다은</td>
+                  <td>010-5678-9012</td>
+                  <td><span class="badge cancelled">취소</span></td>
+                  <td><div class="table-actions"><button class="mini-button">확정</button><button class="mini-button">대기</button></div></td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>

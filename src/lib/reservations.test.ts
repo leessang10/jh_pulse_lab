@@ -7,6 +7,7 @@ import {
   generateTimeSlots,
   ROOMS,
   validateReservationDraft,
+  validateReservationTimeChange,
 } from "./reservations";
 
 describe("reservation rules", () => {
@@ -41,8 +42,7 @@ describe("reservation rules", () => {
         startMinutes: 600,
         endMinutes: 660,
         name: "Lee",
-        phone: "010-0000-0000",
-        password: "123456",
+        password: "1234",
       }),
     ).toEqual([]);
 
@@ -53,8 +53,7 @@ describe("reservation rules", () => {
         startMinutes: 605,
         endMinutes: 600,
         name: "",
-        phone: "",
-        password: "12345",
+        password: "123",
       }),
     ).toEqual([
       "날짜를 선택해 주세요.",
@@ -62,8 +61,7 @@ describe("reservation rules", () => {
       "시작 시간과 종료 시간은 30분 단위여야 합니다.",
       "종료 시간은 시작 시간보다 늦어야 합니다.",
       "예약자 이름을 입력해 주세요.",
-      "연락처를 입력해 주세요.",
-      "비밀번호는 숫자 6자리로 입력해 주세요.",
+      "비밀번호는 숫자 4자리로 입력해 주세요.",
     ]);
   });
 
@@ -75,10 +73,34 @@ describe("reservation rules", () => {
         startMinutes: 600,
         endMinutes: 750,
         name: "Lee",
-        phone: "010-0000-0000",
-        password: "123456",
+        password: "1234",
       }),
     ).toContain("예약 시간은 최대 2시간까지 가능합니다.");
+  });
+
+  it("validates reservation time changes without owner contact fields", () => {
+    expect(
+      validateReservationTimeChange({
+        date: "2026-05-28",
+        roomId: "room-1",
+        startMinutes: 600,
+        endMinutes: 660,
+      }),
+    ).toEqual([]);
+
+    expect(
+      validateReservationTimeChange({
+        date: "",
+        roomId: "room-9",
+        startMinutes: 605,
+        endMinutes: 600,
+      }),
+    ).toEqual([
+      "날짜를 선택해 주세요.",
+      "강의실을 선택해 주세요.",
+      "시작 시간과 종료 시간은 30분 단위여야 합니다.",
+      "종료 시간은 시작 시간보다 늦어야 합니다.",
+    ]);
   });
 
   it("uses Korean classroom labels for public room names", () => {

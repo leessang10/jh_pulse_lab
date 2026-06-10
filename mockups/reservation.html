@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>JH PULSE LAB - 예약</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="canvas">
+      <section class="mock-frame desktop-page page-shell">
+        <header class="step-header">
+          <div class="step active">01 시간 선택</div>
+          <div class="step">02 정보 입력</div>
+          <div class="step">03 예약 확인</div>
+        </header>
+
+        <section class="form-layout">
+          <div class="booking-main">
+            <div class="lead-block">
+              <a class="button ghost" href="./home.html" style="width: fit-content">홈으로</a>
+              <span class="eyebrow">예약</span>
+              <h1 class="section-title large">예약 시간 선택</h1>
+              <p class="section-copy">강의실과 이용 시간을 선택하세요.</p>
+            </div>
+
+            <div class="control-block">
+              <div class="control-label">강의실 선택</div>
+              <div class="room-tabs" data-active-group>
+                <button class="choice active" type="button" data-room-select="강의실 1">강의실 1 · A룸</button>
+                <button class="choice" type="button" data-room-select="강의실 2">강의실 2 · B룸</button>
+                <button class="choice" type="button" data-room-select="강의실 3">강의실 3 · C룸</button>
+              </div>
+            </div>
+
+            <div class="control-block">
+              <div class="control-label">이용 날짜</div>
+              <input class="input" type="text" value="2026.06.11 목요일" readonly />
+            </div>
+
+            <div class="control-block">
+              <div class="control-label">이용 시간</div>
+              <div class="segmented" data-active-group>
+                <button class="choice active" type="button">30분</button>
+                <button class="choice" type="button">1시간</button>
+              </div>
+            </div>
+
+            <div class="control-block" data-time-group>
+              <div class="control-label">예약 가능한 시작 시간</div>
+              <div class="time-grid">
+                <button class="slot" type="button" data-time-slot="09:00 - 09:30">09:00</button>
+                <button class="slot" type="button" data-time-slot="09:30 - 10:00">09:30</button>
+                <button class="slot disabled" type="button">10:00</button>
+                <button class="slot" type="button" data-time-slot="10:30 - 11:00">10:30</button>
+                <button class="slot" type="button" data-time-slot="11:00 - 11:30">11:00</button>
+                <button class="slot" type="button" data-time-slot="12:00 - 12:30">12:00</button>
+                <button class="slot" type="button" data-time-slot="12:30 - 13:00">12:30</button>
+                <button class="slot" type="button" data-time-slot="13:00 - 13:30">13:00</button>
+                <button class="slot active" type="button" data-time-slot="15:00 - 15:30">15:00</button>
+                <button class="slot" type="button" data-time-slot="15:30 - 16:00">15:30</button>
+                <button class="slot" type="button" data-time-slot="16:00 - 16:30">16:00</button>
+                <button class="slot disabled" type="button">16:30</button>
+                <button class="slot" type="button" data-time-slot="17:00 - 17:30">17:00</button>
+                <button class="slot" type="button" data-time-slot="18:00 - 18:30">18:00</button>
+                <button class="slot" type="button" data-time-slot="19:00 - 19:30">19:00</button>
+              </div>
+            </div>
+          </div>
+
+          <aside class="summary-panel">
+            <span class="eyebrow">예약 정보</span>
+            <h2 class="section-title">선택한 시간</h2>
+            <div class="summary-list">
+              <div class="summary-item">
+                <span>강의실</span>
+                <strong data-selected-room>강의실 1</strong>
+              </div>
+              <div class="summary-item">
+                <span>날짜</span>
+                <strong>2026.06.11 목</strong>
+              </div>
+              <div class="summary-item">
+                <span>시간</span>
+                <strong data-selected-time>15:00 - 15:30</strong>
+              </div>
+            </div>
+            <a class="button primary" href="#">예약자 정보 입력</a>
+          </aside>
+        </section>
+      </section>
+    </main>
+    <script src="./script.js"></script>
+  </body>
+</html>

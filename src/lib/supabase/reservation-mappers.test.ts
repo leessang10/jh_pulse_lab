@@ -14,9 +14,8 @@ const row: ReservationRow = {
   start_minutes: 600,
   end_minutes: 660,
   name: " Lee ",
-  phone: " 010-0000-0000 ",
   note: " Bring sticks ",
-  password_hash: hashReservationPassword("123456"),
+  password_hash: hashReservationPassword("1234"),
   status: "pending",
   created_at: "2026-05-29T00:00:00.000Z",
   updated_at: "2026-05-29T00:01:00.000Z",
@@ -31,7 +30,6 @@ describe("Supabase reservation mappers", () => {
       startMinutes: 600,
       endMinutes: 660,
       name: " Lee ",
-      phone: " 010-0000-0000 ",
       note: " Bring sticks ",
       status: "pending",
       createdAt: "2026-05-29T00:00:00.000Z",
@@ -51,7 +49,7 @@ describe("Supabase reservation mappers", () => {
     });
   });
 
-  it("maps a draft to an insert payload with trimmed contact fields and pending status", () => {
+  it("maps a draft to an insert payload with trimmed owner fields and pending status", () => {
     expect(
       mapReservationDraftToInsert({
         date: "2026-05-29",
@@ -59,8 +57,7 @@ describe("Supabase reservation mappers", () => {
         startMinutes: 720,
         endMinutes: 780,
         name: " Kim ",
-        phone: " 010-1111-2222 ",
-        password: "654321",
+        password: "6543",
         note: " ",
       }),
     ).toEqual({
@@ -69,8 +66,7 @@ describe("Supabase reservation mappers", () => {
       start_minutes: 720,
       end_minutes: 780,
       name: "Kim",
-      phone: "010-1111-2222",
-      password_hash: hashReservationPassword("654321"),
+      password_hash: hashReservationPassword("6543"),
       note: null,
       status: "pending",
     });

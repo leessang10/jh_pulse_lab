@@ -15,7 +15,6 @@ const baseReservation: Reservation = {
   startMinutes: 600,
   endMinutes: 660,
   name: "Lee",
-  phone: "010-0000-0000",
   status: "confirmed",
   createdAt: "2026-06-05T00:00:00.000Z",
 };
@@ -82,6 +81,21 @@ describe("booking availability", () => {
     expect(availability.rangeOptions.some((option) => option.startMinutes === 570)).toBe(false);
   });
 
+  it("can ignore the reservation being edited when building change options", () => {
+    const availability = getBookingAvailability([baseReservation], {
+      date: "2026-06-05",
+      roomId: "room-1",
+      durationMinutes: 60,
+      ignoredReservationId: "res-1",
+    });
+
+    expect(availability.rangeOptions).toContainEqual({
+      startMinutes: 600,
+      endMinutes: 660,
+      label: "10:00-11:00",
+    });
+  });
+
   it("keeps ranges ending at midnight bookable and later ranges hidden", () => {
     const availability = getBookingAvailability([], {
       date: "2026-06-05",
@@ -140,14 +154,14 @@ describe("booking availability", () => {
       startMinutes: 630,
       endMinutes: 690,
       name: "Kim",
-      phone: "010-1111-2222",
-      password: "123456",
+      password: "1234",
     };
 
     expect(validateBookableDraftTime([baseReservation], draft)).toEqual({
       ok: false,
       error: "이미 예약된 시간입니다.",
     });
+    expect(validateBookableDraftTime([baseReservation], draft, "res-1")).toEqual({ ok: true });
     expect(validateBookableDraftTime([], draft)).toEqual({ ok: true });
   });
 

@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>JH PULSE LAB - 홈</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="canvas">
+      <section class="mock-frame desktop-page page-shell">
+        <header class="topbar">
+          <div class="lead-block">
+            <div class="brand">JH PULSE LAB</div>
+            <p class="section-copy">2026.06.11 목요일</p>
+          </div>
+          <div class="date-stack">
+            <div class="action-row">
+              <a class="button primary" href="./reservation.html">예약하기</a>
+              <a class="button ghost" href="./reservations.html">예약내역</a>
+            </div>
+          </div>
+        </header>
+
+        <section class="home-grid">
+          <div class="hero-panel">
+            <div class="lead-block">
+              <span class="eyebrow">오늘 예약</span>
+              <h1 class="section-title large">오늘 예약 현황</h1>
+              <p class="section-copy">강의실을 선택해 예약된 시간을 확인하세요.</p>
+            </div>
+
+            <div class="room-strip">
+              <button class="room-card is-selected" type="button" data-room-select="강의실 1">
+                <span class="room-head">
+                  <span class="room-name"><strong>강의실 1</strong><span>A룸</span></span>
+                  <span class="room-hours">3.5h</span>
+                </span>
+                <span class="mini-timeline">
+                  <span class="mini-track">
+                    <i class="mini-fill" style="left: 37%; width: 16%"></i>
+                    <i class="mini-fill amber" style="left: 66%; width: 10%"></i>
+                  </span>
+                  <span class="mini-labels"><span>09</span><span>12</span><span>15</span><span>18</span><span>21</span></span>
+                </span>
+              </button>
+              <button class="room-card" type="button" data-room-select="강의실 2">
+                <span class="room-head">
+                  <span class="room-name"><strong>강의실 2</strong><span>B룸</span></span>
+                  <span class="room-hours">2h</span>
+                </span>
+                <span class="mini-timeline">
+                  <span class="mini-track">
+                    <i class="mini-fill amber" style="left: 22%; width: 14%"></i>
+                    <i class="mini-fill" style="left: 58%; width: 11%"></i>
+                  </span>
+                  <span class="mini-labels"><span>09</span><span>12</span><span>15</span><span>18</span><span>21</span></span>
+                </span>
+              </button>
+              <button class="room-card" type="button" data-room-select="강의실 3">
+                <span class="room-head">
+                  <span class="room-name"><strong>강의실 3</strong><span>C룸</span></span>
+                  <span class="room-hours">4h</span>
+                </span>
+                <span class="mini-timeline">
+                  <span class="mini-track">
+                    <i class="mini-fill" style="left: 12%; width: 18%"></i>
+                    <i class="mini-fill" style="left: 48%; width: 19%"></i>
+                  </span>
+                  <span class="mini-labels"><span>09</span><span>12</span><span>15</span><span>18</span><span>21</span></span>
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <aside class="summary-panel white">
+            <span class="eyebrow">선택 강의실</span>
+            <h2 class="section-title" data-selected-room>강의실 1</h2>
+            <p class="section-copy">아래 시간표와 목록에 선택한 강의실의 예약 시간이 표시됩니다.</p>
+            <div class="divider"></div>
+            <div class="legend">
+              <span><i></i>확정 예약</span>
+              <span><i class="amber"></i>대기 예약</span>
+            </div>
+          </aside>
+        </section>
+
+        <section class="schedule-panel">
+          <div class="radial-wrap">
+            <div class="radial-schedule" aria-label="오늘 예약 시간 분포">
+              <span class="time-label t0">00</span>
+              <span class="time-label t6">06</span>
+              <span class="time-label t12">12</span>
+              <span class="time-label t18">18</span>
+              <div class="radial-center">
+                <span>
+                  <strong>06.11</strong>
+                  <span>목요일</span>
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class="schedule-list">
+            <span class="eyebrow">예약 시간</span>
+            <h2 class="section-title">선택한 강의실 예약</h2>
+            <p class="section-copy">오늘 예약된 시간만 표시합니다.</p>
+            <div class="plain-list">
+              <div class="plain-row">
+                <strong>10:00</strong>
+                <span>강의실 1 · 1시간</span>
+                <span>확정</span>
+              </div>
+              <div class="plain-row">
+                <strong>15:00</strong>
+                <span>강의실 1 · 1시간</span>
+                <span>확정</span>
+              </div>
+              <div class="plain-row">
+                <strong>18:30</strong>
+                <span>강의실 1 · 30분</span>
+                <span>대기</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+    <script src="./script.js"></script>
+  </body>
+</html>
