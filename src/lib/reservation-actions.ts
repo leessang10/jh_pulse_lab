@@ -100,6 +100,7 @@ export async function listPublicReservationsByLookup(
       .eq("name", lookup.name.trim())
       .eq("password_hash", hashReservationPassword(lookup.password))
       .in("room_id", ACTIVE_ROOM_IDS)
+      .neq("status", "cancelled")
       .order("date", { ascending: false })
       .order("start_minutes", { ascending: true });
 

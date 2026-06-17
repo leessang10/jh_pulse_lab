@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CalendarPlusIcon, CheckIcon, ChevronLeftIcon, PencilIcon, SearchIcon, XCircleIcon } from "lucide-react";
 import { useForm } from "react-hook-form";
@@ -30,7 +31,11 @@ import {
   listPublicReservationsByLookup,
   updatePublicReservationTime,
 } from "@/lib/reservation-actions";
-import { canMutatePublicReservation, replaceReservationInList } from "@/lib/reservation-owner-ui";
+import {
+  canMutatePublicReservation,
+  formatReservationCancellationMessage,
+  replaceReservationInList,
+} from "@/lib/reservation-owner-ui";
 import { RESERVATIONS_PAGE_HEADER } from "@/lib/reservations-page-header";
 import { formatMinutes, getRoomName, STATUS_LABELS, type Reservation } from "@/lib/reservations";
 
@@ -196,11 +201,13 @@ function ReservationItem({
 }
 
 export default function ReservationsPage() {
+  const router = useRouter();
   const [reservations, setReservations] = useState<Reservation[] | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [ownerLookup, setOwnerLookup] = useState<LookupValues | null>(null);
   const [editingReservation, setEditingReservation] = useState<EditingReservationState | null>(null);
   const [mutatingReservationId, setMutatingReservationId] = useState<string | null>(null);
+  const [cancellationMessage, setCancellationMessage] = useState<string | null>(null);
   const form = useForm<LookupValues>({
     resolver: zodResolver(lookupSchema),
     defaultValues: {
@@ -318,7 +325,7 @@ export default function ReservationsPage() {
 
       updateReservationInResults(result.data);
       if (editingReservation?.reservationId === reservation.id) setEditingReservation(null);
-      toast.success("예약이 취소되었습니다.");
+      setCancellationMessage(formatReservationCancellationMessage(result.data));
     } finally {
       setMutatingReservationId(null);
     }
@@ -451,6 +458,18 @@ export default function ReservationsPage() {
           </Button>
         ) : null}
       </section>
+
+      <AlertDialog open={cancellationMessage !== null} onOpenChange={(open) => !open && setCancellationMessage(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>예약이 취소되었습니다</AlertDialogTitle>
+            <AlertDialogDescription>{cancellationMessage}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => router.push("/")}>확인</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   );
 }

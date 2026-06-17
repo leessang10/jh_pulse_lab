@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Reservation } from "./reservations";
 import {
   canMutatePublicReservation,
+  formatReservationCancellationMessage,
   replaceReservationInList,
 } from "./reservation-owner-ui";
 
@@ -27,5 +28,15 @@ describe("reservation owner UI helpers", () => {
     const updated = { ...reservation, startMinutes: 660, endMinutes: 720 };
 
     expect(replaceReservationInList([reservation], updated)).toEqual([updated]);
+  });
+
+  it("formats a clear cancellation confirmation message with the reservation date and start time", () => {
+    expect(
+      formatReservationCancellationMessage({
+        ...reservation,
+        date: "2026-06-17",
+        startMinutes: 840,
+      }),
+    ).toBe("2026.06.17 오후 2:00 예약이 취소되었습니다.");
   });
 });

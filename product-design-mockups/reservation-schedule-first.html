@@ -1,0 +1,735 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>JH PULSE LAB 예약 현황</title>
+    <style>
+      @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
+
+      :root {
+        color-scheme: light;
+        --background: #ffffff;
+        --foreground: #222428;
+        --muted: #eef0f2;
+        --muted-2: #f7f8f9;
+        --muted-foreground: #686d73;
+        --border: #d7dade;
+        --border-strong: #bfc4ca;
+        --accent: #00877d;
+        --accent-strong: #006f67;
+        --accent-soft: #e8f6f4;
+        --danger: #b43333;
+        --shadow: 0 18px 40px rgba(30, 38, 48, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        min-height: 100%;
+        background: var(--background);
+        font-family:
+          "Pretendard",
+          "Noto Sans KR",
+          ui-sans-serif,
+          system-ui,
+          sans-serif;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--background);
+        color: var(--foreground);
+      }
+
+      button,
+      a {
+        font: inherit;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .page {
+        display: grid;
+        min-height: 100vh;
+        grid-template-rows: 92px 1fr;
+        background: var(--background);
+      }
+
+      .top-bar {
+        display: grid;
+        grid-template-columns: minmax(18rem, 1fr) auto minmax(18rem, 1fr);
+        align-items: center;
+        gap: 2rem;
+        border-bottom: 1px solid var(--border);
+        padding: 0 30px;
+      }
+
+      .brand {
+        min-width: 0;
+        font-size: 2.25rem;
+        font-weight: 900;
+        letter-spacing: 0;
+        line-height: 1;
+        white-space: nowrap;
+      }
+
+      .date {
+        font-size: 1.75rem;
+        font-weight: 800;
+        line-height: 1;
+        white-space: nowrap;
+      }
+
+      .actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 20px;
+      }
+
+      .action {
+        display: inline-grid;
+        min-width: 168px;
+        min-height: 60px;
+        place-items: center;
+        border: 1px solid var(--border-strong);
+        border-radius: 8px;
+        background: var(--background);
+        color: var(--foreground);
+        font-size: 1.45rem;
+        font-weight: 850;
+        line-height: 1;
+        transition:
+          background 150ms ease,
+          border-color 150ms ease,
+          box-shadow 150ms ease,
+          transform 150ms ease;
+      }
+
+      .action.primary {
+        border-color: var(--accent);
+        background: var(--accent);
+        color: #fff;
+      }
+
+      .action:focus-visible,
+      .room-card:focus-visible {
+        outline: 4px solid rgba(0, 135, 125, 0.22);
+        outline-offset: 3px;
+      }
+
+      .action:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 24px rgba(30, 38, 48, 0.12);
+      }
+
+      .workspace {
+        display: grid;
+        grid-template-columns: 272px minmax(0, 1fr);
+        min-height: 0;
+      }
+
+      .room-rail {
+        display: grid;
+        align-content: start;
+        gap: 24px;
+        border-right: 1px solid var(--border);
+        padding: 30px;
+        background: rgba(250, 251, 252, 0.72);
+      }
+
+      .room-card {
+        display: grid;
+        min-height: 178px;
+        grid-template-rows: auto 1fr;
+        gap: 18px;
+        border: 1.5px solid var(--border);
+        border-radius: 8px;
+        background: var(--background);
+        padding: 24px 20px 20px;
+        text-align: center;
+        transition:
+          border-color 150ms ease,
+          box-shadow 150ms ease,
+          background 150ms ease,
+          transform 150ms ease;
+      }
+
+      .room-card[aria-pressed="true"] {
+        border-color: var(--accent);
+        background: var(--accent-soft);
+        box-shadow: 0 0 0 1px rgba(0, 135, 125, 0.14) inset;
+      }
+
+      .room-card:hover {
+        border-color: var(--accent);
+        transform: translateY(-1px);
+      }
+
+      .room-name {
+        overflow: hidden;
+        color: #111317;
+        font-size: 1.55rem;
+        font-weight: 900;
+        line-height: 1.1;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .donut {
+        position: relative;
+        width: 112px;
+        height: 112px;
+        place-self: center;
+        border-radius: 50%;
+        background: conic-gradient(var(--accent) 0deg var(--reserved-deg), #e4e7eb var(--reserved-deg) 360deg);
+      }
+
+      .donut::after {
+        position: absolute;
+        inset: 24px;
+        border-radius: inherit;
+        background: #fff;
+        content: "";
+      }
+
+      .donut-value {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        display: grid;
+        place-content: center;
+        gap: 2px;
+        color: var(--foreground);
+        line-height: 1;
+      }
+
+      .donut-value strong {
+        color: var(--accent);
+        font-size: 2.45rem;
+        font-weight: 900;
+      }
+
+      .donut-value span {
+        font-size: 1.05rem;
+        font-weight: 750;
+      }
+
+      .schedule-stage {
+        display: grid;
+        min-width: 0;
+        place-items: center;
+        padding: 26px 48px 34px;
+      }
+
+      .schedule-shell {
+        position: relative;
+        width: min(840px, calc(100vw - 420px));
+        min-width: 650px;
+        aspect-ratio: 1;
+      }
+
+      .schedule-svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+      }
+
+      .ring-base {
+        fill: none;
+        stroke: #e6e8eb;
+        stroke-width: 92;
+      }
+
+      .segment {
+        fill: var(--accent);
+        stroke: #fff;
+        stroke-linejoin: round;
+        stroke-width: 3;
+        filter: drop-shadow(0 8px 14px rgba(0, 112, 104, 0.14));
+      }
+
+      .hour-line {
+        stroke: #1f2227;
+        stroke-linecap: round;
+      }
+
+      .minor-line {
+        stroke: #777d84;
+        stroke-linecap: round;
+      }
+
+      .guide-line {
+        stroke: #cbd0d6;
+        stroke-width: 1;
+      }
+
+      .center-summary {
+        position: absolute;
+        inset: 25%;
+        display: grid;
+        place-content: center;
+        text-align: center;
+        line-height: 1;
+        pointer-events: none;
+      }
+
+      .center-summary span:first-child {
+        font-size: 3.1rem;
+        font-weight: 850;
+      }
+
+      .center-summary strong {
+        margin-top: 20px;
+        color: var(--accent);
+        font-size: 8.9rem;
+        font-weight: 900;
+        letter-spacing: 0;
+      }
+
+      .center-summary span:last-child {
+        margin-top: 18px;
+        font-size: 2.05rem;
+        font-weight: 850;
+      }
+
+      .hour-label {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        color: #1f2227;
+        font-size: 2rem;
+        font-weight: 850;
+        line-height: 1;
+        transform:
+          translate(-50%, -50%)
+          rotate(var(--angle))
+          translateY(-342px)
+          rotate(var(--back));
+        white-space: nowrap;
+      }
+
+      .segment-label {
+        position: absolute;
+        left: calc(var(--x) * 1%);
+        top: calc(var(--y) * 1%);
+        width: 128px;
+        color: #fff;
+        font-size: 1.05rem;
+        font-weight: 850;
+        line-height: 1.24;
+        text-align: center;
+        text-shadow: 0 1px 8px rgba(0, 72, 67, 0.22);
+        transform: translate(-50%, -50%) rotate(var(--tilt));
+        pointer-events: none;
+      }
+
+      .segment-label small {
+        display: block;
+        margin-top: 6px;
+        font-size: 0.9rem;
+        font-weight: 800;
+      }
+
+      .empty-note {
+        position: absolute;
+        left: 50%;
+        top: 22%;
+        display: none;
+        min-width: 12rem;
+        transform: translateX(-50%);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.94);
+        padding: 14px 18px;
+        color: var(--muted-foreground);
+        font-size: 1.2rem;
+        font-weight: 800;
+        text-align: center;
+        box-shadow: var(--shadow);
+      }
+
+      .schedule-shell[data-empty="true"] .empty-note {
+        display: block;
+      }
+
+      @media (max-width: 1040px) {
+        .page {
+          grid-template-rows: auto 1fr;
+        }
+
+        .top-bar {
+          grid-template-columns: 1fr;
+          gap: 18px;
+          padding: 24px;
+          text-align: center;
+        }
+
+        .brand {
+          font-size: 2rem;
+        }
+
+        .date {
+          font-size: 1.45rem;
+        }
+
+        .actions {
+          justify-content: center;
+        }
+
+        .workspace {
+          grid-template-columns: 1fr;
+        }
+
+        .room-rail {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          border-right: 0;
+          border-bottom: 1px solid var(--border);
+          padding: 18px;
+        }
+
+        .room-card {
+          min-height: 156px;
+          gap: 12px;
+          padding: 18px 12px;
+        }
+
+        .room-name {
+          font-size: 1.25rem;
+        }
+
+        .donut {
+          width: 96px;
+          height: 96px;
+        }
+
+        .donut::after {
+          inset: 21px;
+        }
+
+        .schedule-stage {
+          padding: 28px 16px 36px;
+        }
+
+        .schedule-shell {
+          width: min(92vw, 760px);
+          min-width: 0;
+        }
+
+        .hour-label {
+          font-size: 1.4rem;
+          transform:
+            translate(-50%, -50%)
+            rotate(var(--angle))
+            translateY(-330px)
+            rotate(var(--back));
+        }
+
+        .center-summary span:first-child {
+          font-size: 2rem;
+        }
+
+        .center-summary strong {
+          margin-top: 12px;
+          font-size: 5.5rem;
+        }
+
+        .center-summary span:last-child {
+          margin-top: 12px;
+          font-size: 1.45rem;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .top-bar {
+          padding: 20px 16px;
+        }
+
+        .actions {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          width: 100%;
+          gap: 10px;
+        }
+
+        .action {
+          min-width: 0;
+          min-height: 56px;
+          font-size: 1.18rem;
+        }
+
+        .room-rail {
+          grid-template-columns: 1fr;
+        }
+
+        .room-card {
+          min-height: 112px;
+          grid-template-columns: 1fr auto;
+          grid-template-rows: 1fr;
+          align-items: center;
+          text-align: left;
+        }
+
+        .room-name {
+          font-size: 1.4rem;
+        }
+
+        .donut {
+          width: 86px;
+          height: 86px;
+        }
+
+        .donut::after {
+          inset: 19px;
+        }
+
+        .donut-value strong {
+          font-size: 1.85rem;
+        }
+
+        .donut-value span {
+          font-size: 0.9rem;
+        }
+
+        .hour-label {
+          display: none;
+        }
+
+        .segment-label {
+          width: 104px;
+          font-size: 0.82rem;
+        }
+
+        .segment-label small {
+          font-size: 0.72rem;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <header class="top-bar">
+        <div class="brand">JH PULSE LAB</div>
+        <div class="date">2026년 6월 11일 (목)</div>
+        <nav class="actions" aria-label="예약 이동">
+          <a class="action primary" id="reserve-link" href="/reservation?roomId=room-1">예약하기</a>
+          <a class="action" href="/reservations">예약내역</a>
+        </nav>
+      </header>
+
+      <section class="workspace" aria-label="강의실 예약 현황">
+        <aside class="room-rail" aria-label="강의실별 예약 요약">
+          <button class="room-card" type="button" aria-pressed="true" data-room="room-1">
+            <span class="room-name">강의실 1</span>
+            <span class="donut" style="--reserved-deg: 60deg">
+              <span class="donut-value"><strong>2</strong><span>시간</span></span>
+            </span>
+          </button>
+
+          <button class="room-card" type="button" aria-pressed="false" data-room="room-2">
+            <span class="room-name">강의실 2</span>
+            <span class="donut" style="--reserved-deg: 30deg">
+              <span class="donut-value"><strong>1</strong><span>시간</span></span>
+            </span>
+          </button>
+
+          <button class="room-card" type="button" aria-pressed="false" data-room="room-3">
+            <span class="room-name">강의실 3</span>
+            <span class="donut" style="--reserved-deg: 0deg">
+              <span class="donut-value"><strong>0</strong><span>시간</span></span>
+            </span>
+          </button>
+        </aside>
+
+        <section class="schedule-stage" aria-label="선택한 강의실 상세 예약 현황">
+          <div class="schedule-shell" id="schedule-shell">
+            <svg class="schedule-svg" role="img" aria-labelledby="schedule-title" viewBox="0 0 720 720">
+              <title id="schedule-title">강의실 1 오늘 예약 시간을 시계처럼 보여주는 표</title>
+              <line class="guide-line" x1="360" x2="360" y1="112" y2="608"></line>
+              <line class="guide-line" x1="112" x2="608" y1="360" y2="360"></line>
+              <circle class="ring-base" cx="360" cy="360" r="222"></circle>
+              <g id="schedule-segments"></g>
+              <g id="schedule-ticks"></g>
+            </svg>
+
+            <span class="hour-label" style="--angle: 0deg; --back: 0deg">12:00</span>
+            <span class="hour-label" style="--angle: 30deg; --back: -30deg">01:00</span>
+            <span class="hour-label" style="--angle: 60deg; --back: -60deg">02:00</span>
+            <span class="hour-label" style="--angle: 90deg; --back: -90deg">03:00</span>
+            <span class="hour-label" style="--angle: 120deg; --back: -120deg">04:00</span>
+            <span class="hour-label" style="--angle: 150deg; --back: -150deg">05:00</span>
+            <span class="hour-label" style="--angle: 180deg; --back: -180deg">06:00</span>
+            <span class="hour-label" style="--angle: 210deg; --back: -210deg">07:00</span>
+            <span class="hour-label" style="--angle: 240deg; --back: -240deg">08:00</span>
+            <span class="hour-label" style="--angle: 270deg; --back: -270deg">09:00</span>
+            <span class="hour-label" style="--angle: 300deg; --back: -300deg">10:00</span>
+            <span class="hour-label" style="--angle: 330deg; --back: -330deg">11:00</span>
+
+            <div class="center-summary" aria-hidden="true">
+              <span>오늘</span>
+              <strong id="center-hours">2</strong>
+              <span>예약된 시간</span>
+            </div>
+            <div class="empty-note">예약 없음</div>
+            <div id="segment-labels"></div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script>
+      const rooms = {
+        "room-1": {
+          name: "강의실 1",
+          hours: 2,
+          segments: [
+            { name: "김재환", start: 10, end: 11, label: "10:00 - 11:00" },
+            { name: "이수연", start: 14, end: 15, label: "14:00 - 15:00" },
+          ],
+        },
+        "room-2": {
+          name: "강의실 2",
+          hours: 1,
+          segments: [{ name: "박민지", start: 9, end: 10, label: "09:00 - 10:00" }],
+        },
+        "room-3": {
+          name: "강의실 3",
+          hours: 0,
+          segments: [],
+        },
+      };
+
+      const center = 360;
+      const outerRadius = 268;
+      const innerRadius = 176;
+      const labelRadius = 222;
+      const segmentRoot = document.querySelector("#schedule-segments");
+      const tickRoot = document.querySelector("#schedule-ticks");
+      const labelRoot = document.querySelector("#segment-labels");
+      const centerHours = document.querySelector("#center-hours");
+      const shell = document.querySelector("#schedule-shell");
+      const scheduleTitle = document.querySelector("#schedule-title");
+      const reserveLink = document.querySelector("#reserve-link");
+
+      function angleForHour(hour) {
+        return ((hour % 12) / 12) * 360;
+      }
+
+      function point(radius, angleDegrees) {
+        const radians = ((angleDegrees - 90) * Math.PI) / 180;
+        return {
+          x: center + radius * Math.cos(radians),
+          y: center + radius * Math.sin(radians),
+        };
+      }
+
+      function sectorPath(startHour, endHour) {
+        let startAngle = angleForHour(startHour);
+        let endAngle = angleForHour(endHour);
+        if (endAngle <= startAngle) endAngle += 360;
+
+        const outerStart = point(outerRadius, startAngle);
+        const outerEnd = point(outerRadius, endAngle);
+        const innerEnd = point(innerRadius, endAngle);
+        const innerStart = point(innerRadius, startAngle);
+        const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+
+        return [
+          `M ${outerStart.x.toFixed(2)} ${outerStart.y.toFixed(2)}`,
+          `A ${outerRadius} ${outerRadius} 0 ${largeArc} 1 ${outerEnd.x.toFixed(2)} ${outerEnd.y.toFixed(2)}`,
+          `L ${innerEnd.x.toFixed(2)} ${innerEnd.y.toFixed(2)}`,
+          `A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${innerStart.x.toFixed(2)} ${innerStart.y.toFixed(2)}`,
+          "Z",
+        ].join(" ");
+      }
+
+      function drawTicks() {
+        const fragment = document.createDocumentFragment();
+
+        for (let index = 0; index < 60; index += 1) {
+          const isHour = index % 5 === 0;
+          const angle = index * 6;
+          const outer = point(isHour ? 316 : 306, angle);
+          const inner = point(isHour ? 300 : 292, angle);
+          const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+
+          line.setAttribute("class", isHour ? "hour-line" : "minor-line");
+          line.setAttribute("x1", inner.x.toFixed(2));
+          line.setAttribute("y1", inner.y.toFixed(2));
+          line.setAttribute("x2", outer.x.toFixed(2));
+          line.setAttribute("y2", outer.y.toFixed(2));
+          line.setAttribute("stroke-width", isHour ? "4" : "2");
+          line.setAttribute("opacity", isHour ? "0.92" : "0.72");
+          fragment.appendChild(line);
+        }
+
+        tickRoot.replaceChildren(fragment);
+      }
+
+      function setRoom(roomId) {
+        const room = rooms[roomId];
+        const segmentFragment = document.createDocumentFragment();
+        const labelFragment = document.createDocumentFragment();
+
+        document.querySelectorAll(".room-card").forEach((card) => {
+          card.setAttribute("aria-pressed", String(card.dataset.room === roomId));
+        });
+
+        room.segments.forEach((segment) => {
+          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          const startAngle = angleForHour(segment.start);
+          let endAngle = angleForHour(segment.end);
+          if (endAngle <= startAngle) endAngle += 360;
+          const midAngle = (startAngle + endAngle) / 2;
+          const labelPoint = point(labelRadius, midAngle);
+          const label = document.createElement("div");
+
+          path.setAttribute("class", "segment");
+          path.setAttribute("d", sectorPath(segment.start, segment.end));
+          segmentFragment.appendChild(path);
+
+          label.className = "segment-label";
+          label.style.setProperty("--x", String((labelPoint.x / 720) * 100));
+          label.style.setProperty("--y", String((labelPoint.y / 720) * 100));
+          label.style.setProperty("--tilt", `${midAngle - 90}deg`);
+          label.innerHTML = `${segment.name}<small>${segment.label}</small>`;
+          labelFragment.appendChild(label);
+        });
+
+        centerHours.textContent = String(room.hours);
+        shell.dataset.empty = String(room.segments.length === 0);
+        scheduleTitle.textContent = `${room.name} 오늘 예약 시간을 시계처럼 보여주는 표`;
+        reserveLink.href = `/reservation?roomId=${roomId}`;
+        segmentRoot.replaceChildren(segmentFragment);
+        labelRoot.replaceChildren(labelFragment);
+      }
+
+      document.querySelectorAll(".room-card").forEach((card) => {
+        card.addEventListener("click", () => setRoom(card.dataset.room));
+      });
+
+      drawTicks();
+      setRoom("room-1");
+    </script>
+  </body>
+</html>

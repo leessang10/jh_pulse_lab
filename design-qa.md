@@ -36,6 +36,8 @@ patches made since previous QA pass:
 - Fixed radial schedule color blocks that were hidden by ring layers.
 - Fixed sparse page grid stretching that caused excessive top whitespace on the reservation lookup desktop page.
 - Rewrote visible copy from internal design-description language to plain reservation-service UI language.
+- Tightened the existing HTML files in place after the follow-up request; no new mockup folder is used.
+- Reworked the home room list so per-room occupancy summaries are primary again, matching the original landing page's stronger information hierarchy.
 - Verified forbidden wording does not appear in mockup files.
 
 final result: passed
