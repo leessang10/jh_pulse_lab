@@ -27,8 +27,11 @@ import {
 import { getCurrentKoreaBookingTime, todayKoreaValue } from "@/lib/korea-date";
 import {
   getBookingCompletionReturnAction,
+  getBookingCompletionSnapshot,
+  getBookingCompletionSummaryLabel,
   getBookingHeaderState,
   getBookingStepNavigation,
+  type BookingCompletionSnapshot,
   type BookingStep,
 } from "@/lib/reservation-ui";
 import { useReservations } from "@/lib/use-reservations";
@@ -78,6 +81,7 @@ function ReservationFlow() {
   const [selectedDurationMinutes, setSelectedDurationMinutes] = useState(60);
   const [selectedStartMinutes, setSelectedStartMinutes] = useState<number | null>(null);
   const [selectedTime, setSelectedTime] = useState<SelectedBookingTime | null>(null);
+  const [completedBooking, setCompletedBooking] = useState<BookingCompletionSnapshot | null>(null);
   const [currentTime, setCurrentTime] = useState(() => getCurrentKoreaBookingTime());
   const [isSubmittingReservation, setIsSubmittingReservation] = useState(false);
 
@@ -132,6 +136,7 @@ function ReservationFlow() {
   function clearTimeSelection() {
     setSelectedStartMinutes(null);
     setSelectedTime(null);
+    setCompletedBooking(null);
   }
 
   function selectDuration(durationMinutes: number) {
@@ -155,6 +160,7 @@ function ReservationFlow() {
 
     setSelectedStartMinutes(result.selectedTime.startMinutes);
     setSelectedTime(result.selectedTime);
+    setCompletedBooking(null);
   }
 
   function moveToContact() {
@@ -198,6 +204,7 @@ function ReservationFlow() {
         return;
       }
 
+      setCompletedBooking(getBookingCompletionSnapshot({ roomName: selectedRoomName, selectedTime }));
       setStep("done");
       toast.success("예약이 확정되었습니다.");
     } finally {
@@ -219,6 +226,7 @@ function ReservationFlow() {
               <Button
                 aria-label="처음으로"
                 className="size-10 justify-center rounded-lg p-0"
+                nativeButton={false}
                 render={<Link href={navigation.previousHref} />}
                 type="button"
                 variant="outline"
@@ -427,7 +435,7 @@ function ReservationFlow() {
         </motion.section>
       )}
 
-      {step === "done" && selectedTime && (
+      {step === "done" && (
         <motion.section key="done" className="grid flex-1 place-items-center" {...sectionMotion}>
           <motion.div
             className="w-full"
@@ -446,7 +454,7 @@ function ReservationFlow() {
               </motion.div>
               <h1 className="text-5xl font-bold">예약 완료</h1>
               <p className="text-3xl font-bold">
-                {selectedRoomName} {selectedTime.label}
+                {getBookingCompletionSummaryLabel(completedBooking)}
               </p>
               <Button
                 className="motion-action mx-auto h-16 rounded-lg px-10 text-2xl font-semibold"

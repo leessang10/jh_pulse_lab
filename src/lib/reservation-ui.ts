@@ -1,5 +1,14 @@
 export type BookingStep = "time" | "contact" | "done";
 
+type BookingTimeLike = {
+  label: string;
+};
+
+export type BookingCompletionSnapshot = {
+  roomName: string;
+  timeLabel: string;
+};
+
 export const BOOKING_STEP_ITEMS: Array<{ id: Exclude<BookingStep, "done">; label: string }> = [
   { id: "time", label: "시간" },
   { id: "contact", label: "정보" },
@@ -18,6 +27,24 @@ export function getBookingCompletionReturnAction() {
     href: "/",
     label: "메인으로",
   } as const;
+}
+
+export function getBookingCompletionSnapshot(options: {
+  roomName: string;
+  selectedTime: BookingTimeLike | null;
+}): BookingCompletionSnapshot | null {
+  if (!options.selectedTime) return null;
+
+  return {
+    roomName: options.roomName,
+    timeLabel: options.selectedTime.label,
+  };
+}
+
+export function getBookingCompletionSummaryLabel(snapshot: BookingCompletionSnapshot | null) {
+  if (!snapshot) return "예약이 확정되었습니다.";
+
+  return `${snapshot.roomName} ${snapshot.timeLabel}`;
 }
 
 export function getBookingHeaderState(step: BookingStep) {

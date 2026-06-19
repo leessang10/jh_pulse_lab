@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   BOOKING_STEP_ITEMS,
+  getBookingCompletionSnapshot,
+  getBookingCompletionSummaryLabel,
   getBookingCompletionReturnAction,
   getBookingHeaderState,
   getBookingStepNavigation,
@@ -26,6 +28,32 @@ describe("reservation UI helpers", () => {
       href: "/",
       label: "메인으로",
     });
+  });
+
+  it("creates a stable completion snapshot from the selected booking time", () => {
+    expect(
+      getBookingCompletionSnapshot({
+        roomName: "연습실 1",
+        selectedTime: { label: "04:00-05:00", startMinutes: 240, endMinutes: 300 },
+      }),
+    ).toEqual({
+      roomName: "연습실 1",
+      timeLabel: "04:00-05:00",
+    });
+  });
+
+  it("does not create a completion snapshot without a selected time", () => {
+    expect(getBookingCompletionSnapshot({ roomName: "연습실 1", selectedTime: null })).toBeNull();
+  });
+
+  it("returns a fallback completion summary when the snapshot is missing", () => {
+    expect(getBookingCompletionSummaryLabel(null)).toBe("예약이 확정되었습니다.");
+  });
+
+  it("returns room and time for a completed booking snapshot", () => {
+    expect(getBookingCompletionSummaryLabel({ roomName: "연습실 1", timeLabel: "04:00-05:00" })).toBe(
+      "연습실 1 04:00-05:00",
+    );
   });
 
   it("builds a compact reservation summary from selected values", () => {
