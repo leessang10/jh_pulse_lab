@@ -80,6 +80,7 @@ export async function createPublicReservation(draft: ReservationDraft): Promise<
     revalidatePath("/reservation");
     revalidatePath("/reservations");
     revalidatePath("/admin");
+    revalidatePath("/v2");
     return { ok: true, data: mapReservationRowToReservation(data as ReservationRow) };
   } catch (error) {
     return { ok: false, error: toReservationActionErrorMessage(error) };
@@ -141,6 +142,7 @@ export async function cancelPublicReservation(
     revalidatePath("/reservation");
     revalidatePath("/reservations");
     revalidatePath("/admin");
+    revalidatePath("/v2");
     return { ok: true, data: mapReservationRowToReservation(data as ReservationRow) };
   } catch (error) {
     return { ok: false, error: toReservationActionErrorMessage(error) };
@@ -192,6 +194,7 @@ export async function updatePublicReservationTime(
     revalidatePath("/reservation");
     revalidatePath("/reservations");
     revalidatePath("/admin");
+    revalidatePath("/v2");
     return { ok: true, data: mapReservationRowToReservation(data as ReservationRow) };
   } catch (error) {
     return { ok: false, error: toReservationActionErrorMessage(error) };
@@ -237,6 +240,7 @@ export async function updateAdminReservationStatus(
     revalidatePath("/reservation");
     revalidatePath("/reservations");
     revalidatePath("/admin");
+    revalidatePath("/v2");
     return { ok: true, data: null };
   } catch (error) {
     return { ok: false, error: toReservationActionErrorMessage(error) };
@@ -253,6 +257,7 @@ export async function deleteAdminReservation(id: string): Promise<ReservationAct
     revalidatePath("/reservation");
     revalidatePath("/reservations");
     revalidatePath("/admin");
+    revalidatePath("/v2");
     return { ok: true, data: null };
   } catch {
     return { ok: false, error: GENERIC_MESSAGE };
