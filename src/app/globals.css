@@ -30,6 +30,20 @@
   --chart-3: oklch(0.48 0.008 255);
   --chart-4: oklch(0.35 0.007 255);
   --chart-5: oklch(0.24 0.006 255);
+  --app-background: oklch(0.972 0.003 255);
+  --surface-subtle: oklch(0.96 0.003 255);
+  --surface-raised: oklch(1 0 0);
+  --shadow-soft: 0 8px 20px oklch(0.21 0.007 255 / 7%);
+  --reservation-accent: oklch(0.58 0.11 176);
+  --reservation-accent-foreground: oklch(0.985 0.003 176);
+  --reservation-accent-soft: oklch(0.94 0.025 176);
+  --reservation-segment-1: oklch(0.58 0.11 176);
+  --reservation-segment-2: oklch(0.64 0.085 176);
+  --reservation-segment-3: oklch(0.7 0.06 176);
+  --reservation-segment-4: oklch(0.62 0.045 198);
+  --reservation-segment-5: oklch(0.68 0.032 215);
+  --reservation-segment-6: oklch(0.74 0.02 235);
+  --reservation-line: oklch(0.985 0.003 255 / 0.9);
   --pulse-accent: oklch(0.58 0.13 176);
   --pulse-accent-foreground: oklch(0.985 0.003 176);
   --pulse-accent-soft: oklch(0.94 0.035 176);
@@ -105,23 +119,21 @@ button:disabled {
 }
 
 .motion-action:not(:disabled):hover {
-  transform: translateY(-2px);
-  box-shadow: 0 14px 30px oklch(0.21 0.007 255 / 12%);
+  transform: translateY(-1px);
+  box-shadow: none;
 }
 
 .motion-action:not(:disabled):active {
-  transform: translateY(0) scale(0.985);
-  box-shadow: 0 7px 18px oklch(0.21 0.007 255 / 10%);
+  transform: translateY(0) scale(0.99);
+  box-shadow: none;
 }
 
 .motion-choice-selected {
-  box-shadow:
-    inset 0 0 0 1px oklch(0.26 0.008 255 / 18%),
-    0 12px 28px oklch(0.21 0.007 255 / 10%);
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--primary) 34%, transparent);
 }
 
 .range-scroll-area {
-  scrollbar-color: oklch(0.54 0.006 255) oklch(0.94 0.004 255);
+  scrollbar-color: color-mix(in oklch, var(--muted-foreground) 65%, transparent) var(--surface-subtle);
   scrollbar-gutter: stable;
   scrollbar-width: thin;
 }
@@ -131,13 +143,13 @@ button:disabled {
 }
 
 .range-scroll-area::-webkit-scrollbar-track {
-  background: oklch(0.94 0.004 255);
+  background: var(--surface-subtle);
   border-radius: 999px;
 }
 
 .range-scroll-area::-webkit-scrollbar-thumb {
-  background: oklch(0.54 0.006 255);
-  border: 2px solid oklch(0.94 0.004 255);
+  background: color-mix(in oklch, var(--muted-foreground) 65%, transparent);
+  border: 2px solid var(--surface-subtle);
   border-radius: 999px;
 }
 
@@ -147,9 +159,9 @@ button:disabled {
 }
 
 .field-label {
-  color: oklch(0.47 0.006 255);
+  color: var(--muted-foreground);
   font-size: 0.78rem;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0;
 }
 
@@ -169,6 +181,12 @@ button:disabled {
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
+  --color-app-background: var(--app-background);
+  --color-surface-subtle: var(--surface-subtle);
+  --color-surface-raised: var(--surface-raised);
+  --color-reservation-accent: var(--reservation-accent);
+  --color-reservation-accent-foreground: var(--reservation-accent-foreground);
+  --color-reservation-accent-soft: var(--reservation-accent-soft);
   --color-pulse-warm: var(--pulse-warm);
   --color-pulse-accent-soft: var(--pulse-accent-soft);
   --color-pulse-accent-foreground: var(--pulse-accent-foreground);
@@ -224,6 +242,20 @@ button:disabled {
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
+  --app-background: oklch(0.145 0 0);
+  --surface-subtle: oklch(0.235 0 0);
+  --surface-raised: oklch(0.205 0 0);
+  --shadow-soft: 0 8px 20px oklch(0 0 0 / 22%);
+  --reservation-accent: oklch(0.75 0.11 176);
+  --reservation-accent-foreground: oklch(0.18 0.02 176);
+  --reservation-accent-soft: oklch(0.25 0.035 176);
+  --reservation-segment-1: oklch(0.75 0.11 176);
+  --reservation-segment-2: oklch(0.69 0.085 176);
+  --reservation-segment-3: oklch(0.62 0.06 176);
+  --reservation-segment-4: oklch(0.68 0.052 198);
+  --reservation-segment-5: oklch(0.73 0.04 215);
+  --reservation-segment-6: oklch(0.78 0.03 235);
+  --reservation-line: oklch(0.145 0 0 / 0.86);
   --pulse-accent: oklch(0.75 0.11 176);
   --pulse-accent-foreground: oklch(0.18 0.02 176);
   --pulse-accent-soft: oklch(0.25 0.035 176);

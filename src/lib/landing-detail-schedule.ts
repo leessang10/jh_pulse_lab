@@ -1,3 +1,5 @@
+import { RESERVATION_DETAIL_STROKE_TOKEN } from "./visual-tokens";
+
 const RESERVATION_INNER_RADIUS = 58;
 const RESERVATION_OUTER_RADIUS = 166;
 const CARDINAL_TIME_LABEL_RADIUS = RESERVATION_OUTER_RADIUS + 12;
@@ -13,7 +15,7 @@ export function getLandingDetailScheduleGeometry() {
 }
 
 export function getLandingDetailCenterPanelClassName() {
-  return "absolute inset-[34%] grid place-items-center rounded-full border border-border/80 bg-card/95 p-2 text-center shadow-[0_10px_24px_oklch(0.21_0.007_255_/_10%)] backdrop-blur";
+  return "absolute inset-[34%] grid place-items-center rounded-full border border-border/80 bg-card/95 p-2 text-center";
 }
 
 export function getLandingDetailHourMarkers() {
@@ -23,10 +25,10 @@ export function getLandingDetailHourMarkers() {
     return {
       angleDegrees: index * 7.5,
       index,
-      innerRadius: isHour ? RESERVATION_OUTER_RADIUS - 20 : RESERVATION_OUTER_RADIUS - 9,
+      innerRadius: isHour ? RESERVATION_OUTER_RADIUS - 16 : RESERVATION_OUTER_RADIUS - 8,
       kind: isHour ? "hour" : "halfHour",
       outerRadius: RESERVATION_OUTER_RADIUS,
-      strokeWidth: isHour ? 2 : 1.3,
+      strokeWidth: isHour ? 1.35 : 0.8,
     } as const;
   });
 }
@@ -41,15 +43,15 @@ export function getLandingDetailCardinalTimeLabels() {
 }
 
 export function getLandingDetailReservationLabelClassName() {
-  return "pointer-events-none absolute max-w-20 border-0 bg-transparent px-0 py-0 text-center text-[0.56rem] font-black leading-tight text-foreground shadow-none [text-shadow:0_1px_2px_rgb(255_255_255_/_0.82)] sm:max-w-28 sm:text-[0.66rem]";
+  return "pointer-events-none absolute max-w-20 border-0 bg-transparent px-0 py-0 text-center text-[0.56rem] font-semibold leading-tight text-foreground shadow-none sm:max-w-28 sm:text-[0.66rem]";
 }
 
 export function getLandingDetailReservationBlockBorder() {
   return {
-    stroke: "oklch(0.21 0.007 255 / 0.9)",
+    stroke: RESERVATION_DETAIL_STROKE_TOKEN,
     strokeLinecap: "round",
     strokeLinejoin: "round",
-    strokeWidth: 1.8,
+    strokeWidth: 1.1,
     vectorEffect: "non-scaling-stroke",
   } as const;
 }

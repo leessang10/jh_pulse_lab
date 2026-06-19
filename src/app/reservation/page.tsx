@@ -61,7 +61,7 @@ const tactileMotion = {
 function ReservationPageFallback() {
   return (
     <main className="reservation-shell mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 sm:px-6">
-      <div className="rounded-xl border bg-card p-5 text-lg font-bold text-muted-foreground shadow-sm">
+      <div className="rounded-lg border bg-card p-5 text-lg font-semibold text-muted-foreground">
         예약 화면을 준비하는 중입니다.
       </div>
     </main>
@@ -238,8 +238,8 @@ function ReservationFlow() {
               </Button>
             )}
             <div className="min-w-0 text-center">
-              <div className="text-[0.72rem] font-bold text-muted-foreground sm:text-xs">{headerState.stepLabel}</div>
-              <div className="truncate text-xl font-bold leading-tight tracking-normal sm:text-2xl">
+              <div className="text-[0.72rem] font-semibold text-muted-foreground sm:text-xs">{headerState.stepLabel}</div>
+              <div className="truncate text-xl font-semibold leading-tight tracking-normal sm:text-2xl">
                 {headerState.title}
               </div>
             </div>
@@ -255,20 +255,20 @@ function ReservationFlow() {
       </nav>
 
       {error ? (
-        <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 font-bold text-destructive">
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 font-semibold text-destructive">
           {error}
         </div>
       ) : null}
 
       {step === "time" && (
         <motion.section key="time" className="grid flex-1 content-start gap-5" {...sectionMotion}>
-          <div className="rounded-xl border bg-card p-4 shadow-sm">
-            <div className="text-sm font-bold text-muted-foreground">예약 연습실</div>
+          <div className="rounded-lg border bg-card p-4">
+            <div className="text-sm font-semibold text-muted-foreground">예약 연습실</div>
             <div className="mt-1 text-3xl font-bold tracking-normal">{selectedRoomName}</div>
           </div>
           <div className="grid gap-5">
             <div className="grid gap-3">
-              <div className="text-lg font-bold text-muted-foreground sm:text-xl">이용 시간</div>
+              <div className="text-lg font-semibold text-muted-foreground sm:text-xl">이용 시간</div>
               <div className="grid grid-cols-2 gap-2">
                 {durationOptions.map((option, index) => {
                   const isSelected = selectedDurationMinutes === option.minutes;
@@ -276,20 +276,19 @@ function ReservationFlow() {
                   return (
                     <motion.button
                       key={option.minutes}
-                        className={`h-13 rounded-xl px-2 text-lg font-bold transition-colors focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none disabled:cursor-not-allowed sm:h-15 sm:px-3 sm:text-xl ${
+                        className={`h-13 rounded-lg px-2 text-base font-semibold transition-colors focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:outline-none disabled:cursor-not-allowed sm:h-15 sm:px-3 sm:text-xl ${
                           isSelected
-                          ? "motion-choice-selected border border-primary bg-muted text-foreground ring-2 ring-primary/70 ring-inset"
-                          : "border border-border bg-background text-foreground hover:border-primary hover:bg-muted"
+                          ? "motion-choice-selected border border-primary bg-muted text-foreground ring-2 ring-primary/50 ring-inset"
+                          : "border border-border bg-background text-foreground hover:border-primary/60 hover:bg-muted/40"
                       }`}
                       {...itemMotion}
                       {...tactileMotion}
                       animate={{
                         ...itemMotion.animate,
-                        scale: isSelected ? 1.025 : 1,
+                        scale: 1,
                       }}
                       transition={{ ...itemMotion.transition, delay: index * 0.03 }}
                       onClick={() => selectDuration(option.minutes)}
-                      style={{ fontSize: "clamp(0.95rem, 3vw, 1.25rem)", fontWeight: 700 }}
                       type="button"
                     >
                       <span className="block leading-tight">{option.label}</span>
@@ -301,8 +300,8 @@ function ReservationFlow() {
 
             <div className="grid gap-3">
               <div className="flex items-end justify-between gap-3">
-                <div className="text-lg font-bold text-muted-foreground sm:text-xl">예약 가능한 시간</div>
-                <div className="text-sm font-bold text-muted-foreground">{rangeOptions.length}개</div>
+                <div className="text-lg font-semibold text-muted-foreground sm:text-xl">예약 가능한 시간</div>
+                <div className="text-sm font-semibold text-muted-foreground">{rangeOptions.length}개</div>
               </div>
               {rangeOptions.length > 0 ? (
                 <div className="range-scroll-area grid h-[min(22vh,14rem)] min-h-36 touch-pan-y gap-2 overflow-y-scroll overscroll-contain pr-1 pb-1 [-webkit-overflow-scrolling:touch]">
@@ -313,10 +312,10 @@ function ReservationFlow() {
                     return (
                       <motion.button
                         key={option.startMinutes}
-                        className={`grid min-h-16 touch-pan-y select-none grid-cols-[1fr_auto] items-center gap-3 rounded-xl px-4 text-left font-bold transition-colors focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none ${
+                        className={`grid min-h-16 touch-pan-y select-none grid-cols-[1fr_auto] items-center gap-3 rounded-lg px-4 text-left font-semibold transition-colors focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:outline-none ${
                           isSelected
-                            ? "motion-choice-selected border border-primary bg-muted text-foreground ring-2 ring-primary/70 ring-inset"
-                            : "border border-border bg-background text-foreground hover:border-primary hover:bg-muted"
+                            ? "motion-choice-selected border border-primary bg-muted text-foreground ring-2 ring-primary/50 ring-inset"
+                            : "border border-border bg-background text-foreground hover:border-primary/60 hover:bg-muted/40"
                         }`}
                         {...itemMotion}
                         animate={{
@@ -333,28 +332,27 @@ function ReservationFlow() {
                   })}
                 </div>
               ) : (
-                <div className="rounded-xl border bg-muted/45 p-5 text-lg font-bold text-muted-foreground">
+                <div className="rounded-lg border bg-muted/45 p-5 text-lg font-semibold text-muted-foreground">
                   선택한 이용시간으로 예약 가능한 시간이 없습니다.
                 </div>
               )}
             </div>
 
             <motion.div
-              className="min-h-18 rounded-xl border bg-muted/45 p-4"
+              className="min-h-18 rounded-lg border bg-muted/45 p-4"
               animate={{
-                backgroundColor: selectedTime ? "oklch(0.955 0.003 255)" : "var(--background)",
+                backgroundColor: selectedTime ? "var(--muted)" : "var(--background)",
                 scale: selectedTime ? 1.01 : 1,
               }}
               transition={{ duration: 0.24, ease: "easeOut" }}
             >
-              <div className="text-sm font-bold text-muted-foreground">선택한 시간</div>
+              <div className="text-sm font-semibold text-muted-foreground">선택한 시간</div>
               <div className="mt-1 text-xl font-bold sm:text-2xl">{selectedTime ? selectedTime.label : "이용 시간 선택 후 시작 시간을 선택해 주세요"}</div>
             </motion.div>
             <Button
-              className="motion-action h-14 rounded-xl text-xl"
+              className="motion-action h-14 rounded-lg text-xl font-semibold"
               disabled={!selectedTime}
               onClick={moveToContact}
-              style={{ fontSize: "1.25rem", fontWeight: 700 }}
               type="button"
             >
               정보 입력
@@ -368,18 +366,17 @@ function ReservationFlow() {
           <h1 className="text-3xl font-bold tracking-normal sm:text-4xl">
             {selectedRoomName} {selectedTime.label}
           </h1>
-          <Card className="rounded-xl border bg-card shadow-sm">
+          <Card className="rounded-lg border bg-card">
             <CardHeader>
               <CardTitle className="text-2xl">예약자 정보</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4">
               <label className="grid gap-2">
-                <span className="text-lg font-bold">이름</span>
+                <span className="text-lg font-semibold">이름</span>
                 <Input
-                  className="h-14 rounded-xl px-4 text-xl md:text-xl"
+                  className="h-14 rounded-lg px-4 text-xl font-semibold md:text-xl"
                   autoComplete="name"
                   placeholder="이름"
-                  style={{ fontSize: "1.25rem", fontWeight: 700 }}
                   {...form.register("name")}
                 />
                 {form.formState.errors.name ? (
@@ -387,14 +384,13 @@ function ReservationFlow() {
                 ) : null}
               </label>
               <label className="grid gap-2">
-                <span className="text-lg font-bold">비밀번호</span>
+                <span className="text-lg font-semibold">비밀번호</span>
                 <Input
-                  className="h-14 rounded-xl px-4 text-xl md:text-xl"
+                  className="h-14 rounded-lg px-4 text-xl font-semibold md:text-xl"
                   autoComplete="new-password"
                   inputMode="numeric"
                   maxLength={4}
                   placeholder="숫자 4자리"
-                  style={{ fontSize: "1.25rem", fontWeight: 700 }}
                   type="password"
                   {...passwordRegistration}
                   onChange={(event) => {
@@ -409,21 +405,19 @@ function ReservationFlow() {
             </CardContent>
             <CardFooter className="grid gap-3 sm:grid-cols-2">
               <Button
-                className="motion-action h-14 rounded-xl text-xl"
+                className="motion-action h-14 rounded-lg text-xl font-semibold"
                 onClick={() => setStep("time")}
-                style={{ fontSize: "1.25rem", fontWeight: 700 }}
                 type="button"
                 variant="outline"
               >
                 시간 변경
               </Button>
               <Button
-                className="motion-action h-14 rounded-xl text-xl"
+                className="motion-action h-14 rounded-lg text-xl font-semibold"
                 disabled={!isReady || isSubmittingReservation}
                 onClick={form.handleSubmit(submitReservation, (errors) => {
                   toast.error(errors.name?.message ?? errors.password?.message ?? "확인해 주세요.");
                 })}
-                style={{ fontSize: "1.25rem", fontWeight: 700 }}
                 type="button"
               >
                 {isSubmittingReservation ? "예약 중..." : "예약 확정"}
@@ -441,7 +435,7 @@ function ReservationFlow() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.42, ease: "easeOut" }}
           >
-          <Card className="w-full rounded-2xl border bg-card text-center shadow-sm">
+          <Card className="w-full rounded-lg border bg-card text-center">
             <CardContent className="grid gap-6 p-10">
               <motion.div
                 initial={{ opacity: 0, scale: 0.72, rotate: -8 }}
@@ -455,10 +449,9 @@ function ReservationFlow() {
                 {selectedRoomName} {selectedTime.label}
               </p>
               <Button
-                className="motion-action mx-auto h-16 rounded-xl px-10 text-2xl"
+                className="motion-action mx-auto h-16 rounded-lg px-10 text-2xl font-semibold"
                 nativeButton={false}
                 render={<Link href={completionReturnAction.href} />}
-                style={{ fontSize: "1.5rem", fontWeight: 700 }}
               >
                 {completionReturnAction.label}
               </Button>

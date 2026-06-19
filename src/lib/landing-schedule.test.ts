@@ -18,14 +18,14 @@ const reservation: Reservation = {
 };
 
 describe("landing schedule", () => {
-  it("uses a vivid reservation segment palette that matches the primary green accent", () => {
+  it("uses tokenized reservation segment colors that match the primary accent", () => {
     expect(LANDING_RESERVATION_SEGMENT_COLORS).toEqual([
-      "#ef6f7f",
-      "#f08a45",
-      "#e6b13f",
-      "#0f9f8f",
-      "#42a5db",
-      "#9b7cf2",
+      "var(--reservation-segment-1)",
+      "var(--reservation-segment-2)",
+      "var(--reservation-segment-3)",
+      "var(--reservation-segment-4)",
+      "var(--reservation-segment-5)",
+      "var(--reservation-segment-6)",
     ]);
   });
 
@@ -163,7 +163,7 @@ describe("landing schedule", () => {
     });
   });
 
-  it("cycles reservation segment colors in red orange yellow green blue purple order", () => {
+  it("cycles reservation segment colors through tokenized accent shades", () => {
     const summaries = getLandingRoomScheduleSummaries(
       [
         { ...reservation, id: "res-a", roomId: "room-1", startMinutes: 0, endMinutes: 30, name: "가" },
@@ -184,13 +184,13 @@ describe("landing schedule", () => {
       rangeLabel: "00:00-00:30",
     });
     expect(segments.map((segment) => segment.color)).toEqual([
-      "#ef6f7f",
-      "#f08a45",
-      "#e6b13f",
-      "#0f9f8f",
-      "#42a5db",
-      "#9b7cf2",
-      "#ef6f7f",
+      "var(--reservation-segment-1)",
+      "var(--reservation-segment-2)",
+      "var(--reservation-segment-3)",
+      "var(--reservation-segment-4)",
+      "var(--reservation-segment-5)",
+      "var(--reservation-segment-6)",
+      "var(--reservation-segment-1)",
     ]);
   });
 });

@@ -153,7 +153,7 @@ export default function AdminPage() {
     <main className="mx-auto min-h-screen w-full max-w-7xl px-5 py-6 lg:px-8">
       <header className="flex flex-col gap-4 py-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <Badge variant="outline" className="border-primary/30 bg-card text-primary">
+          <Badge variant="outline" className="border-border bg-background text-muted-foreground">
             예약 관리
           </Badge>
           <h1 className="mt-2 text-4xl font-bold text-foreground sm:text-5xl">예약 관리</h1>
@@ -166,11 +166,11 @@ export default function AdminPage() {
       </header>
 
       {!isSessionReady ? (
-        <Card className="mt-6 border bg-card shadow-sm">
+        <Card className="mt-6 border bg-card">
           <CardContent className="p-8 text-center text-muted-foreground">관리자 세션을 확인하는 중입니다.</CardContent>
         </Card>
       ) : !isLoggedIn ? (
-        <Card className="mt-6 border bg-card shadow-sm">
+        <Card className="mt-6 border bg-card">
           <CardHeader>
             <CardTitle>관리자 로그인</CardTitle>
           </CardHeader>
@@ -257,7 +257,7 @@ export default function AdminPage() {
             <div className="flex items-start gap-3">
               <SidebarTrigger className="mt-1 md:hidden" />
               <div>
-                <Badge variant="outline" className="border-primary/30 bg-card text-primary">
+                <Badge variant="outline" className="border-border bg-background text-muted-foreground">
                   예약 관리
                 </Badge>
                 <h1 className="mt-2 text-3xl font-bold text-foreground sm:text-4xl">예약 관리</h1>
@@ -269,13 +269,13 @@ export default function AdminPage() {
             </Button>
           </header>
 
-      <Card className="mt-6 border bg-card shadow-sm">
+      <Card className="mt-6 border bg-card">
         <CardHeader>
           <CardTitle>필터</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-3">
           <div className="grid gap-2">
-            <span className="text-sm font-bold text-muted-foreground">날짜</span>
+            <span className="text-sm font-semibold text-muted-foreground">날짜</span>
             <Popover>
               <PopoverTrigger render={<Button variant="outline" className="h-11 justify-start" />}>{formatKoreaDate(date)}</PopoverTrigger>
               <PopoverContent align="start" className="w-auto">
@@ -291,7 +291,7 @@ export default function AdminPage() {
           </div>
 
           <div className="grid gap-2">
-            <span className="text-sm font-bold text-muted-foreground">연습실</span>
+            <span className="text-sm font-semibold text-muted-foreground">연습실</span>
             <Select value={roomId} onValueChange={(value) => value && setRoomId(value)}>
               <SelectTrigger className="h-11 w-full">
                 <SelectValue />
@@ -308,7 +308,7 @@ export default function AdminPage() {
           </div>
 
           <div className="grid gap-2">
-            <span className="text-sm font-bold text-muted-foreground">상태</span>
+            <span className="text-sm font-semibold text-muted-foreground">상태</span>
             <Select value={status} onValueChange={(value) => setStatus(value as ReservationStatus | "all")}>
               <SelectTrigger className="h-11 w-full">
                 <SelectValue />
@@ -325,13 +325,13 @@ export default function AdminPage() {
         </CardContent>
       </Card>
 
-      <Card className="mt-6 border bg-card shadow-sm">
+      <Card className="mt-6 border bg-card">
         <CardHeader>
           <CardTitle>예약 목록</CardTitle>
         </CardHeader>
         <CardContent>
           {error ? (
-            <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-4 font-bold text-destructive">
+            <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-4 font-semibold text-destructive">
               {error}
             </div>
           ) : null}

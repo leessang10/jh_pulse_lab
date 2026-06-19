@@ -91,10 +91,10 @@ function ReservationItem({
   const canMutate = canMutatePublicReservation(reservation.status);
 
   return (
-    <article className="grid gap-3 rounded-xl border bg-card p-4 shadow-sm">
+    <article className="grid gap-3 rounded-lg border bg-card p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-sm font-bold text-muted-foreground">{formatKoreaDate(reservation.date)}</div>
+          <div className="text-sm font-semibold text-muted-foreground">{formatKoreaDate(reservation.date)}</div>
           <h2 className="mt-1 truncate text-2xl font-bold tracking-normal">
             {getRoomName(reservation.roomId)}
           </h2>
@@ -104,10 +104,10 @@ function ReservationItem({
         </Badge>
       </div>
       <div className="rounded-lg bg-muted/45 px-3 py-2 text-xl font-bold">{timeLabel}</div>
-      {reservation.note ? <p className="text-sm font-bold text-muted-foreground">{reservation.note}</p> : null}
+      {reservation.note ? <p className="text-sm font-semibold text-muted-foreground">{reservation.note}</p> : null}
       <div className="grid gap-2 sm:grid-cols-2">
         <Button
-          className="h-11 rounded-lg font-bold"
+          className="h-11 rounded-lg font-semibold"
           disabled={!canMutate || isMutating}
           onClick={onStartChange}
           type="button"
@@ -120,7 +120,7 @@ function ReservationItem({
           <AlertDialogTrigger
             render={
               <Button
-                className="h-11 rounded-lg font-bold"
+                className="h-11 rounded-lg font-semibold"
                 disabled={!canMutate || isMutating}
                 type="button"
                 variant="destructive"
@@ -147,17 +147,17 @@ function ReservationItem({
       {isEditing ? (
         <div className="grid gap-3 rounded-lg border bg-muted/35 p-3">
           <div className="flex items-center justify-between gap-3">
-            <div className="text-sm font-bold text-muted-foreground">변경할 시간</div>
+            <div className="text-sm font-semibold text-muted-foreground">변경할 시간</div>
             <Button className="h-9 rounded-lg px-3" onClick={onCancelChange} type="button" variant="ghost">
               닫기
             </Button>
           </div>
           {isLoadingChangeOptions ? (
-            <div className="rounded-lg border bg-background p-4 text-sm font-bold text-muted-foreground">
+            <div className="rounded-lg border bg-background p-4 text-sm font-semibold text-muted-foreground">
               예약 가능한 시간을 불러오는 중입니다.
             </div>
           ) : changeOptions.length === 0 ? (
-            <div className="rounded-lg border bg-background p-4 text-sm font-bold text-muted-foreground">
+            <div className="rounded-lg border bg-background p-4 text-sm font-semibold text-muted-foreground">
               변경 가능한 시간이 없습니다.
             </div>
           ) : (
@@ -170,10 +170,10 @@ function ReservationItem({
                 return (
                   <button
                     key={`${option.startMinutes}-${option.endMinutes}`}
-                    className={`grid min-h-12 grid-cols-[1fr_auto] items-center rounded-lg border px-3 text-left text-lg font-bold transition-colors focus-visible:ring-4 focus-visible:ring-ring/40 focus-visible:outline-none ${
+                    className={`grid min-h-12 grid-cols-[1fr_auto] items-center rounded-lg border px-3 text-left text-lg font-semibold transition-colors focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:outline-none ${
                       isSelected
-                        ? "border-primary bg-background ring-2 ring-primary/60 ring-inset"
-                        : "border-border bg-background hover:border-primary"
+                        ? "border-primary bg-muted ring-2 ring-primary/50 ring-inset"
+                        : "border-border bg-background hover:border-primary/60 hover:bg-muted/40"
                     }`}
                     onClick={() => onSelectChangeOption(option)}
                     type="button"
@@ -186,7 +186,7 @@ function ReservationItem({
             </div>
           )}
           <Button
-            className="h-12 rounded-lg font-bold"
+            className="h-12 rounded-lg font-semibold"
             disabled={!selectedChangeOption || isLoadingChangeOptions || isMutating}
             onClick={onSubmitChange}
             type="button"
@@ -348,25 +348,25 @@ export default function ReservationsPage() {
           </Button>
           <div className="min-w-0 text-center">
             {RESERVATIONS_PAGE_HEADER.eyebrow ? (
-              <div className="text-[0.72rem] font-bold text-muted-foreground sm:text-xs">
+              <div className="text-[0.72rem] font-semibold text-muted-foreground sm:text-xs">
                 {RESERVATIONS_PAGE_HEADER.eyebrow}
               </div>
             ) : null}
-            <h1 className="text-xl font-bold leading-tight tracking-normal sm:text-2xl">
+            <h1 className="text-xl font-semibold leading-tight tracking-normal sm:text-2xl">
               {RESERVATIONS_PAGE_HEADER.title}
             </h1>
           </div>
           <div aria-hidden="true" />
         </nav>
 
-        <Card className="rounded-xl border bg-card shadow-sm">
+        <Card className="rounded-lg border bg-card">
           {RESERVATIONS_PAGE_HEADER.lookupFormTitle || RESERVATIONS_PAGE_HEADER.lookupFormDescription ? (
             <CardHeader>
               {RESERVATIONS_PAGE_HEADER.lookupFormTitle ? (
                 <CardTitle className="text-2xl font-bold">{RESERVATIONS_PAGE_HEADER.lookupFormTitle}</CardTitle>
               ) : null}
               {RESERVATIONS_PAGE_HEADER.lookupFormDescription ? (
-                <CardDescription className="text-base font-bold leading-relaxed">
+                <CardDescription className="text-base font-semibold leading-relaxed">
                   {RESERVATIONS_PAGE_HEADER.lookupFormDescription}
                 </CardDescription>
               ) : null}
@@ -375,12 +375,11 @@ export default function ReservationsPage() {
           <CardContent>
             <form className="grid gap-4" onSubmit={form.handleSubmit(submitLookup)}>
               <label className="grid gap-2">
-                <span className="text-lg font-bold">이름</span>
+                <span className="text-lg font-semibold">이름</span>
                 <Input
-                  className="h-14 rounded-xl px-4 text-xl md:text-xl"
+                  className="h-14 rounded-lg px-4 text-xl font-semibold md:text-xl"
                   autoComplete="name"
                   placeholder="이름"
-                  style={{ fontSize: "1.25rem", fontWeight: 700 }}
                   {...form.register("name")}
                 />
                 {form.formState.errors.name ? (
@@ -388,14 +387,13 @@ export default function ReservationsPage() {
                 ) : null}
               </label>
               <label className="grid gap-2">
-                <span className="text-lg font-bold">비밀번호</span>
+                <span className="text-lg font-semibold">비밀번호</span>
                 <Input
-                  className="h-14 rounded-xl px-4 text-xl md:text-xl"
+                  className="h-14 rounded-lg px-4 text-xl font-semibold md:text-xl"
                   autoComplete="current-password"
                   inputMode="numeric"
                   maxLength={4}
                   placeholder="숫자 4자리"
-                  style={{ fontSize: "1.25rem", fontWeight: 700 }}
                   type="password"
                   {...passwordRegistration}
                   onChange={(event) => {
@@ -408,9 +406,8 @@ export default function ReservationsPage() {
                 ) : null}
               </label>
               <Button
-                className="motion-action mt-1 h-14 rounded-xl text-xl"
+                className="motion-action mt-1 h-14 rounded-lg text-xl font-semibold"
                 disabled={isSearching}
-                style={{ fontSize: "1.25rem", fontWeight: 700 }}
                 type="submit"
               >
                 <SearchIcon data-icon="inline-start" />
@@ -424,20 +421,20 @@ export default function ReservationsPage() {
           {reservations === null ? null : (
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-xl font-bold tracking-normal">조회 결과</h2>
-              <div className="text-sm font-bold text-muted-foreground">{resultCountLabel}</div>
+              <div className="text-sm font-semibold text-muted-foreground">{resultCountLabel}</div>
             </div>
           )}
 
           {reservations?.length === 0 ? (
-            <div className="grid gap-4 rounded-xl border bg-muted/45 p-5 text-center">
+            <div className="grid gap-4 rounded-lg border bg-muted/45 p-5 text-center">
               <div className="grid gap-1">
                 <h2 className="text-xl font-bold tracking-normal text-foreground">일치하는 예약이 없습니다.</h2>
-                <p className="text-base font-bold leading-relaxed text-muted-foreground">
+                <p className="text-base font-semibold leading-relaxed text-muted-foreground">
                   입력한 정보를 확인하거나 새 예약을 진행해 주세요.
                 </p>
               </div>
               <Button
-                className="motion-action h-12 rounded-xl text-base font-bold"
+                className="motion-action h-12 rounded-lg text-base font-semibold"
                 nativeButton={false}
                 render={<Link href="/reservation" />}
                 variant="outline"
@@ -470,7 +467,7 @@ export default function ReservationsPage() {
 
         {RESERVATIONS_PAGE_HEADER.showCreateReservationLink ? (
           <Button
-            className="motion-action h-14 rounded-xl text-base font-bold sm:text-lg"
+            className="motion-action h-14 rounded-lg text-base font-semibold sm:text-lg"
             nativeButton={false}
             render={<Link href="/reservation" />}
             variant="outline"

@@ -7,6 +7,7 @@ import {
   type ReservationTimeBlock,
 } from "./reservations";
 import { findReservationConflict } from "./booking-availability";
+import { LANDING_RESERVATION_SEGMENT_COLOR_TOKENS } from "./visual-tokens";
 
 export type LandingScheduleSlot = {
   index: number;
@@ -43,14 +44,7 @@ export type LandingReservationSegment = {
   color: string;
 };
 
-export const LANDING_RESERVATION_SEGMENT_COLORS = [
-  "#ef6f7f",
-  "#f08a45",
-  "#e6b13f",
-  "#0f9f8f",
-  "#42a5db",
-  "#9b7cf2",
-];
+export const LANDING_RESERVATION_SEGMENT_COLORS = LANDING_RESERVATION_SEGMENT_COLOR_TOKENS;
 
 function getReservationName(reservation: ReservationTimeBlock) {
   return reservation.name.trim() || "예약자";

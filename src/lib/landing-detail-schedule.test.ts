@@ -31,18 +31,18 @@ describe("landing detail schedule layout", () => {
     expect(markers[0]).toEqual({
       angleDegrees: 0,
       index: 0,
-      innerRadius: 146,
+      innerRadius: 150,
       kind: "hour",
       outerRadius: 166,
-      strokeWidth: 2,
+      strokeWidth: 1.35,
     });
     expect(markers[1]).toEqual({
       angleDegrees: 7.5,
       index: 1,
-      innerRadius: 157,
+      innerRadius: 158,
       kind: "halfHour",
       outerRadius: 166,
-      strokeWidth: 1.3,
+      strokeWidth: 0.8,
     });
     expect(markers[2]).toMatchObject({
       angleDegrees: 15,
@@ -66,16 +66,16 @@ describe("landing detail schedule layout", () => {
     expect(className).toContain("border-0");
     expect(className).toContain("shadow-none");
     expect(className).toContain("text-foreground");
-    expect(className).toContain("255_255_255");
+    expect(className).toContain("font-semibold");
     expect(className).not.toContain("rounded-md");
   });
 
   it("adds a crisp border around reservation blocks", () => {
     expect(getLandingDetailReservationBlockBorder()).toEqual({
-      stroke: "oklch(0.21 0.007 255 / 0.9)",
+      stroke: "var(--reservation-line)",
       strokeLinecap: "round",
       strokeLinejoin: "round",
-      strokeWidth: 1.8,
+      strokeWidth: 1.1,
       vectorEffect: "non-scaling-stroke",
     });
   });

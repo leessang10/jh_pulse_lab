@@ -30,6 +30,7 @@ import { DAY_END_MINUTES, SLOT_MINUTES } from "@/lib/reservations";
 import { getStableAnnularSectorPath, getStableCirclePoint, toStableSvgCoordinate } from "@/lib/svg-geometry";
 import { getRoomReservationHref } from "@/lib/reservation-ui";
 import { useReservations } from "@/lib/use-reservations";
+import { LANDING_RESERVATION_SEGMENT_COLOR_TOKENS } from "@/lib/visual-tokens";
 
 const scheduleSize = 360;
 const scheduleCenter = scheduleSize / 2;
@@ -39,14 +40,8 @@ const detailHourMarkers = getLandingDetailHourMarkers();
 const detailCardinalTimeLabels = getLandingDetailCardinalTimeLabels();
 const detailReservationBlockBorder = getLandingDetailReservationBlockBorder();
 const slotAngle = 360 / (DAY_END_MINUTES / SLOT_MINUTES);
-const reservationSegmentToneFills = [
-  "oklch(0.63 0.1 176)",
-  "oklch(0.69 0.078 176)",
-  "oklch(0.76 0.058 176)",
-  "oklch(0.67 0.052 198)",
-  "oklch(0.73 0.038 215)",
-  "oklch(0.79 0.024 235)",
-];
+const reservationSegmentToneFills = LANDING_RESERVATION_SEGMENT_COLOR_TOKENS;
+const detailSlotTrackStrokeWidth = 2.4;
 
 function pointOnCircle(angleDegrees: number, radius: number) {
   return getStableCirclePoint(angleDegrees, radius, scheduleCenter);
@@ -99,6 +94,10 @@ function getReservationSegmentToneFill(index: number) {
   return reservationSegmentToneFills[index % reservationSegmentToneFills.length];
 }
 
+function getDetailSlotTrackOpacity(index: number) {
+  return index % 2 === 0 ? 0.42 : 0.24;
+}
+
 function RoomSummaryTile({
   isSelected,
   onSelect,
@@ -118,7 +117,7 @@ function RoomSummaryTile({
       onClick={onSelect}
       type="button"
     >
-      <div className="truncate text-[0.82rem] font-black leading-tight tracking-normal text-foreground sm:text-xl">
+      <div className="truncate text-[0.82rem] font-bold leading-tight tracking-normal text-foreground sm:text-xl">
         {summary.roomName}
       </div>
 
@@ -149,10 +148,10 @@ function RoomSummaryTile({
         </svg>
         <div className="pointer-events-none absolute inset-0 grid place-items-center">
           <span className="grid place-items-center gap-0.5 text-foreground">
-            <span className="text-lg font-black leading-none tracking-normal sm:text-3xl">
+            <span className="text-lg font-bold leading-none tracking-normal sm:text-3xl">
               {summary.bookedHourLabel}
             </span>
-            <span className="text-[0.55rem] font-black leading-none text-muted-foreground sm:text-[0.68rem]">
+            <span className="text-[0.55rem] font-semibold leading-none text-muted-foreground sm:text-[0.68rem]">
               시간
             </span>
           </span>
@@ -166,18 +165,18 @@ function RoomDetailSchedule({ summary }: { summary: LandingRoomScheduleSummary }
   return (
     <section
       aria-label={`${summary.roomName} 상세 예약 현황`}
-      className="grid gap-3 rounded-md border border-border/80 bg-card p-3 shadow-[0_16px_36px_oklch(0.21_0.007_255_/_8%)] sm:grid-cols-[minmax(11rem,14rem)_minmax(0,1fr)] sm:items-center sm:gap-5 sm:p-4"
+      className="grid gap-3 rounded-lg border border-border/80 bg-card p-3 sm:grid-cols-[minmax(11rem,14rem)_minmax(0,1fr)] sm:items-center sm:gap-5 sm:p-4"
     >
       <div className="flex items-end justify-between gap-3 sm:grid sm:content-start sm:items-start sm:gap-6">
         <div className="min-w-0 text-left">
-          <p className="text-xs font-black text-muted-foreground">실시간 예약 현황</p>
-          <h2 className="truncate text-2xl font-black tracking-normal text-foreground sm:text-3xl">
+          <p className="text-xs font-semibold text-muted-foreground">실시간 예약 현황</p>
+          <h2 className="truncate text-2xl font-bold tracking-normal text-foreground sm:text-3xl">
             {summary.roomName}
           </h2>
         </div>
-        <div className="grid shrink-0 gap-0.5 rounded-md bg-muted px-3 py-2 text-right sm:text-left">
-          <span className="text-[0.66rem] font-black text-muted-foreground">오늘 예약</span>
-          <strong className="text-sm font-black leading-none sm:text-base">{summary.bookedDurationLabel}</strong>
+        <div className="grid shrink-0 gap-0.5 rounded-lg bg-muted px-3 py-2 text-right sm:text-left">
+          <span className="text-[0.66rem] font-semibold text-muted-foreground">오늘 예약</span>
+          <strong className="text-sm font-bold leading-none sm:text-base">{summary.bookedDurationLabel}</strong>
         </div>
       </div>
 
@@ -189,20 +188,21 @@ function RoomDetailSchedule({ summary }: { summary: LandingRoomScheduleSummary }
           viewBox={`0 0 ${scheduleSize} ${scheduleSize}`}
         >
           <circle
-            className="fill-none stroke-muted"
+            className="fill-none stroke-border"
             cx={scheduleCenter}
             cy={scheduleCenter}
+            opacity={0.68}
             r={detailScheduleGeometry.reservationOuterRadius}
-            strokeWidth="1"
+            strokeWidth="1.1"
           />
           {summary.slots.map((slot) => (
             <path
               key={slot.startMinutes}
-              className="fill-none stroke-muted"
+              className="fill-none stroke-border"
               d={getSlotArcPath(slot.index, detailScheduleGeometry.reservationOuterRadius)}
-              opacity={slot.index % 2 === 0 ? 0.62 : 0.48}
+              opacity={getDetailSlotTrackOpacity(slot.index)}
               strokeLinecap="round"
-              strokeWidth={5}
+              strokeWidth={detailSlotTrackStrokeWidth}
             >
               <title>{getSlotTitle(slot)}</title>
             </path>
@@ -229,8 +229,8 @@ function RoomDetailSchedule({ summary }: { summary: LandingRoomScheduleSummary }
             return (
               <line
                 key={marker.index}
-                className={marker.kind === "hour" ? "stroke-foreground" : "stroke-muted-foreground"}
-                opacity={marker.kind === "hour" ? 0.42 : 0.28}
+                className={marker.kind === "hour" ? "stroke-muted-foreground" : "stroke-border"}
+                opacity={marker.kind === "hour" ? 0.52 : 0.72}
                 strokeLinecap="round"
                 strokeWidth={marker.strokeWidth}
                 x1={inner.x}
@@ -246,7 +246,7 @@ function RoomDetailSchedule({ summary }: { summary: LandingRoomScheduleSummary }
             return (
               <text
                 key={marker.label}
-                className="fill-muted-foreground text-[0.62rem] font-black tracking-normal sm:text-xs"
+                className="fill-muted-foreground text-[0.62rem] font-semibold tracking-normal sm:text-xs"
                 dominantBaseline="middle"
                 textAnchor="middle"
                 x={point.x}
@@ -261,7 +261,7 @@ function RoomDetailSchedule({ summary }: { summary: LandingRoomScheduleSummary }
         <div className={getLandingDetailCenterPanelClassName()}>
           <div>
             <div className="text-xs font-bold text-muted-foreground">오늘</div>
-            <div className="text-3xl font-black leading-none sm:text-4xl">{summary.bookedHourLabel}</div>
+            <div className="text-3xl font-bold leading-none sm:text-4xl">{summary.bookedHourLabel}</div>
             <div className="mt-1 text-xs font-bold text-muted-foreground">예약된 시간</div>
           </div>
         </div>
@@ -295,21 +295,21 @@ export default function HomePage() {
   const dateLabel = useMemo(() => formatKoreaDate(date), [date]);
 
   return (
-    <main className="min-h-screen bg-[oklch(0.972_0.004_255)] px-3 py-3 text-foreground sm:px-6 sm:py-5">
+    <main className="min-h-screen bg-app-background px-3 py-3 text-foreground sm:px-6 sm:py-5">
       <section className="mx-auto grid w-full max-w-5xl content-start gap-3 sm:gap-4">
         <header className="grid gap-3 border-b border-border/80 pb-3 sm:grid-cols-[1fr_auto] sm:items-end">
           <div className="grid gap-1 text-left">
-            <div className="flex items-baseline gap-2 text-2xl font-black tracking-normal text-foreground sm:text-3xl">
+            <div className="flex items-baseline gap-2 text-2xl font-bold tracking-normal text-foreground sm:text-3xl">
               <span>JH</span>
               <span>PULSE</span>
               <span>LAB</span>
             </div>
-            <p className="text-sm font-black text-muted-foreground sm:text-base">{dateLabel}</p>
+            <p className="text-sm font-semibold text-muted-foreground sm:text-base">{dateLabel}</p>
           </div>
 
           <div className="grid grid-cols-[1.2fr_1fr] gap-2 sm:min-w-[22rem]">
             <Button
-              className="motion-action h-11 rounded-md text-sm font-black sm:text-base"
+              className="motion-action h-11 rounded-lg text-sm font-semibold sm:text-base"
               nativeButton={false}
               render={<Link href={reservationHref} />}
             >
@@ -317,7 +317,7 @@ export default function HomePage() {
               예약하기
             </Button>
             <Button
-              className="motion-action h-11 rounded-md bg-card text-sm font-black sm:text-base"
+              className="motion-action h-11 rounded-lg bg-card text-sm font-semibold sm:text-base"
               nativeButton={false}
               render={<Link href="/reservations" />}
               variant="outline"
