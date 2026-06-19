@@ -29,6 +29,21 @@ export function isBeforeKoreaToday(value: string, now = new Date()) {
   return value < dateToKoreaValue(now);
 }
 
+export function getCurrentKoreaBookingTime(now = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    hour: "2-digit",
+    hourCycle: "h23",
+    minute: "2-digit",
+    timeZone: KOREA_TIME_ZONE,
+  }).formatToParts(now);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+
+  return {
+    date: dateToKoreaValue(now),
+    minutes: Number(values.hour) * 60 + Number(values.minute),
+  };
+}
+
 export function todayKoreaValue() {
   return dateToKoreaValue(new Date());
 }

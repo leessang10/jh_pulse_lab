@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { getBookingAvailability, type BookableRangeOption } from "@/lib/booking-availability";
-import { formatKoreaDate } from "@/lib/korea-date";
+import { formatKoreaDate, getCurrentKoreaBookingTime } from "@/lib/korea-date";
 import {
   cancelPublicReservation,
   listPublicReservationTimeBlocks,
@@ -267,6 +267,7 @@ export default function ReservationsPage() {
       date: reservation.date,
       roomId: reservation.roomId,
       durationMinutes,
+      currentTime: getCurrentKoreaBookingTime(),
       ignoredReservationId: reservation.id,
     });
     const currentOption =

@@ -10,6 +10,7 @@ import {
 
 export const BOOKING_RANGE_CONFLICT_MESSAGE = "이미 예약된 시간이 포함되어 있습니다.";
 export const BOOKING_DRAFT_CONFLICT_MESSAGE = "이미 예약된 시간입니다.";
+export const BOOKING_PAST_TIME_MESSAGE = "현재 시간 이전은 예약할 수 없습니다.";
 
 export type BookableRangeOption = {
   startMinutes: number;
@@ -18,6 +19,11 @@ export type BookableRangeOption = {
 };
 
 export type SelectedBookingTime = BookableRangeOption;
+
+export type BookingCurrentTime = {
+  date: string;
+  minutes: number;
+};
 
 export type BookingAvailability = {
   durationOptions: typeof BOOKING_DURATION_OPTIONS;
@@ -48,11 +54,13 @@ function isBookingDurationAvailable(
     roomId: string;
     startMinutes: number;
     durationMinutes: number;
+    currentTime?: BookingCurrentTime;
     ignoredReservationId?: string;
   },
 ) {
   const endMinutes = options.startMinutes + options.durationMinutes;
   if (options.startMinutes < 0 || endMinutes > DAY_END_MINUTES) return false;
+  if (isBookingStartNotAfterCurrentTime(options.date, options.startMinutes, options.currentTime)) return false;
 
   return (
     findReservationConflict(
@@ -74,6 +82,7 @@ function getBookingStartOptions(
     date: string;
     roomId: string;
     durationMinutes: number;
+    currentTime?: BookingCurrentTime;
     ignoredReservationId?: string;
   },
 ) {
@@ -116,6 +125,7 @@ function getBookingStartOptions(
       roomId: options.roomId,
       startMinutes,
       durationMinutes: options.durationMinutes,
+      currentTime: options.currentTime,
       ignoredReservationId: options.ignoredReservationId,
     });
 
@@ -139,6 +149,7 @@ function getBookableRangeOptions(
     date: string;
     roomId: string;
     durationMinutes: number;
+    currentTime?: BookingCurrentTime;
     ignoredReservationId?: string;
   },
 ) {
@@ -157,6 +168,7 @@ export function getBookingAvailability(
     date: string;
     roomId: string;
     durationMinutes: number;
+    currentTime?: BookingCurrentTime;
     ignoredReservationId?: string;
   },
 ): BookingAvailability {
@@ -172,9 +184,14 @@ export function selectBookableRange(
     date: string;
     roomId: string;
     option: BookableRangeOption;
+    currentTime?: BookingCurrentTime;
     ignoredReservationId?: string;
   },
 ): { ok: true; selectedTime: SelectedBookingTime } | { ok: false; error: string } {
+  if (isBookingStartNotAfterCurrentTime(options.date, options.option.startMinutes, options.currentTime)) {
+    return { ok: false, error: BOOKING_PAST_TIME_MESSAGE };
+  }
+
   const conflict = findReservationConflict(
     reservations,
     {
@@ -204,7 +221,12 @@ export function validateBookableDraftTime(
   reservations: ReservationTimeBlock[],
   draft: Pick<ReservationDraft, "date" | "roomId" | "startMinutes" | "endMinutes">,
   ignoredReservationId?: string,
+  currentTime?: BookingCurrentTime,
 ): { ok: true } | { ok: false; error: string } {
+  if (isBookingStartNotAfterCurrentTime(draft.date, draft.startMinutes, currentTime)) {
+    return { ok: false, error: BOOKING_PAST_TIME_MESSAGE };
+  }
+
   const conflict = findReservationConflict(reservations, draft, ignoredReservationId);
 
   if (conflict) return { ok: false, error: BOOKING_DRAFT_CONFLICT_MESSAGE };
@@ -233,4 +255,12 @@ function isTimeRangeOverlapping(
   second: Pick<ReservationDraft, "startMinutes" | "endMinutes">,
 ) {
   return first.startMinutes < second.endMinutes && second.startMinutes < first.endMinutes;
+}
+
+function isBookingStartNotAfterCurrentTime(date: string, startMinutes: number, currentTime?: BookingCurrentTime) {
+  if (!currentTime) return false;
+  if (date < currentTime.date) return true;
+  if (date > currentTime.date) return false;
+
+  return startMinutes <= currentTime.minutes;
 }

@@ -23,6 +23,7 @@ describe("booking availability", () => {
   it("keeps legacy slot helpers out of the module interface", () => {
     expect(Object.keys(bookingAvailability).sort()).toEqual([
       "BOOKING_DRAFT_CONFLICT_MESSAGE",
+      "BOOKING_PAST_TIME_MESSAGE",
       "BOOKING_RANGE_CONFLICT_MESSAGE",
       "findReservationConflict",
       "getBookingAvailability",
@@ -109,6 +110,33 @@ describe("booking availability", () => {
     expect(availability.rangeOptions.some((option) => option.startMinutes === 1410)).toBe(false);
   });
 
+  it("hides starts that are not after the current time on the same day", () => {
+    const availability = getBookingAvailability([], {
+      date: "2026-06-05",
+      roomId: "room-1",
+      durationMinutes: 60,
+      currentTime: { date: "2026-06-05", minutes: 615 },
+    });
+
+    expect(availability.rangeOptions.some((option) => option.startMinutes === 600)).toBe(false);
+    expect(availability.rangeOptions).toContainEqual({
+      startMinutes: 630,
+      endMinutes: 690,
+      label: "10:30-11:30",
+    });
+  });
+
+  it("rejects a start exactly at the current time", () => {
+    const availability = getBookingAvailability([], {
+      date: "2026-06-05",
+      roomId: "room-1",
+      durationMinutes: 60,
+      currentTime: { date: "2026-06-05", minutes: 630 },
+    });
+
+    expect(availability.rangeOptions.some((option) => option.startMinutes === 630)).toBe(false);
+  });
+
   it("turns a range option into selected booking time only when it is still available", () => {
     const available = selectBookableRange([], {
       date: "2026-06-05",
@@ -161,6 +189,22 @@ describe("booking availability", () => {
     });
     expect(validateBookableDraftTime([baseReservation], draft, "res-1")).toEqual({ ok: true });
     expect(validateBookableDraftTime([], draft)).toEqual({ ok: true });
+  });
+
+  it("rejects final drafts that start before the current time on the same day", () => {
+    const draft: ReservationDraft = {
+      date: "2026-06-05",
+      roomId: "room-1",
+      startMinutes: 600,
+      endMinutes: 660,
+      name: "Kim",
+      password: "1234",
+    };
+
+    expect(validateBookableDraftTime([], draft, undefined, { date: "2026-06-05", minutes: 615 })).toEqual({
+      ok: false,
+      error: "현재 시간 이전은 예약할 수 없습니다.",
+    });
   });
 
   it("finds active reservations covering a visible schedule block across rooms", () => {

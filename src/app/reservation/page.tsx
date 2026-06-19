@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,7 +24,7 @@ import {
   getRoomName,
   type ReservationDraft,
 } from "@/lib/reservations";
-import { todayKoreaValue } from "@/lib/korea-date";
+import { getCurrentKoreaBookingTime, todayKoreaValue } from "@/lib/korea-date";
 import {
   getBookingCompletionReturnAction,
   getBookingHeaderState,
@@ -78,6 +78,7 @@ function ReservationFlow() {
   const [selectedDurationMinutes, setSelectedDurationMinutes] = useState(60);
   const [selectedStartMinutes, setSelectedStartMinutes] = useState<number | null>(null);
   const [selectedTime, setSelectedTime] = useState<SelectedBookingTime | null>(null);
+  const [currentTime, setCurrentTime] = useState(() => getCurrentKoreaBookingTime());
   const [isSubmittingReservation, setIsSubmittingReservation] = useState(false);
 
   const form = useForm<ContactValues>({
@@ -102,11 +103,31 @@ function ReservationFlow() {
         date,
         roomId,
         durationMinutes: selectedDurationMinutes,
+        currentTime,
       }),
-    [date, reservations, roomId, selectedDurationMinutes],
+    [currentTime, date, reservations, roomId, selectedDurationMinutes],
   );
   const { durationOptions, rangeOptions } = availability;
   const passwordRegistration = form.register("password");
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setCurrentTime(getCurrentKoreaBookingTime()), 30_000);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (!selectedTime) return;
+
+    const isSelectedTimeStillAvailable = rangeOptions.some(
+      (option) => option.startMinutes === selectedTime.startMinutes && option.endMinutes === selectedTime.endMinutes,
+    );
+
+    if (!isSelectedTimeStillAvailable) {
+      setSelectedStartMinutes(null);
+      setSelectedTime(null);
+    }
+  }, [rangeOptions, selectedTime]);
 
   function clearTimeSelection() {
     setSelectedStartMinutes(null);
@@ -123,6 +144,7 @@ function ReservationFlow() {
       date,
       roomId,
       option,
+      currentTime,
     });
 
     if (!result.ok) {
@@ -160,7 +182,7 @@ function ReservationFlow() {
       name: values.name,
       password: values.password,
     };
-    const timeAvailability = validateBookableDraftTime(reservations, draft);
+    const timeAvailability = validateBookableDraftTime(reservations, draft, undefined, currentTime);
 
     if (!timeAvailability.ok) {
       toast.error(timeAvailability.error);

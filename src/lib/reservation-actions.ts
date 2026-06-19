@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { findReservationConflict } from "@/lib/booking-availability";
+import { validateBookableDraftTime } from "@/lib/booking-availability";
 import {
   validateReservationDraft,
   validateReservationTimeChange,
@@ -17,10 +17,10 @@ import {
   type ReservationLookup,
 } from "@/lib/reservation-credentials";
 import {
-  CONFLICT_MESSAGE,
   GENERIC_MESSAGE,
   toReservationActionErrorMessage,
 } from "@/lib/reservation-action-errors";
+import { getCurrentKoreaBookingTime } from "@/lib/korea-date";
 import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
 import {
   mapReservationDraftToInsert,
@@ -65,8 +65,8 @@ export async function createPublicReservation(draft: ReservationDraft): Promise<
     const current = await listPublicReservationTimeBlocks(draft.date);
     if (!current.ok) return current;
 
-    const conflict = findReservationConflict(current.data, draft);
-    if (conflict) return { ok: false, error: CONFLICT_MESSAGE };
+    const timeAvailability = validateBookableDraftTime(current.data, draft, undefined, getCurrentKoreaBookingTime());
+    if (!timeAvailability.ok) return timeAvailability;
 
     const { data, error } = await supabase
       .from("reservations")
@@ -165,8 +165,8 @@ export async function updatePublicReservationTime(
     const current = await listPublicReservationTimeBlocks(change.date);
     if (!current.ok) return current;
 
-    const conflict = findReservationConflict(current.data, change, reservationId);
-    if (conflict) return { ok: false, error: CONFLICT_MESSAGE };
+    const timeAvailability = validateBookableDraftTime(current.data, change, reservationId, getCurrentKoreaBookingTime());
+    if (!timeAvailability.ok) return timeAvailability;
 
     const { data, error } = await supabase
       .from("reservations")
