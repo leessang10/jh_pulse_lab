@@ -1,5 +1,6 @@
 type ReservationsPageHeader = {
   eyebrow: string | null;
+  lookupFormDescription: string | null;
   lookupFormTitle: string | null;
   showCreateReservationLink: boolean;
   title: string;
@@ -7,7 +8,8 @@ type ReservationsPageHeader = {
 
 export const RESERVATIONS_PAGE_HEADER: ReservationsPageHeader = {
   eyebrow: null,
-  lookupFormTitle: null,
+  lookupFormDescription: "예약할 때 입력한 이름과 비밀번호를 입력해 주세요.",
+  lookupFormTitle: "예약 정보 입력",
   showCreateReservationLink: false,
-  title: "예약할 때 입력한 정보를 기재해 주세요",
+  title: "예약내역 조회",
 };

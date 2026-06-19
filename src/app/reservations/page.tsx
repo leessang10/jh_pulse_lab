@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { getBookingAvailability, type BookableRangeOption } from "@/lib/booking-availability";
 import { formatKoreaDate } from "@/lib/korea-date";
@@ -359,9 +359,16 @@ export default function ReservationsPage() {
         </nav>
 
         <Card className="rounded-xl border bg-card shadow-sm">
-          {RESERVATIONS_PAGE_HEADER.lookupFormTitle ? (
+          {RESERVATIONS_PAGE_HEADER.lookupFormTitle || RESERVATIONS_PAGE_HEADER.lookupFormDescription ? (
             <CardHeader>
-              <CardTitle className="text-2xl">{RESERVATIONS_PAGE_HEADER.lookupFormTitle}</CardTitle>
+              {RESERVATIONS_PAGE_HEADER.lookupFormTitle ? (
+                <CardTitle className="text-2xl font-bold">{RESERVATIONS_PAGE_HEADER.lookupFormTitle}</CardTitle>
+              ) : null}
+              {RESERVATIONS_PAGE_HEADER.lookupFormDescription ? (
+                <CardDescription className="text-base font-bold leading-relaxed">
+                  {RESERVATIONS_PAGE_HEADER.lookupFormDescription}
+                </CardDescription>
+              ) : null}
             </CardHeader>
           ) : null}
           <CardContent>
@@ -421,8 +428,22 @@ export default function ReservationsPage() {
           )}
 
           {reservations?.length === 0 ? (
-            <div className="rounded-xl border bg-muted/45 p-5 text-center text-lg font-bold text-muted-foreground">
-              일치하는 예약이 없습니다.
+            <div className="grid gap-4 rounded-xl border bg-muted/45 p-5 text-center">
+              <div className="grid gap-1">
+                <h2 className="text-xl font-bold tracking-normal text-foreground">일치하는 예약이 없습니다.</h2>
+                <p className="text-base font-bold leading-relaxed text-muted-foreground">
+                  입력한 정보를 확인하거나 새 예약을 진행해 주세요.
+                </p>
+              </div>
+              <Button
+                className="motion-action h-12 rounded-xl text-base font-bold"
+                nativeButton={false}
+                render={<Link href="/reservation" />}
+                variant="outline"
+              >
+                <CalendarPlusIcon data-icon="inline-start" />
+                새 예약하기
+              </Button>
             </div>
           ) : null}
 
