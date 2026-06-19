@@ -291,7 +291,7 @@ export default function AdminPage() {
           </div>
 
           <div className="grid gap-2">
-            <span className="text-sm font-bold text-muted-foreground">강의실</span>
+            <span className="text-sm font-bold text-muted-foreground">연습실</span>
             <Select value={roomId} onValueChange={(value) => value && setRoomId(value)}>
               <SelectTrigger className="h-11 w-full">
                 <SelectValue />
@@ -345,7 +345,7 @@ export default function AdminPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>시간</TableHead>
-                    <TableHead>강의실</TableHead>
+                    <TableHead>연습실</TableHead>
                     <TableHead>예약자</TableHead>
                     <TableHead>상태</TableHead>
                     <TableHead className="text-right">관리</TableHead>

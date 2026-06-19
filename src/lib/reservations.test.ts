@@ -11,11 +11,11 @@ import {
 } from "./reservations";
 
 describe("reservation rules", () => {
-  it("exposes three active classrooms for public booking", () => {
+  it("exposes three active practice rooms for public booking", () => {
     expect(ROOMS).toEqual([
-      { id: "room-1", name: "강의실 1" },
-      { id: "room-2", name: "강의실 2" },
-      { id: "room-3", name: "강의실 3" },
+      { id: "room-1", name: "연습실 1" },
+      { id: "room-2", name: "연습실 2" },
+      { id: "room-3", name: "연습실 3" },
     ]);
     expect(ACTIVE_ROOM_IDS).toEqual(["room-1", "room-2", "room-3"]);
   });
@@ -57,7 +57,7 @@ describe("reservation rules", () => {
       }),
     ).toEqual([
       "날짜를 선택해 주세요.",
-      "강의실을 선택해 주세요.",
+      "연습실을 선택해 주세요.",
       "시작 시간과 종료 시간은 30분 단위여야 합니다.",
       "종료 시간은 시작 시간보다 늦어야 합니다.",
       "예약자 이름을 입력해 주세요.",
@@ -65,17 +65,17 @@ describe("reservation rules", () => {
     ]);
   });
 
-  it("rejects reservations longer than two hours", () => {
+  it("rejects reservations longer than one hour", () => {
     expect(
       validateReservationDraft({
         date: "2026-05-28",
         roomId: "room-1",
         startMinutes: 600,
-        endMinutes: 750,
+        endMinutes: 690,
         name: "Lee",
         password: "1234",
       }),
-    ).toContain("예약 시간은 최대 2시간까지 가능합니다.");
+    ).toContain("예약 시간은 최대 1시간까지 가능합니다.");
   });
 
   it("validates reservation time changes without owner contact fields", () => {
@@ -97,18 +97,18 @@ describe("reservation rules", () => {
       }),
     ).toEqual([
       "날짜를 선택해 주세요.",
-      "강의실을 선택해 주세요.",
+      "연습실을 선택해 주세요.",
       "시작 시간과 종료 시간은 30분 단위여야 합니다.",
       "종료 시간은 시작 시간보다 늦어야 합니다.",
     ]);
   });
 
-  it("uses Korean classroom labels for public room names", () => {
-    expect(getRoomName("room-1")).toBe("강의실 1");
-    expect(getRoomName("room-4")).toBe("강의실 4");
+  it("uses Korean practice room labels for public room names", () => {
+    expect(getRoomName("room-1")).toBe("연습실 1");
+    expect(getRoomName("room-4")).toBe("연습실 4");
   });
 
-  it("falls back to the first active classroom for reservation entry", () => {
+  it("falls back to the first active practice room for reservation entry", () => {
     expect(getInitialReservationRoomId("room-3")).toBe("room-3");
     expect(getInitialReservationRoomId("room-9")).toBe("room-1");
     expect(getInitialReservationRoomId(null)).toBe("room-1");

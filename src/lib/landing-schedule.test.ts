@@ -56,11 +56,11 @@ describe("landing schedule", () => {
     });
     expect(slots.find((slot) => slot.startMinutes === 570)).toMatchObject({
       isBooked: true,
-      bookedByLabel: "민수님 · 강의실 2",
+      bookedByLabel: "민수님 · 연습실 2",
     });
     expect(slots.find((slot) => slot.startMinutes === 600)).toMatchObject({
       isBooked: true,
-      bookedByLabel: "민수님 · 강의실 2",
+      bookedByLabel: "민수님 · 연습실 2",
     });
   });
 
@@ -104,7 +104,7 @@ describe("landing schedule", () => {
 
     expect(slots.find((slot) => slot.startMinutes === 570)).toMatchObject({
       reservationCount: 1,
-      bookedByLabel: "민수님 · 강의실 2",
+      bookedByLabel: "민수님 · 연습실 2",
     });
   });
 
@@ -119,7 +119,7 @@ describe("landing schedule", () => {
 
     expect(summaries.map((summary) => summary.roomId)).toEqual(["room-1", "room-2", "room-3"]);
     expect(summaries.find((summary) => summary.roomId === "room-2")).toMatchObject({
-      roomName: "강의실 2",
+      roomName: "연습실 2",
       bookedSlotCount: 2,
       bookedMinutes: 60,
       bookedHourLabel: "1",

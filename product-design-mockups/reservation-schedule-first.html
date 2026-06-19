@@ -537,34 +537,34 @@
         </nav>
       </header>
 
-      <section class="workspace" aria-label="강의실 예약 현황">
-        <aside class="room-rail" aria-label="강의실별 예약 요약">
+      <section class="workspace" aria-label="연습실 예약 현황">
+        <aside class="room-rail" aria-label="연습실별 예약 요약">
           <button class="room-card" type="button" aria-pressed="true" data-room="room-1">
-            <span class="room-name">강의실 1</span>
+            <span class="room-name">연습실 1</span>
             <span class="donut" style="--reserved-deg: 60deg">
               <span class="donut-value"><strong>2</strong><span>시간</span></span>
             </span>
           </button>
 
           <button class="room-card" type="button" aria-pressed="false" data-room="room-2">
-            <span class="room-name">강의실 2</span>
+            <span class="room-name">연습실 2</span>
             <span class="donut" style="--reserved-deg: 30deg">
               <span class="donut-value"><strong>1</strong><span>시간</span></span>
             </span>
           </button>
 
           <button class="room-card" type="button" aria-pressed="false" data-room="room-3">
-            <span class="room-name">강의실 3</span>
+            <span class="room-name">연습실 3</span>
             <span class="donut" style="--reserved-deg: 0deg">
               <span class="donut-value"><strong>0</strong><span>시간</span></span>
             </span>
           </button>
         </aside>
 
-        <section class="schedule-stage" aria-label="선택한 강의실 상세 예약 현황">
+        <section class="schedule-stage" aria-label="선택한 연습실 상세 예약 현황">
           <div class="schedule-shell" id="schedule-shell">
             <svg class="schedule-svg" role="img" aria-labelledby="schedule-title" viewBox="0 0 720 720">
-              <title id="schedule-title">강의실 1 오늘 예약 시간을 시계처럼 보여주는 표</title>
+              <title id="schedule-title">연습실 1 오늘 예약 시간을 시계처럼 보여주는 표</title>
               <line class="guide-line" x1="360" x2="360" y1="112" y2="608"></line>
               <line class="guide-line" x1="112" x2="608" y1="360" y2="360"></line>
               <circle class="ring-base" cx="360" cy="360" r="222"></circle>
@@ -600,7 +600,7 @@
     <script>
       const rooms = {
         "room-1": {
-          name: "강의실 1",
+          name: "연습실 1",
           hours: 2,
           segments: [
             { name: "김재환", start: 10, end: 11, label: "10:00 - 11:00" },
@@ -608,12 +608,12 @@
           ],
         },
         "room-2": {
-          name: "강의실 2",
+          name: "연습실 2",
           hours: 1,
           segments: [{ name: "박민지", start: 9, end: 10, label: "09:00 - 10:00" }],
         },
         "room-3": {
-          name: "강의실 3",
+          name: "연습실 3",
           hours: 0,
           segments: [],
         },

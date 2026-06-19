@@ -334,7 +334,7 @@ export default function HomePage() {
           </div>
         ) : null}
 
-        <section aria-label="강의실별 예약 요약" className="grid grid-cols-3 gap-2 sm:gap-3">
+        <section aria-label="연습실별 예약 요약" className="grid grid-cols-3 gap-2 sm:gap-3">
           {summaries.map((summary) => (
             <RoomSummaryTile
               key={summary.roomId}

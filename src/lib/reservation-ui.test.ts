@@ -35,15 +35,15 @@ describe("reservation UI helpers", () => {
         roomName: "",
         timeLabel: null,
       }),
-    ).toBe("5월 29일 · 강의실 미선택 · 시간 미선택");
+    ).toBe("5월 29일 · 연습실 미선택 · 시간 미선택");
 
     expect(
       getReservationSummary({
         dateLabel: "5월 29일",
-        roomName: "강의실 2",
+        roomName: "연습실 2",
         timeLabel: "14:00-15:00",
       }),
-    ).toBe("5월 29일 · 강의실 2 · 14:00-15:00");
+    ).toBe("5월 29일 · 연습실 2 · 14:00-15:00");
   });
 
   it("returns lean header state for the active booking step", () => {

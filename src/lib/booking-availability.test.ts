@@ -70,8 +70,6 @@ describe("booking availability", () => {
     expect(availability.durationOptions.map((option) => option.label)).toEqual([
       "30분",
       "1시간",
-      "1시간 30분",
-      "2시간",
     ]);
     expect(availability.rangeOptions).toContainEqual({
       startMinutes: 540,

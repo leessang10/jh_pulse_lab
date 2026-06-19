@@ -241,13 +241,13 @@ function ReservationFlow() {
       {step === "time" && (
         <motion.section key="time" className="grid flex-1 content-start gap-5" {...sectionMotion}>
           <div className="rounded-xl border bg-card p-4 shadow-sm">
-            <div className="text-sm font-bold text-muted-foreground">예약 강의실</div>
+            <div className="text-sm font-bold text-muted-foreground">예약 연습실</div>
             <div className="mt-1 text-3xl font-bold tracking-normal">{selectedRoomName}</div>
           </div>
           <div className="grid gap-5">
             <div className="grid gap-3">
               <div className="text-lg font-bold text-muted-foreground sm:text-xl">이용 시간</div>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 {durationOptions.map((option, index) => {
                   const isSelected = selectedDurationMinutes === option.minutes;
 

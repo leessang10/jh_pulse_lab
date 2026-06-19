@@ -6,7 +6,7 @@ export const BOOKING_STEP_ITEMS: Array<{ id: Exclude<BookingStep, "done">; label
 ];
 
 export function getReservationSummary(options: { dateLabel: string; roomName: string; timeLabel: string | null }) {
-  return [options.dateLabel, options.roomName || "강의실 미선택", options.timeLabel || "시간 미선택"].join(" · ");
+  return [options.dateLabel, options.roomName || "연습실 미선택", options.timeLabel || "시간 미선택"].join(" · ");
 }
 
 export function getRoomReservationHref(roomId: string | null | undefined) {

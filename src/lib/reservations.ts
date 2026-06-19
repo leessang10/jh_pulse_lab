@@ -35,14 +35,14 @@ export type ReservationDraft = {
 export type ReservationTimeChange = Pick<ReservationDraft, "date" | "roomId" | "startMinutes" | "endMinutes">;
 
 export const ROOMS: Room[] = [
-  { id: "room-1", name: "강의실 1" },
-  { id: "room-2", name: "강의실 2" },
-  { id: "room-3", name: "강의실 3" },
+  { id: "room-1", name: "연습실 1" },
+  { id: "room-2", name: "연습실 2" },
+  { id: "room-3", name: "연습실 3" },
 ];
 
 export const ACTIVE_ROOM_IDS = ROOMS.map((room) => room.id);
 
-const ROOM_NAMES = new Map<string, string>([...ROOMS, { id: "room-4", name: "강의실 4" }].map((room) => [room.id, room.name]));
+const ROOM_NAMES = new Map<string, string>([...ROOMS, { id: "room-4", name: "연습실 4" }].map((room) => [room.id, room.name]));
 
 export const STATUS_LABELS: Record<ReservationStatus, string> = {
   pending: "대기",
@@ -52,13 +52,11 @@ export const STATUS_LABELS: Record<ReservationStatus, string> = {
 
 export const SLOT_MINUTES = 30;
 export const DAY_END_MINUTES = 24 * 60;
-export const MAX_BOOKING_DURATION_MINUTES = 120;
+export const MAX_BOOKING_DURATION_MINUTES = 60;
 
 export const BOOKING_DURATION_OPTIONS = [
   { minutes: 30, label: "30분" },
   { minutes: 60, label: "1시간" },
-  { minutes: 90, label: "1시간 30분" },
-  { minutes: 120, label: "2시간" },
 ];
 
 export function formatMinutes(minutes: number) {
@@ -85,14 +83,14 @@ function validateReservationTimeFields(draft: ReservationTimeChange) {
   const isOnGrid = draft.startMinutes % SLOT_MINUTES === 0 && draft.endMinutes % SLOT_MINUTES === 0;
 
   if (!draft.date) errors.push("날짜를 선택해 주세요.");
-  if (!roomIds.has(draft.roomId)) errors.push("강의실을 선택해 주세요.");
+  if (!roomIds.has(draft.roomId)) errors.push("연습실을 선택해 주세요.");
   if (!isOnGrid) errors.push("시작 시간과 종료 시간은 30분 단위여야 합니다.");
   if (draft.startMinutes < 0 || draft.endMinutes > DAY_END_MINUTES) {
     errors.push("예약 시간은 00:00부터 24:00 사이여야 합니다.");
   }
   if (draft.endMinutes <= draft.startMinutes) errors.push("종료 시간은 시작 시간보다 늦어야 합니다.");
   if (draft.endMinutes - draft.startMinutes > MAX_BOOKING_DURATION_MINUTES) {
-    errors.push("예약 시간은 최대 2시간까지 가능합니다.");
+    errors.push("예약 시간은 최대 1시간까지 가능합니다.");
   }
 
   return errors;
