@@ -5,6 +5,7 @@ import {
   getBookingCompletionSummaryLabel,
   getBookingCompletionReturnAction,
   getBookingHeaderState,
+  getBookingSelectedTimeSummary,
   getBookingStepNavigation,
   getReservationSummary,
   getRoomReservationHref,
@@ -72,6 +73,20 @@ describe("reservation UI helpers", () => {
         timeLabel: "14:00-15:00",
       }),
     ).toBe("5월 29일 · 연습실 2 · 14:00-15:00");
+  });
+
+  it("returns selected time summary state with a check indicator", () => {
+    expect(getBookingSelectedTimeSummary(null)).toEqual({
+      title: "선택한 이용 시간",
+      label: "이용 시간 선택 후 시작 시간을 선택해 주세요",
+      showCheck: false,
+    });
+
+    expect(getBookingSelectedTimeSummary({ label: "04:00-05:00" })).toEqual({
+      title: "선택한 이용 시간",
+      label: "04:00-05:00",
+      showCheck: true,
+    });
   });
 
   it("returns lean header state for the active booking step", () => {

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion, MotionConfig } from "framer-motion";
-import { CheckCircle2Icon, ChevronLeftIcon } from "lucide-react";
+import { CheckCircle2Icon, CheckIcon, ChevronLeftIcon } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -30,6 +30,7 @@ import {
   getBookingCompletionSnapshot,
   getBookingCompletionSummaryLabel,
   getBookingHeaderState,
+  getBookingSelectedTimeSummary,
   getBookingStepNavigation,
   type BookingCompletionSnapshot,
   type BookingStep,
@@ -101,6 +102,7 @@ function ReservationFlow() {
     hasTime: Boolean(selectedTime),
   });
   const headerState = getBookingHeaderState(step);
+  const selectedTimeSummary = getBookingSelectedTimeSummary(selectedTime);
   const availability = useMemo(
     () =>
       getBookingAvailability(reservations, {
@@ -354,8 +356,11 @@ function ReservationFlow() {
               }}
               transition={{ duration: 0.24, ease: "easeOut" }}
             >
-              <div className="text-sm font-semibold text-muted-foreground">선택한 시간</div>
-              <div className="mt-1 text-xl font-bold sm:text-2xl">{selectedTime ? selectedTime.label : "이용 시간 선택 후 시작 시간을 선택해 주세요"}</div>
+              <div className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
+                {selectedTimeSummary.showCheck ? <CheckIcon className="size-4 text-primary" aria-hidden="true" /> : null}
+                <span>{selectedTimeSummary.title}</span>
+              </div>
+              <div className="mt-1 text-xl font-bold sm:text-2xl">{selectedTimeSummary.label}</div>
             </motion.div>
             <Button
               className="motion-action h-14 rounded-lg text-xl font-semibold"
@@ -363,7 +368,7 @@ function ReservationFlow() {
               onClick={moveToContact}
               type="button"
             >
-              정보 입력
+              {navigation.nextLabel}
             </Button>
           </div>
         </motion.section>

@@ -18,6 +18,14 @@ export function getReservationSummary(options: { dateLabel: string; roomName: st
   return [options.dateLabel, options.roomName || "연습실 미선택", options.timeLabel || "시간 미선택"].join(" · ");
 }
 
+export function getBookingSelectedTimeSummary(selectedTime: BookingTimeLike | null) {
+  return {
+    title: "선택한 이용 시간",
+    label: selectedTime ? selectedTime.label : "이용 시간 선택 후 시작 시간을 선택해 주세요",
+    showCheck: Boolean(selectedTime),
+  } as const;
+}
+
 export function getRoomReservationHref(roomId: string | null | undefined) {
   return roomId ? `/reservation?roomId=${encodeURIComponent(roomId)}` : "/reservation";
 }
