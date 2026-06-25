@@ -5,8 +5,8 @@ export type AdminSidebarItem = {
 };
 
 export const ADMIN_SIDEBAR_ITEMS: AdminSidebarItem[] = [
-  { title: "예약 관리", href: "/admin", description: "예약 현황과 상태 변경" },
-  { title: "예약 페이지", href: "/reservation", description: "사용자 예약 화면" },
+  { title: "예약 목록", href: "/admin/reservations", description: "검색, 필터, 테이블 관리" },
+  { title: "예약 시간표", href: "/admin/timetables", description: "시간별 타일 보드" },
 ];
 
 export function getAdminSidebarItemState(href: string, currentPath: string) {

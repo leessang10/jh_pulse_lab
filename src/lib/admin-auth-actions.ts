@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { ADMIN_DEFAULT_PATH, ADMIN_LOGIN_PATH } from "@/lib/admin-routes";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type AuthActionResult = { ok: true } | { ok: false; error: string };
@@ -17,7 +18,7 @@ export async function loginAdmin(email: string, password: string): Promise<AuthA
 
   if (error) return { ok: false, error: "관리자 로그인 정보를 확인해 주세요." };
 
-  revalidatePath("/admin");
+  revalidateAdminAuthPaths();
   return { ok: true };
 }
 
@@ -27,6 +28,13 @@ export async function logoutAdmin(): Promise<AuthActionResult> {
 
   if (error) return { ok: false, error: "로그아웃하지 못했습니다." };
 
-  revalidatePath("/admin");
+  revalidateAdminAuthPaths();
   return { ok: true };
+}
+
+function revalidateAdminAuthPaths() {
+  revalidatePath("/admin");
+  revalidatePath(ADMIN_LOGIN_PATH);
+  revalidatePath(ADMIN_DEFAULT_PATH);
+  revalidatePath("/admin/timetables");
 }

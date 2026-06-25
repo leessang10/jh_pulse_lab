@@ -323,7 +323,7 @@ export default function HomePage() {
               variant="outline"
             >
               <ClipboardListIcon data-icon="inline-start" />
-              예약내역
+              예약조회
             </Button>
           </div>
         </header>

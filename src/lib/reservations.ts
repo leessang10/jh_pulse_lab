@@ -50,6 +50,30 @@ export const STATUS_LABELS: Record<ReservationStatus, string> = {
   cancelled: "취소",
 };
 
+export function getEffectiveReservationStatus(
+  reservation: Pick<Reservation, "date" | "startMinutes" | "status">,
+  currentTime: { date: string; minutes: number },
+): ReservationStatus {
+  if (reservation.status === "cancelled") return "cancelled";
+  if (reservation.date < currentTime.date) return "confirmed";
+  if (reservation.date > currentTime.date) return "pending";
+
+  return reservation.startMinutes <= currentTime.minutes ? "confirmed" : "pending";
+}
+
+export function resolveReservationStatuses(
+  reservations: Reservation[],
+  currentTime: { date: string; minutes: number },
+  status?: ReservationStatus,
+) {
+  return reservations
+    .map((reservation) => ({
+      ...reservation,
+      status: getEffectiveReservationStatus(reservation, currentTime),
+    }))
+    .filter((reservation) => !status || reservation.status === status);
+}
+
 export const SLOT_MINUTES = 30;
 export const DAY_END_MINUTES = 24 * 60;
 export const MAX_BOOKING_DURATION_MINUTES = 60;
@@ -58,6 +82,10 @@ export const BOOKING_DURATION_OPTIONS = [
   { minutes: 30, label: "30분" },
   { minutes: 60, label: "1시간" },
 ];
+
+export const OWNER_REBOOKING_RELEASE_MINUTES = 10;
+export const OWNER_ACTIVE_RESERVATION_MESSAGE =
+  "이미 예약된 시간이 있습니다. 예약하신 시간이 종료되기 10분 전부터 추가 예약이 가능합니다.";
 
 export function formatMinutes(minutes: number) {
   const hours = Math.floor(minutes / 60);
@@ -107,6 +135,21 @@ export function validateReservationDraft(draft: ReservationDraft) {
   if (!/^\d{4}$/.test(draft.password)) errors.push("비밀번호는 숫자 4자리로 입력해 주세요.");
 
   return errors;
+}
+
+export function validateReservationOwnerBookingWindow(
+  ownerReservations: ReservationTimeBlock[],
+  currentTime: { date: string; minutes: number },
+): { ok: true } | { ok: false; error: string } {
+  const hasBlockingReservation = ownerReservations.some((reservation) => {
+    if (reservation.status === "cancelled") return false;
+    if (reservation.date < currentTime.date) return false;
+    if (reservation.date > currentTime.date) return true;
+
+    return reservation.endMinutes - currentTime.minutes > OWNER_REBOOKING_RELEASE_MINUTES;
+  });
+
+  return hasBlockingReservation ? { ok: false, error: OWNER_ACTIVE_RESERVATION_MESSAGE } : { ok: true };
 }
 
 export function createReservation(draft: ReservationDraft): Reservation {

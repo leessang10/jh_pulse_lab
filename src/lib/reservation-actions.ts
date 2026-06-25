@@ -4,11 +4,14 @@ import { revalidatePath } from "next/cache";
 import { validateBookableDraftTime } from "@/lib/booking-availability";
 import {
   validateReservationDraft,
+  resolveReservationStatuses,
+  validateReservationOwnerBookingWindow,
   validateReservationTimeChange,
   ACTIVE_ROOM_IDS,
   type Reservation,
   type ReservationDraft,
   type ReservationStatus,
+  type ReservationTimeBlock,
   type ReservationTimeChange,
 } from "@/lib/reservations";
 import {
@@ -62,10 +65,17 @@ export async function createPublicReservation(draft: ReservationDraft): Promise<
 
   try {
     const supabase = createSupabaseServiceClient();
+    const currentTime = getCurrentKoreaBookingTime();
+    const ownerReservations = await listOwnerActiveReservations(draft, currentTime.date);
+    if (!ownerReservations.ok) return ownerReservations;
+
+    const ownerBookingWindow = validateReservationOwnerBookingWindow(ownerReservations.data, currentTime);
+    if (!ownerBookingWindow.ok) return ownerBookingWindow;
+
     const current = await listPublicReservationTimeBlocks(draft.date);
     if (!current.ok) return current;
 
-    const timeAvailability = validateBookableDraftTime(current.data, draft, undefined, getCurrentKoreaBookingTime());
+    const timeAvailability = validateBookableDraftTime(current.data, draft, undefined, currentTime);
     if (!timeAvailability.ok) return timeAvailability;
 
     const { data, error } = await supabase
@@ -82,6 +92,31 @@ export async function createPublicReservation(draft: ReservationDraft): Promise<
     revalidatePath("/admin");
     revalidatePath("/v2");
     return { ok: true, data: mapReservationRowToReservation(data as ReservationRow) };
+  } catch (error) {
+    return { ok: false, error: toReservationActionErrorMessage(error) };
+  }
+}
+
+async function listOwnerActiveReservations(
+  draft: Pick<ReservationDraft, "name" | "password">,
+  currentDate: string,
+): Promise<ReservationActionResult<ReservationTimeBlock[]>> {
+  try {
+    const supabase = createSupabaseServiceClient();
+    const { data, error } = await supabase
+      .from("reservations")
+      .select(RESERVATION_SELECT)
+      .eq("name", draft.name.trim())
+      .eq("password_hash", hashReservationPassword(draft.password))
+      .gte("date", currentDate)
+      .in("room_id", ACTIVE_ROOM_IDS)
+      .neq("status", "cancelled")
+      .order("date", { ascending: true })
+      .order("start_minutes", { ascending: true });
+
+    if (error) throw error;
+
+    return { ok: true, data: ((data ?? []) as ReservationRow[]).map(mapReservationRowToTimeBlock) };
   } catch (error) {
     return { ok: false, error: toReservationActionErrorMessage(error) };
   }
@@ -216,12 +251,18 @@ export async function listAdminReservations(filters: {
       .order("start_minutes", { ascending: true });
 
     if (filters.roomId) query = query.eq("room_id", filters.roomId);
-    if (filters.status) query = query.eq("status", filters.status);
 
     const { data, error } = await query;
     if (error) throw error;
 
-    return { ok: true, data: ((data ?? []) as ReservationRow[]).map(mapReservationRowToReservation) };
+    const currentTime = getCurrentKoreaBookingTime();
+    const reservations = resolveReservationStatuses(
+      ((data ?? []) as ReservationRow[]).map(mapReservationRowToReservation),
+      currentTime,
+      filters.status,
+    );
+
+    return { ok: true, data: reservations };
   } catch {
     return { ok: false, error: GENERIC_MESSAGE };
   }

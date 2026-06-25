@@ -4,14 +4,16 @@ import { ADMIN_SIDEBAR_ITEMS, getAdminSidebarItemState } from "./admin-navigatio
 describe("admin sidebar navigation", () => {
   it("lists the admin and public reservation destinations", () => {
     expect(ADMIN_SIDEBAR_ITEMS).toEqual([
-      { title: "예약 관리", href: "/admin", description: "예약 현황과 상태 변경" },
-      { title: "예약 페이지", href: "/reservation", description: "사용자 예약 화면" },
+      { title: "예약 목록", href: "/admin/reservations", description: "검색, 필터, 테이블 관리" },
+      { title: "예약 시간표", href: "/admin/timetables", description: "시간별 타일 보드" },
     ]);
   });
 
   it("marks the matching admin route as active", () => {
-    expect(getAdminSidebarItemState("/admin", "/admin")).toEqual({ isActive: true });
-    expect(getAdminSidebarItemState("/admin", "/admin?date=2026-06-05")).toEqual({ isActive: true });
-    expect(getAdminSidebarItemState("/reservation", "/admin")).toEqual({ isActive: false });
+    expect(getAdminSidebarItemState("/admin/reservations", "/admin/reservations")).toEqual({ isActive: true });
+    expect(getAdminSidebarItemState("/admin/reservations", "/admin/reservations?date=2026-06-05")).toEqual({
+      isActive: true,
+    });
+    expect(getAdminSidebarItemState("/admin/timetables", "/admin/reservations")).toEqual({ isActive: false });
   });
 });
