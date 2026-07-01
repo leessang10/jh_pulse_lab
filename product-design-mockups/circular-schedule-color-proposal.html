@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>JH PULSE LAB 원형 시간표 색상 시안</title>
+    <style>
+      @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
+
+      :root {
+        color-scheme: light;
+        --bg: #f8faf7;
+        --panel: #ffffff;
+        --panel-soft: #f1f7f2;
+        --text: #17201d;
+        --muted: #68746f;
+        --line: #d9e3dc;
+        --line-strong: #b8c9bf;
+        --mint: #25a981;
+        --mint-deep: #117b66;
+        --coral: #f26f5b;
+        --amber: #f5b84b;
+        --blue: #5a9ee8;
+        --shadow: 0 18px 48px rgba(23, 32, 29, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        background: var(--bg);
+        font-family:
+          "Pretendard",
+          "Noto Sans KR",
+          ui-sans-serif,
+          system-ui,
+          sans-serif;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(248, 250, 247, 0.96)),
+          var(--bg);
+        color: var(--text);
+      }
+
+      button {
+        border: 0;
+        font: inherit;
+      }
+
+      .page {
+        width: min(1180px, calc(100vw - 36px));
+        margin: 0 auto;
+        padding: 44px 0 56px;
+      }
+
+      .top {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 28px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(2rem, 4vw, 3.25rem);
+        font-weight: 900;
+        letter-spacing: 0;
+        line-height: 1;
+      }
+
+      .date {
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 1.05rem;
+        font-weight: 800;
+      }
+
+      .actions {
+        display: flex;
+        gap: 10px;
+      }
+
+      .action {
+        min-width: 136px;
+        border: 1px solid var(--line-strong);
+        border-radius: 10px;
+        background: var(--panel);
+        color: var(--text);
+        padding: 15px 22px;
+        font-weight: 900;
+        box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset;
+      }
+
+      .action.primary {
+        border-color: var(--mint-deep);
+        background: var(--mint-deep);
+        color: #fff;
+      }
+
+      .rooms {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+        margin-bottom: 18px;
+      }
+
+      .room {
+        min-height: 150px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--panel);
+        padding: 18px;
+        box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset;
+      }
+
+      .room.active {
+        border-color: rgba(37, 169, 129, 0.7);
+        background: linear-gradient(180deg, #ffffff, #effaf4);
+        box-shadow:
+          0 0 0 3px rgba(37, 169, 129, 0.12),
+          var(--shadow);
+      }
+
+      .room-title {
+        text-align: center;
+        font-size: 1.35rem;
+        font-weight: 900;
+      }
+
+      .mini-ring {
+        position: relative;
+        width: 76px;
+        height: 76px;
+        margin: 17px auto 0;
+        border-radius: 999px;
+        background: conic-gradient(var(--mint) 0 var(--value), #e3eee7 var(--value) 360deg);
+      }
+
+      .mini-ring::after {
+        position: absolute;
+        inset: 11px;
+        border-radius: inherit;
+        background: var(--panel);
+        content: "";
+      }
+
+      .mini-ring strong,
+      .mini-ring span {
+        position: relative;
+        z-index: 1;
+        display: block;
+        text-align: center;
+      }
+
+      .mini-ring strong {
+        padding-top: 18px;
+        font-size: 1.65rem;
+        font-weight: 950;
+        line-height: 1;
+      }
+
+      .mini-ring span {
+        color: var(--muted);
+        font-size: 0.72rem;
+        font-weight: 800;
+      }
+
+      .stage {
+        display: grid;
+        grid-template-columns: minmax(180px, 250px) minmax(0, 1fr);
+        align-items: center;
+        min-height: 548px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--panel);
+        box-shadow: var(--shadow);
+        padding: 26px 34px;
+      }
+
+      .summary {
+        align-self: center;
+      }
+
+      .summary small {
+        color: var(--muted);
+        font-size: 0.82rem;
+        font-weight: 900;
+      }
+
+      .summary h2 {
+        margin: 6px 0 22px;
+        font-size: 2.25rem;
+        font-weight: 950;
+        line-height: 1;
+      }
+
+      .badge {
+        display: inline-grid;
+        gap: 4px;
+        border-radius: 12px;
+        background: var(--panel-soft);
+        padding: 12px 14px;
+      }
+
+      .badge span {
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 850;
+      }
+
+      .badge strong {
+        font-size: 1.2rem;
+        font-weight: 950;
+      }
+
+      .legend {
+        display: grid;
+        gap: 8px;
+        margin-top: 26px;
+        color: var(--muted);
+        font-size: 0.82rem;
+        font-weight: 800;
+      }
+
+      .legend-row {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+
+      .swatch {
+        width: 22px;
+        height: 8px;
+        border-radius: 999px;
+      }
+
+      .clock-wrap {
+        display: grid;
+        place-items: center;
+        min-width: 0;
+      }
+
+      .clock {
+        width: min(100%, 500px);
+        height: auto;
+        overflow: visible;
+      }
+
+      .hour {
+        fill: #5f6965;
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .name {
+        fill: #17201d;
+        font-size: 8px;
+        font-weight: 950;
+      }
+
+      .time {
+        fill: #31413b;
+        font-size: 7px;
+        font-weight: 850;
+      }
+
+      .center-label {
+        fill: var(--muted);
+        font-size: 9px;
+        font-weight: 850;
+      }
+
+      .center-value {
+        fill: var(--text);
+        font-size: 28px;
+        font-weight: 950;
+      }
+
+      .center-sub {
+        fill: var(--text);
+        font-size: 9px;
+        font-weight: 900;
+      }
+
+      @media (max-width: 760px) {
+        .page {
+          width: min(100vw - 24px, 560px);
+          padding-top: 24px;
+        }
+
+        .top,
+        .actions {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .rooms,
+        .stage {
+          grid-template-columns: 1fr;
+        }
+
+        .stage {
+          padding: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <header class="top">
+        <div>
+          <h1>JH PULSE LAB</h1>
+          <div class="date">2026년 7월 1일 수</div>
+        </div>
+        <div class="actions">
+          <button class="action primary" type="button">예약하기</button>
+          <button class="action" type="button">예약조회</button>
+        </div>
+      </header>
+
+      <section class="rooms" aria-label="강의실 선택">
+        <button class="room active" type="button">
+          <div class="room-title">연습실 1</div>
+          <div class="mini-ring" style="--value: 75deg">
+            <strong>5</strong>
+            <span>시간</span>
+          </div>
+        </button>
+        <button class="room" type="button">
+          <div class="room-title">연습실 2</div>
+          <div class="mini-ring" style="--value: 120deg">
+            <strong>8</strong>
+            <span>시간</span>
+          </div>
+        </button>
+        <button class="room" type="button">
+          <div class="room-title">연습실 3</div>
+          <div class="mini-ring" style="--value: 0deg">
+            <strong>0</strong>
+            <span>시간</span>
+          </div>
+        </button>
+      </section>
+
+      <section class="stage" aria-label="원형 시간표 색상 시안">
+        <aside class="summary">
+          <small>실시간 예약 현황</small>
+          <h2>연습실 1</h2>
+          <div class="badge">
+            <span>오늘 예약</span>
+            <strong>5시간</strong>
+          </div>
+          <div class="legend" aria-label="색상 범례">
+            <div class="legend-row"><i class="swatch" style="background: var(--coral)"></i>오후 예약</div>
+            <div class="legend-row"><i class="swatch" style="background: var(--mint)"></i>저녁 예약</div>
+            <div class="legend-row"><i class="swatch" style="background: #e3eee7"></i>예약 가능</div>
+          </div>
+        </aside>
+
+        <div class="clock-wrap">
+          <svg class="clock" role="img" viewBox="0 0 360 360" aria-label="밝은 색상 톤의 원형 시간표">
+            <circle cx="180" cy="180" r="135" fill="#fbfdfb" stroke="#d7e3db" stroke-width="1.4" />
+            <circle cx="180" cy="180" r="118" fill="none" stroke="#e3eee7" stroke-width="9" stroke-linecap="round" />
+
+            <g stroke="#aebdb4" stroke-linecap="round">
+              <line x1="180" y1="45" x2="180" y2="58" stroke-width="1.8" />
+              <line x1="315" y1="180" x2="302" y2="180" stroke-width="1.8" />
+              <line x1="180" y1="315" x2="180" y2="302" stroke-width="1.8" />
+              <line x1="45" y1="180" x2="58" y2="180" stroke-width="1.8" />
+              <line x1="247.5" y1="63.1" x2="242.3" y2="72.1" stroke-width="1" />
+              <line x1="296.9" y1="112.5" x2="287.9" y2="117.7" stroke-width="1" />
+              <line x1="296.9" y1="247.5" x2="287.9" y2="242.3" stroke-width="1" />
+              <line x1="247.5" y1="296.9" x2="242.3" y2="287.9" stroke-width="1" />
+              <line x1="112.5" y1="296.9" x2="117.7" y2="287.9" stroke-width="1" />
+              <line x1="63.1" y1="247.5" x2="72.1" y2="242.3" stroke-width="1" />
+              <line x1="63.1" y1="112.5" x2="72.1" y2="117.7" stroke-width="1" />
+              <line x1="112.5" y1="63.1" x2="117.7" y2="72.1" stroke-width="1" />
+            </g>
+
+            <path d="M 74.3 108.9 A 135 135 0 0 1 45 180 L 72 180 A 108 108 0 0 0 95.5 123.2 Z" fill="var(--blue)" opacity="0.72" />
+            <path d="M 45 180 A 135 135 0 0 1 57.7 237.1 L 83.4 225.7 A 108 108 0 0 0 72 180 Z" fill="var(--mint)" opacity="0.68" />
+            <path d="M 57.7 237.1 A 135 135 0 0 1 84.5 275.5 L 103.6 254.4 A 108 108 0 0 0 83.4 225.7 Z" fill="var(--mint)" opacity="0.86" />
+            <path d="M 169.4 314.6 A 135 135 0 0 1 196.9 313.9 L 193.5 286.1 A 108 108 0 0 0 171.5 287.8 Z" fill="var(--coral)" opacity="0.95" />
+
+            <circle cx="180" cy="180" r="55" fill="#ffffff" stroke="#dbe6df" stroke-width="1.2" />
+            <text class="center-label" x="180" y="160" text-anchor="middle">오늘</text>
+            <text class="center-value" x="180" y="185" text-anchor="middle">5</text>
+            <text class="center-sub" x="180" y="206" text-anchor="middle">예약된 시간</text>
+
+            <text class="hour" x="180" y="37" text-anchor="middle">00</text>
+            <text class="hour" x="326" y="184" text-anchor="middle">06</text>
+            <text class="hour" x="180" y="331" text-anchor="middle">12</text>
+            <text class="hour" x="34" y="184" text-anchor="middle">18</text>
+
+            <text class="name" x="92" y="151" text-anchor="middle">최은영</text>
+            <text class="time" x="92" y="164" text-anchor="middle">19:00-20:00</text>
+            <text class="name" x="75" y="177" text-anchor="middle">방보람</text>
+            <text class="time" x="75" y="190" text-anchor="middle">18:00-19:00</text>
+            <text class="name" x="103" y="220" text-anchor="middle">이일새</text>
+            <text class="time" x="103" y="233" text-anchor="middle">16:00-17:00</text>
+            <text class="name" x="119" y="247" text-anchor="middle">이향구</text>
+            <text class="time" x="119" y="260" text-anchor="middle">15:00-16:00</text>
+            <text class="name" x="169" y="266" text-anchor="middle">민태환</text>
+            <text class="time" x="169" y="279" text-anchor="middle">12:00-13:00</text>
+          </svg>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

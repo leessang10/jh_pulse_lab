@@ -3,8 +3,8 @@ const ROOM_TILE_BASE_CLASS =
 
 export function getLandingRoomTileClassName(isSelected: boolean) {
   const stateClass = isSelected
-    ? "border-primary bg-card ring-2 ring-primary/50 ring-inset"
-    : "border-border/80 bg-card hover:border-primary/60 hover:bg-muted/40 hover:ring-2 hover:ring-primary/40 hover:ring-inset";
+    ? "border-reservation-accent bg-reservation-accent-soft/55 ring-2 ring-reservation-accent/35 ring-inset"
+    : "border-border/80 bg-card hover:border-reservation-accent/60 hover:bg-reservation-accent-soft/45 hover:ring-2 hover:ring-reservation-accent/25 hover:ring-inset";
 
   return `${ROOM_TILE_BASE_CLASS} ${stateClass}`;
 }

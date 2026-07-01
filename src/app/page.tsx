@@ -174,7 +174,7 @@ function RoomDetailSchedule({ summary }: { summary: LandingRoomScheduleSummary }
             {summary.roomName}
           </h2>
         </div>
-        <div className="grid shrink-0 gap-0.5 rounded-lg bg-muted px-3 py-2 text-right sm:text-left">
+        <div className="grid w-[5.5rem] shrink-0 gap-0.5 rounded-lg bg-reservation-accent-soft/65 px-3 py-2 text-right sm:text-left">
           <span className="text-[0.66rem] font-semibold text-muted-foreground">오늘 예약</span>
           <strong className="text-sm font-bold leading-none sm:text-base">{summary.bookedDurationLabel}</strong>
         </div>
