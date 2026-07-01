@@ -7,6 +7,7 @@ import {
   type ReservationDraft,
   type ReservationTimeBlock,
 } from "./reservations";
+import { isBookingStartPastGracePeriod } from "./booking-time-policy";
 
 export const BOOKING_RANGE_CONFLICT_MESSAGE = "이미 예약된 시간이 포함되어 있습니다.";
 export const BOOKING_DRAFT_CONFLICT_MESSAGE = "이미 예약된 시간입니다.";
@@ -60,7 +61,7 @@ function isBookingDurationAvailable(
 ) {
   const endMinutes = options.startMinutes + options.durationMinutes;
   if (options.startMinutes < 0 || endMinutes > DAY_END_MINUTES) return false;
-  if (isBookingStartNotAfterCurrentTime(options.date, options.startMinutes, options.currentTime)) return false;
+  if (isBookingStartPastGracePeriod(options.date, options.startMinutes, options.currentTime)) return false;
 
   return (
     findReservationConflict(
@@ -188,7 +189,7 @@ export function selectBookableRange(
     ignoredReservationId?: string;
   },
 ): { ok: true; selectedTime: SelectedBookingTime } | { ok: false; error: string } {
-  if (isBookingStartNotAfterCurrentTime(options.date, options.option.startMinutes, options.currentTime)) {
+  if (isBookingStartPastGracePeriod(options.date, options.option.startMinutes, options.currentTime)) {
     return { ok: false, error: BOOKING_PAST_TIME_MESSAGE };
   }
 
@@ -223,7 +224,7 @@ export function validateBookableDraftTime(
   ignoredReservationId?: string,
   currentTime?: BookingCurrentTime,
 ): { ok: true } | { ok: false; error: string } {
-  if (isBookingStartNotAfterCurrentTime(draft.date, draft.startMinutes, currentTime)) {
+  if (isBookingStartPastGracePeriod(draft.date, draft.startMinutes, currentTime)) {
     return { ok: false, error: BOOKING_PAST_TIME_MESSAGE };
   }
 
@@ -255,12 +256,4 @@ function isTimeRangeOverlapping(
   second: Pick<ReservationDraft, "startMinutes" | "endMinutes">,
 ) {
   return first.startMinutes < second.endMinutes && second.startMinutes < first.endMinutes;
-}
-
-function isBookingStartNotAfterCurrentTime(date: string, startMinutes: number, currentTime?: BookingCurrentTime) {
-  if (!currentTime) return false;
-  if (date < currentTime.date) return true;
-  if (date > currentTime.date) return false;
-
-  return startMinutes <= currentTime.minutes;
 }

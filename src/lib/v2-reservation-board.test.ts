@@ -33,7 +33,7 @@ describe("v2 reservation board", () => {
     expect(slots[23]).toEqual({ startMinutes: 1290, label: "21:30" });
   });
 
-  it("marks past, available, and reserved tiles for every active room", () => {
+  it("marks grace-period, available, and reserved tiles for every active room", () => {
     const rows = buildV2BoardRows({
       date: "2026-06-20",
       reservations: [baseReservation],
@@ -41,7 +41,7 @@ describe("v2 reservation board", () => {
     });
 
     expect(rows[0].timeLabel).toBe("10:00");
-    expect(rows[0].tiles.map((tile) => tile.state)).toEqual(["past", "past", "past"]);
+    expect(rows[0].tiles.map((tile) => tile.state)).toEqual(["available", "available", "available"]);
 
     const row1030 = rows.find((row) => row.startMinutes === 630)!;
     expect(row1030.tiles.map((tile) => ({ roomId: tile.room.id, state: tile.state, name: tile.reservation?.name }))).toEqual([
@@ -82,20 +82,22 @@ describe("v2 reservation board", () => {
       ),
     ).toEqual({ ok: false, error: "오늘 예약만 가능합니다." });
 
-    expect(
-      validateV2ReservationDraft(
-        {
-          date: "2026-06-20",
-          roomId: "room-1",
-          startMinutes: 600,
-          endMinutes: 630,
-          name: "Kim",
-          password: "1234",
-        },
-        [],
-        { date: "2026-06-20", minutes: 600 },
-      ),
-    ).toEqual({ ok: false, error: "현재 시간 이후만 예약할 수 있습니다." });
+    const gracePeriodDraft = {
+      date: "2026-06-20",
+      roomId: "room-1",
+      startMinutes: 600,
+      endMinutes: 630,
+      name: "Kim",
+      password: "1234",
+    };
+
+    expect(validateV2ReservationDraft(gracePeriodDraft, [], { date: "2026-06-20", minutes: 620 })).toEqual({
+      ok: true,
+    });
+    expect(validateV2ReservationDraft(gracePeriodDraft, [], { date: "2026-06-20", minutes: 621 })).toEqual({
+      ok: false,
+      error: "현재 시간 이후만 예약할 수 있습니다.",
+    });
 
     expect(
       validateV2ReservationDraft(

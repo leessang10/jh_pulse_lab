@@ -110,7 +110,7 @@ describe("booking availability", () => {
     expect(availability.rangeOptions.some((option) => option.startMinutes === 1410)).toBe(false);
   });
 
-  it("hides starts that are not after the current time on the same day", () => {
+  it("keeps same-day starts available through the 20-minute grace period", () => {
     const availability = getBookingAvailability([], {
       date: "2026-06-05",
       roomId: "room-1",
@@ -118,7 +118,11 @@ describe("booking availability", () => {
       currentTime: { date: "2026-06-05", minutes: 615 },
     });
 
-    expect(availability.rangeOptions.some((option) => option.startMinutes === 600)).toBe(false);
+    expect(availability.rangeOptions).toContainEqual({
+      startMinutes: 600,
+      endMinutes: 660,
+      label: "10:00-11:00",
+    });
     expect(availability.rangeOptions).toContainEqual({
       startMinutes: 630,
       endMinutes: 690,
@@ -126,15 +130,15 @@ describe("booking availability", () => {
     });
   });
 
-  it("rejects a start exactly at the current time", () => {
+  it("hides same-day starts after the 20-minute grace period", () => {
     const availability = getBookingAvailability([], {
       date: "2026-06-05",
       roomId: "room-1",
       durationMinutes: 60,
-      currentTime: { date: "2026-06-05", minutes: 630 },
+      currentTime: { date: "2026-06-05", minutes: 621 },
     });
 
-    expect(availability.rangeOptions.some((option) => option.startMinutes === 630)).toBe(false);
+    expect(availability.rangeOptions.some((option) => option.startMinutes === 600)).toBe(false);
   });
 
   it("turns a range option into selected booking time only when it is still available", () => {
@@ -191,7 +195,7 @@ describe("booking availability", () => {
     expect(validateBookableDraftTime([], draft)).toEqual({ ok: true });
   });
 
-  it("rejects final drafts that start before the current time on the same day", () => {
+  it("validates final drafts with the same 20-minute grace period", () => {
     const draft: ReservationDraft = {
       date: "2026-06-05",
       roomId: "room-1",
@@ -201,7 +205,10 @@ describe("booking availability", () => {
       password: "1234",
     };
 
-    expect(validateBookableDraftTime([], draft, undefined, { date: "2026-06-05", minutes: 615 })).toEqual({
+    expect(validateBookableDraftTime([], draft, undefined, { date: "2026-06-05", minutes: 620 })).toEqual({
+      ok: true,
+    });
+    expect(validateBookableDraftTime([], draft, undefined, { date: "2026-06-05", minutes: 621 })).toEqual({
       ok: false,
       error: "현재 시간 이전은 예약할 수 없습니다.",
     });

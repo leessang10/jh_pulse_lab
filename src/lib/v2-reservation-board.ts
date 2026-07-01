@@ -1,5 +1,5 @@
-import type { BookingCurrentTime } from "@/lib/booking-availability";
-import { findReservationConflict } from "@/lib/booking-availability";
+import { findReservationConflict, type BookingCurrentTime } from "@/lib/booking-availability";
+import { isBookingStartPastGracePeriod } from "@/lib/booking-time-policy";
 import {
   ACTIVE_ROOM_IDS,
   BOOKING_DURATION_OPTIONS,
@@ -167,5 +167,5 @@ function isV2PastStart(date: string, startMinutes: number, currentTime: BookingC
   if (date < currentTime.date) return true;
   if (date > currentTime.date) return false;
 
-  return startMinutes <= currentTime.minutes;
+  return isBookingStartPastGracePeriod(date, startMinutes, currentTime);
 }
