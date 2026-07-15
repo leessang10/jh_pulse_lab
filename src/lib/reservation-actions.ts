@@ -76,7 +76,8 @@ export async function listPublicScheduleBlocks(
     return {
       ok: true,
       data: [...reservations, ...maintenance].sort(
-        (left, right) => left.startMinutes - right.startMinutes,
+        (left, right) =>
+          left.startMinutes - right.startMinutes || left.roomId.localeCompare(right.roomId),
       ),
     };
   } catch (error) {

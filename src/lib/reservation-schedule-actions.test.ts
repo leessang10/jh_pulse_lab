@@ -35,9 +35,9 @@ describe("public schedule actions", () => {
       {
         id: "reservation-1",
         date: "2026-07-15",
-        room_id: "room-1",
-        start_minutes: 660,
-        end_minutes: 720,
+        room_id: "room-2",
+        start_minutes: 600,
+        end_minutes: 660,
         name: "Lee",
         note: null,
         status: "pending",
