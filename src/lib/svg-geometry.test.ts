@@ -25,4 +25,17 @@ describe("svg geometry", () => {
       }),
     ).toBe("M 213.65 54.43 A 130 130 0 0 1 271.92 88.08 L 235.15 124.85 A 78 78 0 0 0 200.19 104.66 Z");
   });
+
+  it("builds a complete annular path for a full 360 degree range", () => {
+    const path = getStableAnnularSectorPath({
+      center: 180,
+      startAngleDegrees: 0,
+      endAngleDegrees: 360,
+      innerRadius: 58,
+      outerRadius: 166,
+    });
+
+    expect(path.match(/A 166 166/g)).toHaveLength(2);
+    expect(path.match(/A 58 58/g)).toHaveLength(2);
+  });
 });
