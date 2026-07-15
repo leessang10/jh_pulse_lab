@@ -1,7 +1,7 @@
-import { V2_DAY_END_MINUTES, V2_DAY_START_MINUTES, V2_SLOT_MINUTES } from "@/lib/v2-reservation-board";
-import { ROOMS, formatMinutes, type Reservation, type Room } from "@/lib/reservations";
+import { DAY_END_MINUTES, ROOMS, SLOT_MINUTES, formatMinutes, type Reservation, type Room } from "@/lib/reservations";
+import type { MaintenanceBlock } from "@/lib/maintenance-blocks";
 
-export type AdminTimetableTileState = "empty" | "reserved" | "cancelled";
+export type AdminTimetableTileState = "empty" | "reserved" | "cancelled" | "maintenance";
 
 export type AdminTimetableTile = {
   key: string;
@@ -12,6 +12,7 @@ export type AdminTimetableTile = {
   timeLabel: string;
   state: AdminTimetableTileState;
   reservation?: Reservation;
+  maintenanceBlock?: MaintenanceBlock;
 };
 
 export type AdminTimetableRow = {
@@ -23,9 +24,10 @@ export type AdminTimetableRow = {
 export function buildAdminTimetableRows(options: {
   date: string;
   reservations: Reservation[];
+  maintenanceBlocks?: MaintenanceBlock[];
 }): AdminTimetableRow[] {
-  return Array.from({ length: (V2_DAY_END_MINUTES - V2_DAY_START_MINUTES) / V2_SLOT_MINUTES }, (_, index) => {
-    const startMinutes = V2_DAY_START_MINUTES + index * V2_SLOT_MINUTES;
+  return Array.from({ length: DAY_END_MINUTES / SLOT_MINUTES }, (_, index) => {
+    const startMinutes = index * SLOT_MINUTES;
 
     return {
       startMinutes,
@@ -40,8 +42,16 @@ function buildAdminTimetableTile(options: {
   room: Room;
   startMinutes: number;
   reservations: Reservation[];
+  maintenanceBlocks?: MaintenanceBlock[];
 }): AdminTimetableTile {
-  const endMinutes = options.startMinutes + V2_SLOT_MINUTES;
+  const endMinutes = options.startMinutes + SLOT_MINUTES;
+  const maintenanceBlock = options.maintenanceBlocks?.find(
+    (block) =>
+      block.date === options.date &&
+      block.roomId === options.room.id &&
+      options.startMinutes < block.endMinutes &&
+      block.startMinutes < endMinutes,
+  );
   const overlappingReservations = options.reservations.filter(
     (reservation) =>
       reservation.date === options.date &&
@@ -52,7 +62,9 @@ function buildAdminTimetableTile(options: {
   const reservation =
     overlappingReservations.find((candidate) => candidate.status !== "cancelled") ??
     overlappingReservations.find((candidate) => candidate.status === "cancelled");
-  const state: AdminTimetableTileState = reservation
+  const state: AdminTimetableTileState = maintenanceBlock
+    ? "maintenance"
+    : reservation
     ? reservation.status === "cancelled"
       ? "cancelled"
       : "reserved"
@@ -66,6 +78,7 @@ function buildAdminTimetableTile(options: {
     endMinutes,
     timeLabel: formatMinutes(options.startMinutes),
     state,
-    reservation,
+    reservation: maintenanceBlock ? undefined : reservation,
+    maintenanceBlock,
   };
 }

@@ -14,15 +14,38 @@ const baseReservation: Reservation = {
 };
 
 describe("admin timetable", () => {
-  it("builds a 10:00 to 22:00 board with one tile per active room", () => {
+  it("builds a full-day board with one tile per active room", () => {
     const rows = buildAdminTimetableRows({
       date: "2026-06-20",
       reservations: [baseReservation],
     });
 
-    expect(rows).toHaveLength(24);
-    expect(rows[0].timeLabel).toBe("10:00");
+    expect(rows).toHaveLength(48);
+    expect(rows[0].timeLabel).toBe("00:00");
+    expect(rows[47].timeLabel).toBe("23:30");
     expect(rows[0].tiles.map((tile) => tile.room.id)).toEqual(["room-1", "room-2", "room-3"]);
+  });
+
+  it("shows maintenance before cancelled reservations in the same slot", () => {
+    const maintenance = {
+      id: "maintenance-1",
+      date: "2026-06-20",
+      roomId: "room-2",
+      startMinutes: 600,
+      endMinutes: 780,
+      createdBy: "admin-1",
+      createdAt: "2026-06-20T01:00:00.000Z",
+    };
+    const rows = buildAdminTimetableRows({
+      date: "2026-06-20",
+      reservations: [{ ...baseReservation, status: "cancelled" }],
+      maintenanceBlocks: [maintenance],
+    });
+    const tile = rows.find((row) => row.startMinutes === 630)!.tiles[1];
+
+    expect(tile.state).toBe("maintenance");
+    expect(tile.maintenanceBlock).toEqual(maintenance);
+    expect(tile.reservation).toBeUndefined();
   });
 
   it("marks reserved and cancelled tiles without blocking empty rooms", () => {
