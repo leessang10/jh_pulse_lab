@@ -27,7 +27,7 @@ import { getBookingAvailability, type BookableRangeOption } from "@/lib/booking-
 import { formatKoreaDate, getCurrentKoreaBookingTime } from "@/lib/korea-date";
 import {
   cancelPublicReservation,
-  listPublicReservationTimeBlocks,
+  listPublicScheduleBlocks,
   listPublicReservationsByLookup,
   updatePublicReservationTime,
 } from "@/lib/reservation-actions";
@@ -255,7 +255,7 @@ export default function ReservationsPage() {
       selectedOption: null,
     });
 
-    const result = await listPublicReservationTimeBlocks(reservation.date);
+    const result = await listPublicScheduleBlocks(reservation.date);
     if (!result.ok) {
       toast.error(result.error);
       setEditingReservation(null);

@@ -18,6 +18,33 @@ const reservation: Reservation = {
 };
 
 describe("landing schedule", () => {
+  it("shows maintenance ranges as maintenance segments", () => {
+    const maintenance = {
+      kind: "maintenance" as const,
+      id: "maintenance-1",
+      date: "2026-06-02",
+      roomId: "room-1",
+      startMinutes: 600,
+      endMinutes: 780,
+      createdBy: "admin-1",
+      createdAt: "2026-06-02T00:00:00.000Z",
+    };
+
+    const summary = getLandingRoomScheduleSummaries([maintenance], "2026-06-02")[0];
+
+    expect(summary.reservationSegments).toContainEqual(
+      expect.objectContaining({
+        reservationId: "maintenance-1",
+        nameLabel: "점검",
+        rangeLabel: "10:00-13:00",
+      }),
+    );
+    expect(summary.slots.find((slot) => slot.startMinutes === 600)).toMatchObject({
+      isBooked: true,
+      bookedByLabel: "점검 · 연습실 1",
+    });
+  });
+
   it("uses tokenized reservation segment colors that match the primary accent", () => {
     expect(LANDING_RESERVATION_SEGMENT_COLORS).toEqual([
       "var(--reservation-segment-1)",

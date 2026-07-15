@@ -8,6 +8,9 @@ import {
 } from "./reservations";
 import { findReservationConflict } from "./booking-availability";
 import { LANDING_RESERVATION_SEGMENT_COLOR_TOKENS } from "./visual-tokens";
+import type { ScheduleBlock } from "./maintenance-blocks";
+
+type LandingBlock = ReservationTimeBlock | ScheduleBlock;
 
 export type LandingScheduleSlot = {
   index: number;
@@ -18,7 +21,7 @@ export type LandingScheduleSlot = {
   isBooked: boolean;
   bookedByLabel: string;
   reservationCount: number;
-  reservations: ReservationTimeBlock[];
+  reservations: LandingBlock[];
 };
 
 export type LandingRoomScheduleSummary = {
@@ -46,19 +49,30 @@ export type LandingReservationSegment = {
 
 export const LANDING_RESERVATION_SEGMENT_COLORS = LANDING_RESERVATION_SEGMENT_COLOR_TOKENS;
 
-function getReservationName(reservation: ReservationTimeBlock) {
-  return reservation.name.trim() || "예약자";
+function isMaintenanceBlock(block: LandingBlock): block is Extract<ScheduleBlock, { kind: "maintenance" }> {
+  return "kind" in block && block.kind === "maintenance";
 }
 
-function getBookedByLabel(reservations: ReservationTimeBlock[]) {
-  if (reservations.length === 0) return "비어 있어요";
-  if (reservations.length === 1) {
-    const reservation = reservations[0];
+function isActiveBlock(block: LandingBlock) {
+  return isMaintenanceBlock(block) || block.status !== "cancelled";
+}
 
-    return `${getReservationName(reservation)}님 · ${getRoomName(reservation.roomId)}`;
+function getBlockName(block: LandingBlock) {
+  return isMaintenanceBlock(block) ? "점검" : block.name.trim() || "예약자";
+}
+
+function getBookedByLabel(blocks: LandingBlock[]) {
+  if (blocks.length === 0) return "비어 있어요";
+  if (blocks.length === 1) {
+    const block = blocks[0];
+
+    return isMaintenanceBlock(block)
+      ? `점검 · ${getRoomName(block.roomId)}`
+      : `${getBlockName(block)}님 · ${getRoomName(block.roomId)}`;
   }
 
-  return `${getReservationName(reservations[0])}님 외 ${reservations.length - 1}명`;
+  const suffix = isMaintenanceBlock(blocks[0]) ? "" : "님";
+  return `${getBlockName(blocks[0])}${suffix} 외 ${blocks.length - 1}명`;
 }
 
 function formatBookedHourLabel(minutes: number) {
@@ -81,15 +95,15 @@ function formatBookedDurationLabel(minutes: number) {
 }
 
 function getLandingReservationSegments(
-  reservations: ReservationTimeBlock[],
+  reservations: LandingBlock[],
   date: string,
   roomId: string,
 ): LandingReservationSegment[] {
   return reservations
-    .filter((reservation) => reservation.status !== "cancelled" && reservation.date === date && reservation.roomId === roomId)
+    .filter((reservation) => isActiveBlock(reservation) && reservation.date === date && reservation.roomId === roomId)
     .sort((a, b) => a.startMinutes - b.startMinutes || a.endMinutes - b.endMinutes || a.id.localeCompare(b.id))
     .map((reservation, index) => {
-      const nameLabel = getReservationName(reservation);
+      const nameLabel = getBlockName(reservation);
 
       return {
         reservationId: reservation.id,
@@ -103,7 +117,7 @@ function getLandingReservationSegments(
 }
 
 export function getLandingScheduleSlots(
-  reservations: ReservationTimeBlock[],
+  reservations: LandingBlock[],
   date: string,
   options: { roomId?: string } = {},
 ): LandingScheduleSlot[] {
@@ -112,7 +126,7 @@ export function getLandingScheduleSlots(
     const endMinutes = startMinutes + SLOT_MINUTES;
     const slotReservations = reservations.filter(
       (reservation) =>
-        reservation.status !== "cancelled" &&
+        isActiveBlock(reservation) &&
         (!options.roomId || reservation.roomId === options.roomId) &&
         findReservationConflict(
           [reservation],
@@ -141,7 +155,7 @@ export function getLandingScheduleSlots(
 }
 
 export function getLandingRoomScheduleSummaries(
-  reservations: ReservationTimeBlock[],
+  reservations: LandingBlock[],
   date: string,
 ): LandingRoomScheduleSummary[] {
   return ROOMS.map((room) => {

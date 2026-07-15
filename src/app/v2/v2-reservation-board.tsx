@@ -13,8 +13,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { getCurrentKoreaBookingTime } from "@/lib/korea-date";
-import { listPublicReservationTimeBlocks } from "@/lib/reservation-actions";
-import type { ReservationTimeBlock } from "@/lib/reservations";
+import { listPublicScheduleBlocks } from "@/lib/reservation-actions";
+import type { ScheduleBlock } from "@/lib/maintenance-blocks";
 import { cn } from "@/lib/utils";
 import { cancelV2PublicReservation, createV2PublicReservation } from "@/lib/v2-reservation-actions";
 import {
@@ -32,7 +32,7 @@ type V2ReservationBoardProps = {
 };
 
 export function V2ReservationBoard({ today, todayLabel }: V2ReservationBoardProps) {
-  const [reservations, setReservations] = useState<ReservationTimeBlock[]>([]);
+  const [reservations, setReservations] = useState<ScheduleBlock[]>([]);
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedTile, setSelectedTile] = useState<V2BoardTile | null>(null);
@@ -44,7 +44,7 @@ export function V2ReservationBoard({ today, todayLabel }: V2ReservationBoardProp
   const [isSubmitting, startSubmitTransition] = useTransition();
 
   const refresh = useCallback(async () => {
-    const result = await listPublicReservationTimeBlocks(today);
+    const result = await listPublicScheduleBlocks(today);
     if (!result.ok) {
       setError(result.error);
       setReservations([]);
@@ -337,14 +337,16 @@ function MobileBoard({ rows, onTileClick }: { rows: V2BoardRow[]; onTileClick: (
 }
 
 function TileButton({ tile, onClick }: { tile: V2BoardTile; onClick: (tile: V2BoardTile) => void }) {
-  const disabled = tile.state === "past" || tile.state === "unavailable";
+  const disabled = tile.state === "past" || tile.state === "maintenance" || tile.state === "unavailable";
   const label =
     tile.state === "reserved"
       ? `${tile.reservation?.name ?? "예약됨"} ${getV2ReservationRangeLabel(
           tile.reservation?.startMinutes ?? tile.startMinutes,
           tile.reservation?.endMinutes ?? tile.endMinutes,
         )}`
-      : tile.state === "past"
+      : tile.state === "maintenance"
+        ? "점검"
+        : tile.state === "past"
         ? "종료"
         : "예약 가능";
 
@@ -358,6 +360,7 @@ function TileButton({ tile, onClick }: { tile: V2BoardTile; onClick: (tile: V2Bo
         "flex min-h-14 w-full items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left text-base font-bold transition active:translate-y-px disabled:pointer-events-none",
         tile.state === "available" && "border-emerald-300 bg-emerald-50 text-emerald-950 hover:bg-emerald-100",
         tile.state === "reserved" && "border-slate-300 bg-slate-100 text-slate-950 hover:bg-slate-200",
+        tile.state === "maintenance" && "border-amber-300 bg-amber-50 text-amber-950",
         tile.state === "past" && "border-border bg-muted/50 text-muted-foreground opacity-65",
         tile.state === "unavailable" && "border-border bg-muted/50 text-muted-foreground opacity-65",
       )}
