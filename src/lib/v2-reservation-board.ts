@@ -1,4 +1,8 @@
-import { findReservationConflict, type BookingCurrentTime } from "@/lib/booking-availability";
+import {
+  MAINTENANCE_CONFLICT_MESSAGE,
+  findScheduleConflict,
+  type BookingCurrentTime,
+} from "@/lib/booking-availability";
 import { isBookingStartPastGracePeriod } from "@/lib/booking-time-policy";
 import {
   ACTIVE_ROOM_IDS,
@@ -10,6 +14,7 @@ import {
   type ReservationTimeBlock,
   type Room,
 } from "@/lib/reservations";
+import type { ScheduleBlock } from "@/lib/maintenance-blocks";
 
 export const V2_DAY_START_MINUTES = 10 * 60;
 export const V2_DAY_END_MINUTES = 22 * 60;
@@ -21,7 +26,8 @@ export const V2_OPERATING_HOURS_MESSAGE = "운영시간은 10:00부터 22:00까�
 export const V2_DURATION_MESSAGE = "이용시간은 30분 또는 1시간만 가능합니다.";
 export const V2_CONFLICT_MESSAGE = "이미 예약된 시간입니다.";
 
-export type V2TileState = "past" | "available" | "reserved" | "unavailable";
+export type V2TileState = "past" | "available" | "reserved" | "maintenance" | "unavailable";
+type V2OccupancyBlock = ReservationTimeBlock | ScheduleBlock;
 
 export type V2BoardTile = {
   key: string;
@@ -31,6 +37,7 @@ export type V2BoardTile = {
   endMinutes: number;
   timeLabel: string;
   state: V2TileState;
+  block?: V2OccupancyBlock;
   reservation?: ReservationTimeBlock;
 };
 
@@ -57,7 +64,7 @@ export function getV2VisibleSlots() {
 
 export function buildV2BoardRows(options: {
   date: string;
-  reservations: ReservationTimeBlock[];
+  reservations: V2OccupancyBlock[];
   currentTime: BookingCurrentTime;
 }): V2BoardRow[] {
   return getV2VisibleSlots().map((slot) => ({
@@ -69,7 +76,7 @@ export function buildV2BoardRows(options: {
 
 export function getV2DurationOptionsForTile(
   tile: Pick<V2BoardTile, "date" | "room" | "startMinutes">,
-  reservations: ReservationTimeBlock[],
+  reservations: V2OccupancyBlock[],
   currentTime: BookingCurrentTime,
 ): V2DurationOption[] {
   return BOOKING_DURATION_OPTIONS.map((option) => {
@@ -93,7 +100,7 @@ export function getV2DurationOptionsForTile(
 
 export function validateV2ReservationDraft(
   draft: ReservationDraft,
-  reservations: ReservationTimeBlock[],
+  reservations: V2OccupancyBlock[],
   currentTime: BookingCurrentTime,
 ): { ok: true } | { ok: false; error: string } {
   if (!draft.name.trim()) return { ok: false, error: "예약자 이름을 입력해 주세요." };
@@ -104,7 +111,7 @@ export function validateV2ReservationDraft(
 
 export function validateV2ReservationTime(
   draft: Pick<ReservationDraft, "date" | "roomId" | "startMinutes" | "endMinutes">,
-  reservations: ReservationTimeBlock[],
+  reservations: V2OccupancyBlock[],
   currentTime: BookingCurrentTime,
 ): { ok: true } | { ok: false; error: string } {
   const duration = draft.endMinutes - draft.startMinutes;
@@ -119,7 +126,15 @@ export function validateV2ReservationTime(
     return { ok: false, error: V2_OPERATING_HOURS_MESSAGE };
   }
   if (isV2PastStart(draft.date, draft.startMinutes, currentTime)) return { ok: false, error: V2_PAST_TIME_MESSAGE };
-  if (findReservationConflict(reservations, draft)) return { ok: false, error: V2_CONFLICT_MESSAGE };
+  const conflict = findScheduleConflict(reservations, draft);
+  if (conflict) {
+    return {
+      ok: false,
+      error: isMaintenanceBlock(conflict)
+        ? MAINTENANCE_CONFLICT_MESSAGE
+        : V2_CONFLICT_MESSAGE,
+    };
+  }
 
   return { ok: true };
 }
@@ -132,21 +147,21 @@ function buildV2BoardTile(options: {
   date: string;
   room: Room;
   startMinutes: number;
-  reservations: ReservationTimeBlock[];
+  reservations: V2OccupancyBlock[];
   currentTime: BookingCurrentTime;
 }): V2BoardTile {
   const endMinutes = options.startMinutes + V2_SLOT_MINUTES;
-  const reservation = options.reservations.find(
+  const block = options.reservations.find(
     (candidate) =>
       candidate.date === options.date &&
       candidate.roomId === options.room.id &&
-      candidate.status !== "cancelled" &&
+      (isMaintenanceBlock(candidate) || candidate.status !== "cancelled") &&
       options.startMinutes < candidate.endMinutes &&
       candidate.startMinutes < endMinutes,
   );
 
-  const state: V2TileState = reservation
-    ? "reserved"
+  const state: V2TileState = block
+    ? isMaintenanceBlock(block) ? "maintenance" : "reserved"
     : isV2PastStart(options.date, options.startMinutes, options.currentTime)
       ? "past"
       : "available";
@@ -159,8 +174,13 @@ function buildV2BoardTile(options: {
     endMinutes,
     timeLabel: formatMinutes(options.startMinutes),
     state,
-    reservation,
+    block,
+    reservation: block && !isMaintenanceBlock(block) ? block : undefined,
   };
+}
+
+function isMaintenanceBlock(block: V2OccupancyBlock): block is Extract<ScheduleBlock, { kind: "maintenance" }> {
+  return "kind" in block && block.kind === "maintenance";
 }
 
 function isV2PastStart(date: string, startMinutes: number, currentTime: BookingCurrentTime) {

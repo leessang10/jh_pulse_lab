@@ -8,10 +8,14 @@ import {
   type ReservationTimeBlock,
 } from "./reservations";
 import { isBookingStartPastGracePeriod } from "./booking-time-policy";
+import type { ScheduleBlock } from "./maintenance-blocks";
 
 export const BOOKING_RANGE_CONFLICT_MESSAGE = "이미 예약된 시간이 포함되어 있습니다.";
 export const BOOKING_DRAFT_CONFLICT_MESSAGE = "이미 예약된 시간입니다.";
 export const BOOKING_PAST_TIME_MESSAGE = "현재 시간 이전은 예약할 수 없습니다.";
+export const MAINTENANCE_CONFLICT_MESSAGE = "점검 시간에는 예약할 수 없습니다.";
+
+type OccupancyBlock = ReservationTimeBlock | ScheduleBlock;
 
 export type BookableRangeOption = {
   startMinutes: number;
@@ -31,25 +35,27 @@ export type BookingAvailability = {
   rangeOptions: BookableRangeOption[];
 };
 
-export function findReservationConflict(
-  reservations: ReservationTimeBlock[],
+export function findScheduleConflict(
+  blocks: OccupancyBlock[],
   draft: Pick<ReservationDraft, "date" | "roomId" | "startMinutes" | "endMinutes">,
   ignoredReservationId?: string,
 ) {
   return (
-    reservations.find((reservation) => {
-      if (reservation.id === ignoredReservationId) return false;
-      if (reservation.status === "cancelled") return false;
-      if (reservation.date !== draft.date) return false;
-      if (reservation.roomId !== draft.roomId) return false;
+    blocks.find((block) => {
+      if (!isMaintenanceBlock(block) && block.id === ignoredReservationId) return false;
+      if (!isMaintenanceBlock(block) && block.status === "cancelled") return false;
+      if (block.date !== draft.date) return false;
+      if (block.roomId !== draft.roomId) return false;
 
-      return isTimeRangeOverlapping(draft, reservation);
+      return isTimeRangeOverlapping(draft, block);
     }) ?? null
   );
 }
 
+export const findReservationConflict = findScheduleConflict;
+
 function isBookingDurationAvailable(
-  reservations: ReservationTimeBlock[],
+  reservations: OccupancyBlock[],
   options: {
     date: string;
     roomId: string;
@@ -64,7 +70,7 @@ function isBookingDurationAvailable(
   if (isBookingStartPastGracePeriod(options.date, options.startMinutes, options.currentTime)) return false;
 
   return (
-    findReservationConflict(
+    findScheduleConflict(
       reservations,
       {
         date: options.date,
@@ -78,7 +84,7 @@ function isBookingDurationAvailable(
 }
 
 function getBookingStartOptions(
-  reservations: ReservationTimeBlock[],
+  reservations: OccupancyBlock[],
   options: {
     date: string;
     roomId: string;
@@ -97,7 +103,7 @@ function getBookingStartOptions(
     );
     const isReservedSlot =
       startMinutes + SLOT_MINUTES <= DAY_END_MINUTES &&
-      findReservationConflict(
+      findScheduleConflict(
         reservations,
         {
           date: options.date,
@@ -110,7 +116,7 @@ function getBookingStartOptions(
     const hasReservedSlotInRange = selectedSlotMinutes.some(
       (slotStartMinutes) =>
         slotStartMinutes + SLOT_MINUTES <= DAY_END_MINUTES &&
-        findReservationConflict(
+        findScheduleConflict(
           reservations,
           {
             date: options.date,
@@ -145,7 +151,7 @@ function getBookingStartOptions(
 }
 
 function getBookableRangeOptions(
-  reservations: ReservationTimeBlock[],
+  reservations: OccupancyBlock[],
   options: {
     date: string;
     roomId: string;
@@ -164,7 +170,7 @@ function getBookableRangeOptions(
 }
 
 export function getBookingAvailability(
-  reservations: ReservationTimeBlock[],
+  reservations: OccupancyBlock[],
   options: {
     date: string;
     roomId: string;
@@ -180,7 +186,7 @@ export function getBookingAvailability(
 }
 
 export function selectBookableRange(
-  reservations: ReservationTimeBlock[],
+  reservations: OccupancyBlock[],
   options: {
     date: string;
     roomId: string;
@@ -193,7 +199,7 @@ export function selectBookableRange(
     return { ok: false, error: BOOKING_PAST_TIME_MESSAGE };
   }
 
-  const conflict = findReservationConflict(
+  const conflict = findScheduleConflict(
     reservations,
     {
       date: options.date,
@@ -205,7 +211,12 @@ export function selectBookableRange(
   );
 
   if (conflict) {
-    return { ok: false, error: BOOKING_RANGE_CONFLICT_MESSAGE };
+    return {
+      ok: false,
+      error: isMaintenanceBlock(conflict)
+        ? MAINTENANCE_CONFLICT_MESSAGE
+        : BOOKING_RANGE_CONFLICT_MESSAGE,
+    };
   }
 
   return {
@@ -219,7 +230,7 @@ export function selectBookableRange(
 }
 
 export function validateBookableDraftTime(
-  reservations: ReservationTimeBlock[],
+  reservations: OccupancyBlock[],
   draft: Pick<ReservationDraft, "date" | "roomId" | "startMinutes" | "endMinutes">,
   ignoredReservationId?: string,
   currentTime?: BookingCurrentTime,
@@ -228,15 +239,22 @@ export function validateBookableDraftTime(
     return { ok: false, error: BOOKING_PAST_TIME_MESSAGE };
   }
 
-  const conflict = findReservationConflict(reservations, draft, ignoredReservationId);
+  const conflict = findScheduleConflict(reservations, draft, ignoredReservationId);
 
-  if (conflict) return { ok: false, error: BOOKING_DRAFT_CONFLICT_MESSAGE };
+  if (conflict) {
+    return {
+      ok: false,
+      error: isMaintenanceBlock(conflict)
+        ? MAINTENANCE_CONFLICT_MESSAGE
+        : BOOKING_DRAFT_CONFLICT_MESSAGE,
+    };
+  }
 
   return { ok: true };
 }
 
 export function getReservationsCoveringTimeBlock(
-  reservations: ReservationTimeBlock[],
+  reservations: OccupancyBlock[],
   options: {
     date: string;
     startMinutes: number;
@@ -244,11 +262,15 @@ export function getReservationsCoveringTimeBlock(
   },
 ) {
   return reservations.filter((reservation) => {
-    if (reservation.status === "cancelled") return false;
+    if (!isMaintenanceBlock(reservation) && reservation.status === "cancelled") return false;
     if (reservation.date !== options.date) return false;
 
     return isTimeRangeOverlapping(options, reservation);
   });
+}
+
+function isMaintenanceBlock(block: OccupancyBlock): block is Extract<ScheduleBlock, { kind: "maintenance" }> {
+  return "kind" in block && block.kind === "maintenance";
 }
 
 function isTimeRangeOverlapping(

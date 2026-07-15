@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import type { Reservation, ReservationDraft, ReservationTimeBlock } from "./reservations";
 import * as bookingAvailability from "./booking-availability";
 import {
+  MAINTENANCE_CONFLICT_MESSAGE,
+  findScheduleConflict,
   getBookingAvailability,
   getReservationsCoveringTimeBlock,
   selectBookableRange,
@@ -25,12 +27,46 @@ describe("booking availability", () => {
       "BOOKING_DRAFT_CONFLICT_MESSAGE",
       "BOOKING_PAST_TIME_MESSAGE",
       "BOOKING_RANGE_CONFLICT_MESSAGE",
+      "MAINTENANCE_CONFLICT_MESSAGE",
       "findReservationConflict",
+      "findScheduleConflict",
       "getBookingAvailability",
       "getReservationsCoveringTimeBlock",
       "selectBookableRange",
       "validateBookableDraftTime",
     ]);
+  });
+
+  it("blocks maintenance ranges with the maintenance-specific message", () => {
+    const maintenance = {
+      kind: "maintenance" as const,
+      id: "maintenance-1",
+      date: "2026-06-05",
+      roomId: "room-1",
+      startMinutes: 600,
+      endMinutes: 780,
+      createdBy: "admin-1",
+      createdAt: "2026-06-05T00:00:00.000Z",
+    };
+    const draft = {
+      date: "2026-06-05",
+      roomId: "room-1",
+      startMinutes: 660,
+      endMinutes: 720,
+    };
+
+    expect(findScheduleConflict([maintenance], draft)).toEqual(maintenance);
+    expect(validateBookableDraftTime([maintenance], draft)).toEqual({
+      ok: false,
+      error: MAINTENANCE_CONFLICT_MESSAGE,
+    });
+    expect(
+      selectBookableRange([maintenance], {
+        date: draft.date,
+        roomId: draft.roomId,
+        option: { startMinutes: 660, endMinutes: 720, label: "11:00-12:00" },
+      }),
+    ).toEqual({ ok: false, error: MAINTENANCE_CONFLICT_MESSAGE });
   });
 
   it("checks public time blocks without contact fields", () => {

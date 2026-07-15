@@ -21,6 +21,17 @@ const baseReservation: ReservationTimeBlock = {
   createdAt: "2026-06-20T01:00:00.000Z",
 };
 
+const maintenance = {
+  kind: "maintenance" as const,
+  id: "maintenance-1",
+  date: "2026-06-20",
+  roomId: "room-1",
+  startMinutes: 600,
+  endMinutes: 690,
+  createdBy: "admin-1",
+  createdAt: "2026-06-20T01:00:00.000Z",
+};
+
 describe("v2 reservation board", () => {
   it("uses fixed 10:00 to 22:00 operating hours with 30-minute slots", () => {
     expect(V2_DAY_START_MINUTES).toBe(600);
@@ -64,6 +75,23 @@ describe("v2 reservation board", () => {
       { minutes: 30, label: "30분", available: true },
       { minutes: 60, label: "1시간", available: false, reason: "이미 예약된 시간입니다." },
     ]);
+  });
+
+  it("marks maintenance tiles and blocks every overlapping duration", () => {
+    const row = buildV2BoardRows({
+      date: "2026-06-20",
+      reservations: [maintenance],
+      currentTime: { date: "2026-06-20", minutes: 590 },
+    })[0];
+    const tile = row.tiles[0];
+
+    expect(tile.state).toBe("maintenance");
+    expect(tile.block).toEqual(maintenance);
+    expect(getV2DurationOptionsForTile(tile, [maintenance], { date: "2026-06-20", minutes: 590 }))
+      .toEqual([
+        { minutes: 30, label: "30분", available: false, reason: "점검 시간에는 예약할 수 없습니다." },
+        { minutes: 60, label: "1시간", available: false, reason: "점검 시간에는 예약할 수 없습니다." },
+      ]);
   });
 
   it("rejects non-today, past, invalid duration, and outside-hours drafts", () => {

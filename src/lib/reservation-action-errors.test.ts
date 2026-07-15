@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   CONFLICT_MESSAGE,
   GENERIC_MESSAGE,
+  MAINTENANCE_CONFLICT_MESSAGE,
   SCHEMA_SYNC_MESSAGE,
   toReservationActionErrorMessage,
 } from "./reservation-action-errors";
@@ -27,6 +28,14 @@ describe("reservation action errors", () => {
 
   it("keeps reservation conflict errors user-friendly", () => {
     expect(toReservationActionErrorMessage(new Error("reservations_no_overlap conflicts"))).toBe(CONFLICT_MESSAGE);
+  });
+
+  it("reports database maintenance conflicts separately", () => {
+    expect(
+      toReservationActionErrorMessage(
+        new Error("reservation time conflicts with maintenance block"),
+      ),
+    ).toBe(MAINTENANCE_CONFLICT_MESSAGE);
   });
 
   it("falls back to the generic reservation error for unknown failures", () => {

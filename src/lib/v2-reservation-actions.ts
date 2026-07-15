@@ -6,7 +6,7 @@ import { validateReservationLookup } from "@/lib/reservation-credentials";
 import {
   cancelPublicReservation,
   createPublicReservation,
-  listPublicReservationTimeBlocks,
+  listPublicScheduleBlocks,
   type ReservationActionResult,
 } from "@/lib/reservation-actions";
 import type { Reservation, ReservationDraft } from "@/lib/reservations";
@@ -21,7 +21,7 @@ export async function createV2PublicReservation(
   const earlyValidation = validateV2ReservationDraft(draft, [], currentTime);
   if (!earlyValidation.ok) return earlyValidation;
 
-  const current = await listPublicReservationTimeBlocks(currentTime.date);
+  const current = await listPublicScheduleBlocks(currentTime.date);
   if (!current.ok) return current;
 
   const validation = validateV2ReservationDraft(draft, current.data, currentTime);
