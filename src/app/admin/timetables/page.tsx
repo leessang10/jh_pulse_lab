@@ -246,7 +246,7 @@ function AdminTimetablesPage() {
               연습실
               <Select value={maintenanceRoomId} onValueChange={(value) => value && setMaintenanceRoomId(value)}>
                 <SelectTrigger className="h-11 w-full">
-                  <SelectValue />
+                  <SelectValue>{getRoomName(maintenanceRoomId)}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {ROOMS.map((room) => (
@@ -262,7 +262,9 @@ function AdminTimetablesPage() {
                   value={String(maintenanceStartMinutes)}
                   onValueChange={(value) => value && setMaintenanceStartMinutes(Number(value))}
                 >
-                  <SelectTrigger className="h-11 w-full"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-11 w-full">
+                    <SelectValue>{formatMinutes(maintenanceStartMinutes)}</SelectValue>
+                  </SelectTrigger>
                   <SelectContent>
                     {startOptions.map((option) => (
                       <SelectItem key={option.value} value={String(option.value)}>{option.label}</SelectItem>
@@ -276,7 +278,9 @@ function AdminTimetablesPage() {
                   value={String(maintenanceEndMinutes)}
                   onValueChange={(value) => value && setMaintenanceEndMinutes(Number(value))}
                 >
-                  <SelectTrigger className="h-11 w-full"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-11 w-full">
+                    <SelectValue>{formatMinutes(maintenanceEndMinutes)}</SelectValue>
+                  </SelectTrigger>
                   <SelectContent>
                     {endOptions.map((minutes) => (
                       <SelectItem key={minutes} value={String(minutes)}>{formatMinutes(minutes)}</SelectItem>
