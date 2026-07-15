@@ -16,6 +16,9 @@ export function getLandingRoomTileCenterRingClassName() {
 export function getLandingRoomTileSlotClassName(state: {
   hasBookings: boolean;
   isBooked: boolean;
+  isMaintenance: boolean;
 }) {
+  if (state.isMaintenance) return "fill-none stroke-maintenance-border";
+
   return state.isBooked ? "fill-none stroke-reservation-accent" : "fill-none stroke-reservation-accent-soft";
 }

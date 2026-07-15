@@ -44,6 +44,9 @@
   --reservation-segment-5: #e9a17f;
   --reservation-segment-6: #f0c37b;
   --reservation-line: rgb(255 255 255 / 88%);
+  --maintenance-fill: #f6d879;
+  --maintenance-border: #b7791f;
+  --maintenance-foreground: #5b3a00;
   --pulse-accent: oklch(0.58 0.13 176);
   --pulse-accent-foreground: oklch(0.985 0.003 176);
   --pulse-accent-soft: oklch(0.94 0.035 176);
@@ -187,6 +190,9 @@ button:disabled {
   --color-reservation-accent: var(--reservation-accent);
   --color-reservation-accent-foreground: var(--reservation-accent-foreground);
   --color-reservation-accent-soft: var(--reservation-accent-soft);
+  --color-maintenance-fill: var(--maintenance-fill);
+  --color-maintenance-border: var(--maintenance-border);
+  --color-maintenance-foreground: var(--maintenance-foreground);
   --color-pulse-warm: var(--pulse-warm);
   --color-pulse-accent-soft: var(--pulse-accent-soft);
   --color-pulse-accent-foreground: var(--pulse-accent-foreground);
@@ -256,6 +262,9 @@ button:disabled {
   --reservation-segment-5: #f1b293;
   --reservation-segment-6: #f3cf8f;
   --reservation-line: rgb(20 26 24 / 82%);
+  --maintenance-fill: #f6d879;
+  --maintenance-border: #b7791f;
+  --maintenance-foreground: #5b3a00;
   --pulse-accent: oklch(0.75 0.11 176);
   --pulse-accent-foreground: oklch(0.18 0.02 176);
   --pulse-accent-soft: oklch(0.25 0.035 176);

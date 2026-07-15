@@ -30,7 +30,6 @@ import { DAY_END_MINUTES, SLOT_MINUTES } from "@/lib/reservations";
 import { getStableAnnularSectorPath, getStableCirclePoint, toStableSvgCoordinate } from "@/lib/svg-geometry";
 import { getRoomReservationHref } from "@/lib/reservation-ui";
 import { useReservations } from "@/lib/use-reservations";
-import { LANDING_RESERVATION_SEGMENT_COLOR_TOKENS } from "@/lib/visual-tokens";
 
 const scheduleSize = 360;
 const scheduleCenter = scheduleSize / 2;
@@ -40,7 +39,6 @@ const detailHourMarkers = getLandingDetailHourMarkers();
 const detailCardinalTimeLabels = getLandingDetailCardinalTimeLabels();
 const detailReservationBlockBorder = getLandingDetailReservationBlockBorder();
 const slotAngle = 360 / (DAY_END_MINUTES / SLOT_MINUTES);
-const reservationSegmentToneFills = LANDING_RESERVATION_SEGMENT_COLOR_TOKENS;
 const detailSlotTrackStrokeWidth = 2.4;
 
 function pointOnCircle(angleDegrees: number, radius: number) {
@@ -79,6 +77,7 @@ function getSegmentLabelStyle(segment: LandingReservationSegment): CSSProperties
     left: `${toStableSvgCoordinate((point.x / scheduleSize) * 100)}%`,
     top: `${toStableSvgCoordinate((point.y / scheduleSize) * 100)}%`,
     transform: "translate(-50%, -50%)",
+    color: segment.foregroundColor,
   };
 }
 
@@ -88,10 +87,6 @@ function getSlotTitle(slot: LandingScheduleSlot) {
 
 function getSegmentTitle(segment: LandingReservationSegment) {
   return `${segment.nameLabel} ${segment.rangeLabel}`;
-}
-
-function getReservationSegmentToneFill(index: number) {
-  return reservationSegmentToneFills[index % reservationSegmentToneFills.length];
 }
 
 function getDetailSlotTrackOpacity(index: number) {
@@ -111,7 +106,7 @@ function RoomSummaryTile({
 
   return (
     <button
-      aria-label={`${summary.roomName} 예약 현황 보기, 예약된 시간 ${summary.bookedDurationLabel}`}
+      aria-label={`${summary.roomName} 예약 현황 보기, 사용 불가 시간 ${summary.bookedDurationLabel}`}
       aria-pressed={isSelected}
       className={getLandingRoomTileClassName(isSelected)}
       onClick={onSelect}
@@ -138,7 +133,11 @@ function RoomSummaryTile({
           {summary.slots.map((slot) => (
             <path
               key={slot.startMinutes}
-              className={getLandingRoomTileSlotClassName({ hasBookings, isBooked: slot.isBooked })}
+              className={getLandingRoomTileSlotClassName({
+                hasBookings,
+                isBooked: slot.isBooked,
+                isMaintenance: slot.hasMaintenance,
+              })}
               d={getSlotArcPath(slot.index)}
               opacity={slot.isBooked ? 1 : hasBookings ? 0.48 : slot.index % 2 === 0 ? 0.95 : 0.68}
               strokeLinecap="round"
@@ -162,6 +161,8 @@ function RoomSummaryTile({
 }
 
 function RoomDetailSchedule({ summary }: { summary: LandingRoomScheduleSummary }) {
+  const hasMaintenance = summary.slots.some((slot) => slot.hasMaintenance);
+
   return (
     <section
       aria-label={`${summary.roomName} 상세 예약 현황`}
@@ -174,15 +175,25 @@ function RoomDetailSchedule({ summary }: { summary: LandingRoomScheduleSummary }
             {summary.roomName}
           </h2>
         </div>
-        <div className="grid w-[5.5rem] shrink-0 gap-0.5 rounded-lg bg-reservation-accent-soft/65 px-3 py-2 text-right sm:text-left">
-          <span className="text-[0.66rem] font-semibold text-muted-foreground">오늘 예약</span>
+        <div
+          className={`grid w-[5.5rem] shrink-0 gap-0.5 rounded-lg px-3 py-2 text-right sm:text-left ${
+            hasMaintenance ? "bg-maintenance-fill/70 text-maintenance-foreground" : "bg-reservation-accent-soft/65"
+          }`}
+        >
+          <span
+            className={`text-[0.66rem] font-semibold ${
+              hasMaintenance ? "text-maintenance-foreground" : "text-muted-foreground"
+            }`}
+          >
+            오늘 사용 불가
+          </span>
           <strong className="text-sm font-bold leading-none sm:text-base">{summary.bookedDurationLabel}</strong>
         </div>
       </div>
 
       <div className="relative mx-auto aspect-square w-full max-w-[min(100%,clamp(20rem,calc(100dvh-25rem),25.5rem))] min-w-0 sm:max-w-[min(100%,26rem)] lg:max-w-[min(100%,28rem)]">
         <svg
-          aria-label={`${summary.roomName} 오늘 예약 시간을 시계처럼 보여주는 표`}
+          aria-label={`${summary.roomName} 오늘 사용 불가 시간을 시계처럼 보여주는 표`}
           className="size-full overflow-visible"
           role="img"
           viewBox={`0 0 ${scheduleSize} ${scheduleSize}`}
@@ -207,13 +218,13 @@ function RoomDetailSchedule({ summary }: { summary: LandingRoomScheduleSummary }
               <title>{getSlotTitle(slot)}</title>
             </path>
           ))}
-          {summary.reservationSegments.map((segment, index) => (
+          {summary.reservationSegments.map((segment) => (
             <path
               key={segment.reservationId}
               d={getTimeSectorPath(segment.startMinutes, segment.endMinutes)}
-              fill={getReservationSegmentToneFill(index)}
-              opacity={0.95}
-              stroke={detailReservationBlockBorder.stroke}
+              fill={segment.color}
+              opacity={segment.kind === "maintenance" ? 1 : 0.95}
+              stroke={segment.borderColor}
               strokeLinecap={detailReservationBlockBorder.strokeLinecap}
               strokeLinejoin={detailReservationBlockBorder.strokeLinejoin}
               strokeWidth={detailReservationBlockBorder.strokeWidth}
@@ -262,7 +273,7 @@ function RoomDetailSchedule({ summary }: { summary: LandingRoomScheduleSummary }
           <div>
             <div className="text-xs font-bold text-muted-foreground">오늘</div>
             <div className="text-3xl font-bold leading-none sm:text-4xl">{summary.bookedHourLabel}</div>
-            <div className="mt-1 text-xs font-bold text-muted-foreground">예약된 시간</div>
+            <div className="mt-1 text-xs font-bold text-muted-foreground">사용 불가 시간</div>
           </div>
         </div>
 

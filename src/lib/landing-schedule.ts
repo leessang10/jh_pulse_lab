@@ -7,7 +7,14 @@ import {
   type ReservationTimeBlock,
 } from "./reservations";
 import { findReservationConflict } from "./booking-availability";
-import { LANDING_RESERVATION_SEGMENT_COLOR_TOKENS } from "./visual-tokens";
+import {
+  FOREGROUND_COLOR_TOKEN,
+  LANDING_RESERVATION_SEGMENT_COLOR_TOKENS,
+  MAINTENANCE_SEGMENT_BORDER_TOKEN,
+  MAINTENANCE_SEGMENT_FILL_TOKEN,
+  MAINTENANCE_SEGMENT_FOREGROUND_TOKEN,
+  RESERVATION_DETAIL_STROKE_TOKEN,
+} from "./visual-tokens";
 import type { ScheduleBlock } from "./maintenance-blocks";
 
 type LandingBlock = ReservationTimeBlock | ScheduleBlock;
@@ -22,6 +29,7 @@ export type LandingScheduleSlot = {
   bookedByLabel: string;
   reservationCount: number;
   reservations: LandingBlock[];
+  hasMaintenance: boolean;
 };
 
 export type LandingRoomScheduleSummary = {
@@ -45,6 +53,9 @@ export type LandingReservationSegment = {
   nameLabel: string;
   rangeLabel: string;
   color: string;
+  borderColor: string;
+  foregroundColor: string;
+  kind: "maintenance" | "reservation";
 };
 
 export const LANDING_RESERVATION_SEGMENT_COLORS = LANDING_RESERVATION_SEGMENT_COLOR_TOKENS;
@@ -104,6 +115,7 @@ function getLandingReservationSegments(
     .sort((a, b) => a.startMinutes - b.startMinutes || a.endMinutes - b.endMinutes || a.id.localeCompare(b.id))
     .map((reservation, index) => {
       const nameLabel = getBlockName(reservation);
+      const isMaintenance = isMaintenanceBlock(reservation);
 
       return {
         reservationId: reservation.id,
@@ -111,7 +123,12 @@ function getLandingReservationSegments(
         endMinutes: reservation.endMinutes,
         nameLabel,
         rangeLabel: `${formatMinutes(reservation.startMinutes)}-${formatMinutes(reservation.endMinutes)}`,
-        color: LANDING_RESERVATION_SEGMENT_COLORS[index % LANDING_RESERVATION_SEGMENT_COLORS.length],
+        color: isMaintenance
+          ? MAINTENANCE_SEGMENT_FILL_TOKEN
+          : LANDING_RESERVATION_SEGMENT_COLORS[index % LANDING_RESERVATION_SEGMENT_COLORS.length],
+        borderColor: isMaintenance ? MAINTENANCE_SEGMENT_BORDER_TOKEN : RESERVATION_DETAIL_STROKE_TOKEN,
+        foregroundColor: isMaintenance ? MAINTENANCE_SEGMENT_FOREGROUND_TOKEN : FOREGROUND_COLOR_TOKEN,
+        kind: isMaintenance ? "maintenance" : "reservation",
       };
     });
 }
@@ -150,6 +167,7 @@ export function getLandingScheduleSlots(
       bookedByLabel: getBookedByLabel(slotReservations),
       reservationCount: slotReservations.length,
       reservations: slotReservations,
+      hasMaintenance: slotReservations.some(isMaintenanceBlock),
     };
   });
 }

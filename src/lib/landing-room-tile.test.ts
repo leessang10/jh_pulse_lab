@@ -12,11 +12,17 @@ describe("landing room tile", () => {
   });
 
   it("uses a darker accent for booked mini donut slots while keeping empty slots soft", () => {
-    expect(getLandingRoomTileSlotClassName({ hasBookings: true, isBooked: true })).toBe(
+    expect(getLandingRoomTileSlotClassName({ hasBookings: true, isBooked: true, isMaintenance: false })).toBe(
       "fill-none stroke-reservation-accent",
     );
-    expect(getLandingRoomTileSlotClassName({ hasBookings: false, isBooked: false })).toBe(
+    expect(getLandingRoomTileSlotClassName({ hasBookings: false, isBooked: false, isMaintenance: false })).toBe(
       "fill-none stroke-reservation-accent-soft",
+    );
+  });
+
+  it("uses the maintenance border color for maintenance mini donut slots", () => {
+    expect(getLandingRoomTileSlotClassName({ hasBookings: true, isBooked: true, isMaintenance: true })).toBe(
+      "fill-none stroke-maintenance-border",
     );
   });
 });

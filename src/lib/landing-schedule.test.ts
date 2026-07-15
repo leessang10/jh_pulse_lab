@@ -35,12 +35,17 @@ describe("landing schedule", () => {
     expect(summary.reservationSegments).toContainEqual(
       expect.objectContaining({
         reservationId: "maintenance-1",
+        kind: "maintenance",
         nameLabel: "점검",
         rangeLabel: "10:00-13:00",
+        color: "var(--maintenance-fill)",
+        borderColor: "var(--maintenance-border)",
+        foregroundColor: "var(--maintenance-foreground)",
       }),
     );
     expect(summary.slots.find((slot) => slot.startMinutes === 600)).toMatchObject({
       isBooked: true,
+      hasMaintenance: true,
       bookedByLabel: "점검 · 연습실 1",
     });
   });
@@ -207,8 +212,11 @@ describe("landing schedule", () => {
 
     expect(segments).toHaveLength(7);
     expect(segments[0]).toMatchObject({
+      kind: "reservation",
       nameLabel: "가",
       rangeLabel: "00:00-00:30",
+      borderColor: "var(--reservation-line)",
+      foregroundColor: "var(--foreground)",
     });
     expect(segments.map((segment) => segment.color)).toEqual([
       "var(--reservation-segment-1)",
