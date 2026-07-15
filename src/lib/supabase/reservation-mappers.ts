@@ -1,5 +1,6 @@
 import type { Reservation, ReservationDraft, ReservationStatus, ReservationTimeBlock } from "@/lib/reservations";
 import { hashReservationPassword } from "@/lib/reservation-credentials";
+import { toReservationScheduleBlock } from "@/lib/maintenance-blocks";
 
 export type ReservationRow = {
   id: string;
@@ -53,6 +54,10 @@ export function mapReservationRowToTimeBlock(row: ReservationRow): PublicReserva
     status: row.status,
     createdAt: row.created_at,
   };
+}
+
+export function mapReservationRowToScheduleBlock(row: ReservationRow) {
+  return toReservationScheduleBlock(mapReservationRowToTimeBlock(row));
 }
 
 export function mapReservationDraftToInsert(draft: ReservationDraft): ReservationInsert {

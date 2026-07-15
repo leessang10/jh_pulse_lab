@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   mapReservationDraftToInsert,
   mapReservationRowToReservation,
+  mapReservationRowToScheduleBlock,
   mapReservationRowToTimeBlock,
   type ReservationRow,
 } from "./reservation-mappers";
@@ -38,6 +39,20 @@ describe("Supabase reservation mappers", () => {
 
   it("maps a Supabase row to a public time block without contact fields", () => {
     expect(mapReservationRowToTimeBlock(row)).toEqual({
+      id: row.id,
+      date: "2026-05-29",
+      roomId: "room-1",
+      startMinutes: 600,
+      endMinutes: 660,
+      name: " Lee ",
+      status: "pending",
+      createdAt: "2026-05-29T00:00:00.000Z",
+    });
+  });
+
+  it("maps a Supabase row to a reservation schedule block", () => {
+    expect(mapReservationRowToScheduleBlock(row)).toEqual({
+      kind: "reservation",
       id: row.id,
       date: "2026-05-29",
       roomId: "room-1",
