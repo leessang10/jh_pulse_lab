@@ -28,32 +28,57 @@ import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/s
 import {
   mapReservationDraftToInsert,
   mapReservationRowToReservation,
+  mapReservationRowToScheduleBlock,
   mapReservationRowToTimeBlock,
-  type PublicReservationTimeBlock,
   type ReservationRow,
 } from "@/lib/supabase/reservation-mappers";
+import {
+  mapMaintenanceRowToBlock,
+  type MaintenanceRow,
+} from "@/lib/supabase/maintenance-mappers";
+import type { ScheduleBlock } from "@/lib/maintenance-blocks";
 
 export type ReservationActionResult<T> = { ok: true; data: T } | { ok: false; error: string };
 
 const RESERVATION_SELECT = "id,date,room_id,start_minutes,end_minutes,status,created_at,updated_at,name,note";
+const MAINTENANCE_SELECT = "id,date,room_id,start_minutes,end_minutes,created_by,created_at";
 const OWNER_RESERVATION_NOT_FOUND_MESSAGE = "예약 정보를 찾을 수 없습니다.";
 
-export async function listPublicReservationTimeBlocks(
+export async function listPublicScheduleBlocks(
   date: string,
-): Promise<ReservationActionResult<PublicReservationTimeBlock[]>> {
+): Promise<ReservationActionResult<ScheduleBlock[]>> {
   try {
     const supabase = createSupabaseServiceClient();
-    const { data, error } = await supabase
-      .from("reservations")
-      .select(RESERVATION_SELECT)
-      .eq("date", date)
-      .in("room_id", ACTIVE_ROOM_IDS)
-      .neq("status", "cancelled")
-      .order("start_minutes", { ascending: true });
+    const [reservationsResult, maintenanceResult] = await Promise.all([
+      supabase
+        .from("reservations")
+        .select(RESERVATION_SELECT)
+        .eq("date", date)
+        .in("room_id", ACTIVE_ROOM_IDS)
+        .neq("status", "cancelled")
+        .order("start_minutes", { ascending: true }),
+      supabase
+        .from("maintenance_blocks")
+        .select(MAINTENANCE_SELECT)
+        .eq("date", date)
+        .in("room_id", ACTIVE_ROOM_IDS)
+        .order("start_minutes", { ascending: true }),
+    ]);
 
-    if (error) throw error;
+    if (reservationsResult.error) throw reservationsResult.error;
+    if (maintenanceResult.error) throw maintenanceResult.error;
 
-    return { ok: true, data: ((data ?? []) as ReservationRow[]).map(mapReservationRowToTimeBlock) };
+    const reservations = ((reservationsResult.data ?? []) as ReservationRow[])
+      .map(mapReservationRowToScheduleBlock);
+    const maintenance = ((maintenanceResult.data ?? []) as MaintenanceRow[])
+      .map((row) => ({ kind: "maintenance" as const, ...mapMaintenanceRowToBlock(row) }));
+
+    return {
+      ok: true,
+      data: [...reservations, ...maintenance].sort(
+        (left, right) => left.startMinutes - right.startMinutes,
+      ),
+    };
   } catch (error) {
     return { ok: false, error: toReservationActionErrorMessage(error) };
   }
@@ -72,7 +97,7 @@ export async function createPublicReservation(draft: ReservationDraft): Promise<
     const ownerBookingWindow = validateReservationOwnerBookingWindow(ownerReservations.data, currentTime);
     if (!ownerBookingWindow.ok) return ownerBookingWindow;
 
-    const current = await listPublicReservationTimeBlocks(draft.date);
+    const current = await listPublicScheduleBlocks(draft.date);
     if (!current.ok) return current;
 
     const timeAvailability = validateBookableDraftTime(current.data, draft, undefined, currentTime);
@@ -199,7 +224,7 @@ export async function updatePublicReservationTime(
 
   try {
     const supabase = createSupabaseServiceClient();
-    const current = await listPublicReservationTimeBlocks(change.date);
+    const current = await listPublicScheduleBlocks(change.date);
     if (!current.ok) return current;
 
     const timeAvailability = validateBookableDraftTime(current.data, change, reservationId, getCurrentKoreaBookingTime());

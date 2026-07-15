@@ -5,12 +5,12 @@ import {
   createPublicReservation,
   deleteAdminReservation,
   listAdminReservations,
-  listPublicReservationTimeBlocks,
+  listPublicScheduleBlocks,
   updateAdminReservationStatus,
   type ReservationActionResult,
 } from "@/lib/reservation-actions";
 import type { Reservation, ReservationDraft, ReservationStatus, ReservationTimeBlock } from "@/lib/reservations";
-import type { PublicReservationTimeBlock } from "@/lib/supabase/reservation-mappers";
+import type { ScheduleBlock } from "@/lib/maintenance-blocks";
 
 type UseReservationsBaseOptions = {
   date: string;
@@ -29,7 +29,7 @@ type UseAdminReservationsOptions = UseReservationsBaseOptions & {
 
 type UseReservationsOptions = UsePublicReservationsOptions | UseAdminReservationsOptions;
 
-type UseReservationsResult<TReservation extends ReservationTimeBlock> = {
+type UseReservationsResult<TReservation extends ReservationTimeBlock | ScheduleBlock> = {
   reservations: TReservation[];
   isReady: boolean;
   isPending: boolean;
@@ -45,13 +45,13 @@ function emptyResult<T>(error: string): ReservationActionResult<T> {
 }
 
 export function useReservations(options: UseAdminReservationsOptions): UseReservationsResult<Reservation>;
-export function useReservations(options: UsePublicReservationsOptions): UseReservationsResult<PublicReservationTimeBlock>;
+export function useReservations(options: UsePublicReservationsOptions): UseReservationsResult<ScheduleBlock>;
 export function useReservations(options: UseReservationsOptions) {
   const enabled = options.enabled ?? true;
   const isAdmin = options.admin === true;
   const adminRoomId = isAdmin ? options.roomId : undefined;
   const adminStatus = isAdmin ? options.status : undefined;
-  const [reservations, setReservations] = useState<Array<Reservation | PublicReservationTimeBlock>>([]);
+  const [reservations, setReservations] = useState<Array<Reservation | ScheduleBlock>>([]);
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -61,7 +61,7 @@ export function useReservations(options: UseReservationsOptions) {
       setReservations([]);
       setError(null);
       setIsReady(true);
-      return { ok: true, data: [] } satisfies ReservationActionResult<Array<Reservation | PublicReservationTimeBlock>>;
+      return { ok: true, data: [] } satisfies ReservationActionResult<Array<Reservation | ScheduleBlock>>;
     }
 
     setIsReady(false);
@@ -73,13 +73,13 @@ export function useReservations(options: UseReservationsOptions) {
           roomId: adminRoomId === "all" ? undefined : adminRoomId,
           status: !adminStatus || adminStatus === "all" ? undefined : adminStatus,
         })
-      : await listPublicReservationTimeBlocks(options.date);
+      : await listPublicScheduleBlocks(options.date);
 
     if (result.ok) {
       const data = result.data;
       setReservations(data);
       setIsReady(true);
-      return { ok: true, data } satisfies ReservationActionResult<Array<Reservation | PublicReservationTimeBlock>>;
+      return { ok: true, data } satisfies ReservationActionResult<Array<Reservation | ScheduleBlock>>;
     }
 
     setReservations([]);
@@ -122,5 +122,5 @@ export function useReservations(options: UseReservationsOptions) {
       },
     }),
     [error, isAdmin, isPending, isReady, refresh, reservations],
-  ) as UseReservationsResult<Reservation> | UseReservationsResult<PublicReservationTimeBlock>;
+  ) as UseReservationsResult<Reservation> | UseReservationsResult<ScheduleBlock>;
 }
