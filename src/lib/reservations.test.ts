@@ -16,9 +16,9 @@ import {
 describe("reservation rules", () => {
   it("exposes three active practice rooms for public booking", () => {
     expect(ROOMS).toEqual([
-      { id: "room-1", name: "연습실 1" },
-      { id: "room-2", name: "연습실 2" },
-      { id: "room-3", name: "연습실 3" },
+      { id: "room-1", name: "Pulse Lab 01" },
+      { id: "room-2", name: "Pulse Lab 02" },
+      { id: "room-3", name: "Pulse Lab 03" },
     ]);
     expect(ACTIVE_ROOM_IDS).toEqual(["room-1", "room-2", "room-3"]);
   });
@@ -106,8 +106,10 @@ describe("reservation rules", () => {
     ]);
   });
 
-  it("uses Korean practice room labels for public room names", () => {
-    expect(getRoomName("room-1")).toBe("연습실 1");
+  it("uses Pulse Lab labels for public room names", () => {
+    expect(getRoomName("room-1")).toBe("Pulse Lab 01");
+    expect(getRoomName("room-2")).toBe("Pulse Lab 02");
+    expect(getRoomName("room-3")).toBe("Pulse Lab 03");
     expect(getRoomName("room-4")).toBe("연습실 4");
   });
 

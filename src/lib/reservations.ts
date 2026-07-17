@@ -35,9 +35,9 @@ export type ReservationDraft = {
 export type ReservationTimeChange = Pick<ReservationDraft, "date" | "roomId" | "startMinutes" | "endMinutes">;
 
 export const ROOMS: Room[] = [
-  { id: "room-1", name: "연습실 1" },
-  { id: "room-2", name: "연습실 2" },
-  { id: "room-3", name: "연습실 3" },
+  { id: "room-1", name: "Pulse Lab 01" },
+  { id: "room-2", name: "Pulse Lab 02" },
+  { id: "room-3", name: "Pulse Lab 03" },
 ];
 
 export const ACTIVE_ROOM_IDS = ROOMS.map((room) => room.id);
