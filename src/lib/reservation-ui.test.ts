@@ -35,7 +35,7 @@ describe("reservation UI helpers", () => {
     expect(
       getBookingCompletionSnapshot({
         roomName: "연습실 1",
-        selectedTime: { label: "04:00-05:00", startMinutes: 240, endMinutes: 300 },
+        selectedTime: { label: "04:00-05:00" },
       }),
     ).toEqual({
       roomName: "연습실 1",

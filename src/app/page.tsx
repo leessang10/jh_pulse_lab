@@ -16,6 +16,10 @@ import {
   getLandingDetailSectorAngles,
 } from "@/lib/landing-detail-schedule";
 import {
+  getLandingDetailScheduleAriaLabel,
+  LANDING_DETAIL_CENTER_LINES,
+} from "@/lib/landing-detail-status";
+import {
   getLandingRoomTileCenterRingClassName,
   getLandingRoomTileClassName,
   getLandingRoomTileSlotClassName,
@@ -161,39 +165,21 @@ function RoomSummaryTile({
 }
 
 function RoomDetailSchedule({ summary }: { summary: LandingRoomScheduleSummary }) {
-  const hasMaintenance = summary.slots.some((slot) => slot.hasMaintenance);
-
   return (
     <section
       aria-label={`${summary.roomName} 상세 예약 현황`}
       className="grid gap-3 rounded-lg border border-border/80 bg-card p-3 sm:grid-cols-[minmax(11rem,14rem)_minmax(0,1fr)] sm:items-center sm:gap-5 sm:p-4"
     >
-      <div className="flex items-end justify-between gap-3 sm:grid sm:content-start sm:items-start sm:gap-6">
-        <div className="min-w-0 text-left">
-          <p className="text-xs font-semibold text-muted-foreground">실시간 예약 현황</p>
-          <h2 className="truncate text-2xl font-bold tracking-normal text-foreground sm:text-3xl">
-            {summary.roomName}
-          </h2>
-        </div>
-        <div
-          className={`grid w-[5.5rem] shrink-0 gap-0.5 rounded-lg px-3 py-2 text-right sm:text-left ${
-            hasMaintenance ? "bg-maintenance-fill/70 text-maintenance-foreground" : "bg-reservation-accent-soft/65"
-          }`}
-        >
-          <span
-            className={`text-[0.66rem] font-semibold ${
-              hasMaintenance ? "text-maintenance-foreground" : "text-muted-foreground"
-            }`}
-          >
-            오늘 사용 불가
-          </span>
-          <strong className="text-sm font-bold leading-none sm:text-base">{summary.bookedDurationLabel}</strong>
-        </div>
+      <div className="min-w-0 text-left">
+        <p className="text-xs font-semibold text-muted-foreground">실시간 예약 현황</p>
+        <h2 className="truncate text-2xl font-bold tracking-normal text-foreground sm:text-3xl">
+          {summary.roomName}
+        </h2>
       </div>
 
       <div className="relative mx-auto aspect-square w-full max-w-[min(100%,clamp(20rem,calc(100dvh-25rem),25.5rem))] min-w-0 sm:max-w-[min(100%,26rem)] lg:max-w-[min(100%,28rem)]">
         <svg
-          aria-label={`${summary.roomName} 오늘 사용 불가 시간을 시계처럼 보여주는 표`}
+          aria-label={getLandingDetailScheduleAriaLabel(summary.roomName)}
           className="size-full overflow-visible"
           role="img"
           viewBox={`0 0 ${scheduleSize} ${scheduleSize}`}
@@ -270,10 +256,9 @@ function RoomDetailSchedule({ summary }: { summary: LandingRoomScheduleSummary }
         </svg>
 
         <div className={getLandingDetailCenterPanelClassName()}>
-          <div>
-            <div className="text-xs font-bold text-muted-foreground">오늘</div>
-            <div className="text-3xl font-bold leading-none sm:text-4xl">{summary.bookedHourLabel}</div>
-            <div className="mt-1 text-xs font-bold text-muted-foreground">사용 불가 시간</div>
+          <div className="grid gap-1">
+            <div className="text-xs font-bold text-muted-foreground">{LANDING_DETAIL_CENTER_LINES[0]}</div>
+            <div className="text-base font-bold leading-tight sm:text-lg">{LANDING_DETAIL_CENTER_LINES[1]}</div>
           </div>
         </div>
 

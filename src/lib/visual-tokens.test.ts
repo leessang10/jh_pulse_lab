@@ -11,7 +11,7 @@ function readLandingPage() {
 }
 
 function getRootCssVariable(css: string, name: string) {
-  const rootBlock = css.match(/:root\s*\{(?<body>[\s\S]*?)\n\}/)?.groups?.body;
+  const rootBlock = css.match(/:root\s*\{([\s\S]*?)\n\}/)?.[1];
   const value = rootBlock?.match(new RegExp(`${name}:\\s*([^;]+);`))?.[1]?.trim();
 
   return value;
@@ -31,11 +31,11 @@ describe("landing visual tokens", () => {
     expect(getRootCssVariable(css, "--reservation-segment-6")).toBe("#f0c37b");
   });
 
-  it("uses the soft reservation tone for the landing detail summary badge", () => {
-    expect(readLandingPage()).toContain("bg-reservation-accent-soft/65");
-  });
+  it("does not render the removed landing detail summary badge", () => {
+    const page = readLandingPage();
 
-  it("keeps the landing detail summary badge at a fixed width", () => {
-    expect(readLandingPage()).toContain("w-[5.5rem]");
+    expect(page).not.toContain("오늘 사용 불가");
+    expect(page).not.toContain("w-[5.5rem]");
+    expect(page).not.toContain("bg-reservation-accent-soft/65");
   });
 });
