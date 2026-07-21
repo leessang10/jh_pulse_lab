@@ -33,15 +33,15 @@ const maintenance = {
 };
 
 describe("v2 reservation board", () => {
-  it("uses fixed 10:00 to 22:00 operating hours with 30-minute slots", () => {
-    expect(V2_DAY_START_MINUTES).toBe(600);
-    expect(V2_DAY_END_MINUTES).toBe(1320);
+  it("uses shared 07:00 to 23:00 operating hours with 30-minute slots", () => {
+    expect(V2_DAY_START_MINUTES).toBe(420);
+    expect(V2_DAY_END_MINUTES).toBe(1380);
     expect(V2_SLOT_MINUTES).toBe(30);
 
     const slots = getV2VisibleSlots();
-    expect(slots).toHaveLength(24);
-    expect(slots[0]).toEqual({ startMinutes: 600, label: "10:00" });
-    expect(slots[23]).toEqual({ startMinutes: 1290, label: "21:30" });
+    expect(slots).toHaveLength(32);
+    expect(slots[0]).toEqual({ startMinutes: 420, label: "07:00" });
+    expect(slots[31]).toEqual({ startMinutes: 1350, label: "22:30" });
   });
 
   it("marks grace-period, available, and reserved tiles for every active room", () => {
@@ -51,8 +51,9 @@ describe("v2 reservation board", () => {
       currentTime: { date: "2026-06-20", minutes: 615 },
     });
 
-    expect(rows[0].timeLabel).toBe("10:00");
-    expect(rows[0].tiles.map((tile) => tile.state)).toEqual(["available", "available", "available"]);
+    const row1000 = rows.find((row) => row.startMinutes === 600)!;
+    expect(row1000.timeLabel).toBe("10:00");
+    expect(row1000.tiles.map((tile) => tile.state)).toEqual(["available", "available", "available"]);
 
     const row1030 = rows.find((row) => row.startMinutes === 630)!;
     expect(row1030.tiles.map((tile) => ({ roomId: tile.room.id, state: tile.state, name: tile.reservation?.name }))).toEqual([
@@ -82,7 +83,7 @@ describe("v2 reservation board", () => {
       date: "2026-06-20",
       reservations: [maintenance],
       currentTime: { date: "2026-06-20", minutes: 590 },
-    })[0];
+    }).find((candidate) => candidate.startMinutes === 600)!;
     const tile = row.tiles[0];
 
     expect(tile.state).toBe("maintenance");
@@ -147,14 +148,31 @@ describe("v2 reservation board", () => {
         {
           date: "2026-06-20",
           roomId: "room-1",
-          startMinutes: 1290,
-          endMinutes: 1350,
+          startMinutes: 1350,
+          endMinutes: 1410,
           name: "Kim",
           password: "1234",
         },
         [],
         { date: "2026-06-20", minutes: 590 },
       ),
-    ).toEqual({ ok: false, error: "운영시간은 10:00부터 22:00까지입니다." });
+    ).toEqual({ ok: false, error: "예약 가능 시간은 07:00부터 23:00까지입니다." });
+  });
+
+  it("allows bookings that end exactly at 23:00", () => {
+    const currentTime = { date: "2026-06-20", minutes: 590 };
+    const base = {
+      date: "2026-06-20",
+      roomId: "room-1",
+      name: "Kim",
+      password: "1234",
+    };
+
+    expect(
+      validateV2ReservationDraft({ ...base, startMinutes: 1350, endMinutes: 1380 }, [], currentTime),
+    ).toEqual({ ok: true });
+    expect(
+      validateV2ReservationDraft({ ...base, startMinutes: 1320, endMinutes: 1380 }, [], currentTime),
+    ).toEqual({ ok: true });
   });
 });

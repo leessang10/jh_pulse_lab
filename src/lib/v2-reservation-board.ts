@@ -6,7 +6,10 @@ import {
 import { isBookingStartPastGracePeriod } from "@/lib/booking-time-policy";
 import {
   ACTIVE_ROOM_IDS,
+  BOOKING_END_MINUTES,
   BOOKING_DURATION_OPTIONS,
+  BOOKING_HOURS_MESSAGE,
+  BOOKING_START_MINUTES,
   ROOMS,
   SLOT_MINUTES,
   formatMinutes,
@@ -16,13 +19,13 @@ import {
 } from "@/lib/reservations";
 import type { ScheduleBlock } from "@/lib/maintenance-blocks";
 
-export const V2_DAY_START_MINUTES = 10 * 60;
-export const V2_DAY_END_MINUTES = 22 * 60;
+export const V2_DAY_START_MINUTES = BOOKING_START_MINUTES;
+export const V2_DAY_END_MINUTES = BOOKING_END_MINUTES;
 export const V2_SLOT_MINUTES = SLOT_MINUTES;
 
 export const V2_TODAY_ONLY_MESSAGE = "오늘 예약만 가능합니다.";
 export const V2_PAST_TIME_MESSAGE = "현재 시간 이후만 예약할 수 있습니다.";
-export const V2_OPERATING_HOURS_MESSAGE = "운영시간은 10:00부터 22:00까지입니다.";
+export const V2_OPERATING_HOURS_MESSAGE = BOOKING_HOURS_MESSAGE;
 export const V2_DURATION_MESSAGE = "이용시간은 30분 또는 1시간만 가능합니다.";
 export const V2_CONFLICT_MESSAGE = "이미 예약된 시간입니다.";
 
