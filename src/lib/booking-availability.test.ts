@@ -131,19 +131,33 @@ describe("booking availability", () => {
     });
   });
 
-  it("keeps ranges ending at midnight bookable and later ranges hidden", () => {
-    const availability = getBookingAvailability([], {
-      date: "2026-06-05",
+  it("offers only ranges inside 07:00 through 23:00", () => {
+    const thirtyMinutes = getBookingAvailability([], {
+      date: "2026-07-17",
+      roomId: "room-1",
+      durationMinutes: 30,
+    });
+    const oneHour = getBookingAvailability([], {
+      date: "2026-07-17",
       roomId: "room-1",
       durationMinutes: 60,
     });
 
-    expect(availability.rangeOptions).toContainEqual({
-      startMinutes: 1380,
-      endMinutes: 1440,
-      label: "23:00-24:00",
+    expect(thirtyMinutes.rangeOptions[0]).toEqual({
+      startMinutes: 420,
+      endMinutes: 450,
+      label: "07:00-07:30",
     });
-    expect(availability.rangeOptions.some((option) => option.startMinutes === 1410)).toBe(false);
+    expect(thirtyMinutes.rangeOptions.at(-1)).toEqual({
+      startMinutes: 1350,
+      endMinutes: 1380,
+      label: "22:30-23:00",
+    });
+    expect(oneHour.rangeOptions.at(-1)).toEqual({
+      startMinutes: 1320,
+      endMinutes: 1380,
+      label: "22:00-23:00",
+    });
   });
 
   it("keeps same-day starts available through the 20-minute grace period", () => {
@@ -210,6 +224,36 @@ describe("booking availability", () => {
     expect(stale).toEqual({
       ok: false,
       error: "이미 예약된 시간이 포함되어 있습니다.",
+    });
+  });
+
+  it("rejects stale or direct selections outside booking hours", () => {
+    const option = {
+      startMinutes: 1350,
+      endMinutes: 1410,
+      label: "22:30-23:30",
+    };
+
+    expect(
+      selectBookableRange([], {
+        date: "2026-07-17",
+        roomId: "room-1",
+        option,
+      }),
+    ).toEqual({
+      ok: false,
+      error: "예약 가능 시간은 07:00부터 23:00까지입니다.",
+    });
+    expect(
+      validateBookableDraftTime([], {
+        date: "2026-07-17",
+        roomId: "room-1",
+        startMinutes: option.startMinutes,
+        endMinutes: option.endMinutes,
+      }),
+    ).toEqual({
+      ok: false,
+      error: "예약 가능 시간은 07:00부터 23:00까지입니다.",
     });
   });
 

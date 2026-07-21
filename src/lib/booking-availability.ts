@@ -1,5 +1,8 @@
 import {
+  BOOKING_END_MINUTES,
   BOOKING_DURATION_OPTIONS,
+  BOOKING_HOURS_MESSAGE,
+  BOOKING_START_MINUTES,
   DAY_END_MINUTES,
   SLOT_MINUTES,
   formatMinutes,
@@ -35,6 +38,10 @@ export type BookingAvailability = {
   rangeOptions: BookableRangeOption[];
 };
 
+function isWithinBookingHours(startMinutes: number, endMinutes: number) {
+  return startMinutes >= BOOKING_START_MINUTES && endMinutes <= BOOKING_END_MINUTES;
+}
+
 export function findScheduleConflict(
   blocks: OccupancyBlock[],
   draft: Pick<ReservationDraft, "date" | "roomId" | "startMinutes" | "endMinutes">,
@@ -67,6 +74,7 @@ function isBookingDurationAvailable(
 ) {
   const endMinutes = options.startMinutes + options.durationMinutes;
   if (options.startMinutes < 0 || endMinutes > DAY_END_MINUTES) return false;
+  if (!isWithinBookingHours(options.startMinutes, endMinutes)) return false;
   if (isBookingStartPastGracePeriod(options.date, options.startMinutes, options.currentTime)) return false;
 
   return (
@@ -195,6 +203,9 @@ export function selectBookableRange(
     ignoredReservationId?: string;
   },
 ): { ok: true; selectedTime: SelectedBookingTime } | { ok: false; error: string } {
+  if (!isWithinBookingHours(options.option.startMinutes, options.option.endMinutes)) {
+    return { ok: false, error: BOOKING_HOURS_MESSAGE };
+  }
   if (isBookingStartPastGracePeriod(options.date, options.option.startMinutes, options.currentTime)) {
     return { ok: false, error: BOOKING_PAST_TIME_MESSAGE };
   }
@@ -235,6 +246,9 @@ export function validateBookableDraftTime(
   ignoredReservationId?: string,
   currentTime?: BookingCurrentTime,
 ): { ok: true } | { ok: false; error: string } {
+  if (!isWithinBookingHours(draft.startMinutes, draft.endMinutes)) {
+    return { ok: false, error: BOOKING_HOURS_MESSAGE };
+  }
   if (isBookingStartPastGracePeriod(draft.date, draft.startMinutes, currentTime)) {
     return { ok: false, error: BOOKING_PAST_TIME_MESSAGE };
   }
