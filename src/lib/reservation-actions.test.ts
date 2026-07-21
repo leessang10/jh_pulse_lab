@@ -42,4 +42,22 @@ describe("public reservation owner actions", () => {
       error: "종료 시간은 시작 시간보다 늦어야 합니다.",
     });
   });
+
+  it("rejects time changes outside public booking hours before querying", async () => {
+    await expect(
+      updatePublicReservationTime(
+        "res-1",
+        { name: "Lee", password: "1234" },
+        {
+          date: "2026-07-17",
+          roomId: "room-1",
+          startMinutes: 1350,
+          endMinutes: 1410,
+        },
+      ),
+    ).resolves.toEqual({
+      ok: false,
+      error: "예약 가능 시간은 07:00부터 23:00까지입니다.",
+    });
+  });
 });

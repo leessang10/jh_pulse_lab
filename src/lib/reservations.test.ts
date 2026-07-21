@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  BOOKING_END_MINUTES,
+  BOOKING_HOURS_MESSAGE,
+  BOOKING_START_MINUTES,
   formatMinutes,
   ACTIVE_ROOM_IDS,
   getInitialReservationRoomId,
@@ -79,6 +82,28 @@ describe("reservation rules", () => {
         password: "1234",
       }),
     ).toContain("예약 시간은 최대 1시간까지 가능합니다.");
+  });
+
+  it("limits public bookings to 07:00 through 23:00", () => {
+    expect(BOOKING_START_MINUTES).toBe(420);
+    expect(BOOKING_END_MINUTES).toBe(1380);
+
+    const base = {
+      date: "2026-07-17",
+      roomId: "room-1",
+      name: "Lee",
+      password: "1234",
+    };
+
+    expect(validateReservationDraft({ ...base, startMinutes: 420, endMinutes: 450 })).toEqual([]);
+    expect(validateReservationDraft({ ...base, startMinutes: 1320, endMinutes: 1380 })).toEqual([]);
+    expect(validateReservationDraft({ ...base, startMinutes: 1350, endMinutes: 1380 })).toEqual([]);
+    expect(validateReservationDraft({ ...base, startMinutes: 390, endMinutes: 420 })).toContain(
+      BOOKING_HOURS_MESSAGE,
+    );
+    expect(validateReservationDraft({ ...base, startMinutes: 1350, endMinutes: 1410 })).toContain(
+      BOOKING_HOURS_MESSAGE,
+    );
   });
 
   it("validates reservation time changes without owner contact fields", () => {

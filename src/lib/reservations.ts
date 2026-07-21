@@ -76,6 +76,9 @@ export function resolveReservationStatuses(
 
 export const SLOT_MINUTES = 30;
 export const DAY_END_MINUTES = 24 * 60;
+export const BOOKING_START_MINUTES = 7 * 60;
+export const BOOKING_END_MINUTES = 23 * 60;
+export const BOOKING_HOURS_MESSAGE = "예약 가능 시간은 07:00부터 23:00까지입니다.";
 export const MAX_BOOKING_DURATION_MINUTES = 60;
 
 export const BOOKING_DURATION_OPTIONS = [
@@ -115,6 +118,9 @@ function validateReservationTimeFields(draft: ReservationTimeChange) {
   if (!isOnGrid) errors.push("시작 시간과 종료 시간은 30분 단위여야 합니다.");
   if (draft.startMinutes < 0 || draft.endMinutes > DAY_END_MINUTES) {
     errors.push("예약 시간은 00:00부터 24:00 사이여야 합니다.");
+  }
+  if (draft.startMinutes < BOOKING_START_MINUTES || draft.endMinutes > BOOKING_END_MINUTES) {
+    errors.push(BOOKING_HOURS_MESSAGE);
   }
   if (draft.endMinutes <= draft.startMinutes) errors.push("종료 시간은 시작 시간보다 늦어야 합니다.");
   if (draft.endMinutes - draft.startMinutes > MAX_BOOKING_DURATION_MINUTES) {
