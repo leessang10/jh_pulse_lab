@@ -6,6 +6,7 @@ describe("admin sidebar navigation", () => {
     expect(ADMIN_SIDEBAR_ITEMS).toEqual([
       { title: "예약 목록", href: "/admin/reservations", description: "검색, 필터, 테이블 관리" },
       { title: "예약 시간표", href: "/admin/timetables", description: "시간별 타일 보드" },
+      { title: "예약 통계", href: "/admin/statistics", description: "이용 추세와 회원 순위" },
     ]);
   });
 
@@ -15,5 +16,6 @@ describe("admin sidebar navigation", () => {
       isActive: true,
     });
     expect(getAdminSidebarItemState("/admin/timetables", "/admin/reservations")).toEqual({ isActive: false });
+    expect(getAdminSidebarItemState("/admin/statistics", "/admin/statistics")).toEqual({ isActive: true });
   });
 });
