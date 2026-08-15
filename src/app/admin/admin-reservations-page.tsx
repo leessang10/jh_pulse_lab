@@ -21,11 +21,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { dateToKoreaValue, formatKoreaDate, todayKoreaValue, valueToKoreaDate } from "@/lib/korea-date";
 import { formatMinutes, getRoomName, ROOMS, STATUS_LABELS, type ReservationStatus } from "@/lib/reservations";
 import { useReservations } from "@/lib/use-reservations";
+import AdminPageHeader from "./admin-page-header";
 
 const statuses: Array<ReservationStatus | "all"> = ["all", "pending", "confirmed", "cancelled"];
 
@@ -92,20 +92,10 @@ export default function AdminReservationsPage() {
   }
 
   return (
-        <main className="min-h-screen w-full px-5 py-6 lg:px-8">
-          <header className="flex flex-col gap-4 border-b pb-5 sm:flex-row sm:items-end sm:justify-between">
-            <div className="flex items-start gap-3">
-              <SidebarTrigger className="mt-1 md:hidden" />
-              <div>
-                <Badge variant="outline" className="border-border bg-background text-muted-foreground">
-                  예약 목록
-                </Badge>
-                <h1 className="mt-2 text-3xl font-bold text-foreground sm:text-4xl">예약 목록</h1>
-              </div>
-            </div>
-          </header>
+    <main className="min-h-screen w-full px-5 py-4 lg:px-8">
+      <AdminPageHeader title="예약 목록" />
 
-      <Card className="mt-6 border bg-card">
+      <Card className="mt-4 border bg-card">
         <CardHeader>
           <CardTitle>필터</CardTitle>
         </CardHeader>
@@ -265,6 +255,6 @@ export default function AdminReservationsPage() {
           )}
         </CardContent>
       </Card>
-        </main>
+    </main>
   );
 }

@@ -2,10 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   buildStatisticsSearchParams,
@@ -24,6 +22,7 @@ import StatisticsPeakChart from "./statistics-peak-chart";
 import StatisticsSimulatorDialog from "./statistics-simulator-dialog";
 import StatisticsSummaryCards from "./statistics-summary-cards";
 import StatisticsTrendChart from "./statistics-trend-chart";
+import AdminPageHeader from "../admin-page-header";
 
 function formatMonthLabel(value: string) {
   const [year, month] = value.split("-");
@@ -104,24 +103,14 @@ export default function AdminStatisticsPage() {
   }
 
   return (
-    <main className="min-h-screen w-full px-5 py-6 lg:px-8">
-      <header className="flex flex-col gap-4 border-b pb-5 xl:flex-row xl:items-end xl:justify-between">
-        <div className="flex items-start gap-3">
-          <SidebarTrigger className="mt-1 md:hidden" />
-          <div>
-            <Badge variant="outline" className="border-border bg-background text-muted-foreground">
-              예약 통계
-            </Badge>
-            <h1 className="mt-2 text-3xl font-bold text-foreground sm:text-4xl">예약 통계</h1>
-            <p className="mt-2 text-sm text-muted-foreground">기준 월의 예약 이용 현황을 확인하실 수 있습니다.</p>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-end gap-3" aria-label="통계 조회 조건">
-          <label className="grid gap-1.5 text-sm font-semibold text-muted-foreground">
-            기준 월
+    <main className="min-h-screen w-full px-5 py-4 lg:px-8">
+      <AdminPageHeader
+        title="예약 통계"
+        actionsLabel="통계 조회 조건"
+        actions={
+          <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
             <Select value={query.referenceMonth} onValueChange={(value) => value && updateQuery({ referenceMonth: value })}>
-              <SelectTrigger className="h-9 min-w-34 bg-background">
+              <SelectTrigger aria-label="기준 월" className="min-w-34 bg-background">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -130,10 +119,6 @@ export default function AdminStatisticsPage() {
                 ))}
               </SelectContent>
             </Select>
-          </label>
-
-          <div className="grid gap-1.5">
-            <span className="text-sm font-semibold text-muted-foreground">추세 단위</span>
             <ToggleGroup
               aria-label="추세 단위"
               value={[query.unit]}
@@ -148,19 +133,17 @@ export default function AdminStatisticsPage() {
               <ToggleGroupItem value="week" aria-label="주 단위">주</ToggleGroupItem>
               <ToggleGroupItem value="year" aria-label="년 단위">년</ToggleGroupItem>
             </ToggleGroup>
+            <Button
+              aria-pressed={isSimulatorOpen}
+              type="button"
+              disabled={!canSimulate}
+              onClick={() => setIsSimulatorOpen(true)}
+            >
+              정기권 시뮬레이션
+            </Button>
           </div>
-
-          <Button
-            aria-pressed={isSimulatorOpen}
-            className="h-9"
-            type="button"
-            disabled={!canSimulate}
-            onClick={() => setIsSimulatorOpen(true)}
-          >
-            정기권 시뮬레이션
-          </Button>
-        </div>
-      </header>
+        }
+      />
 
       <StatisticsSummaryCards
         error={error}

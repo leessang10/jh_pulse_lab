@@ -41,7 +41,7 @@ export default function StatisticsSummaryCards({
 }: StatisticsSummaryCardsProps) {
   if (!isReady) {
     return (
-      <section aria-label="핵심 지표를 불러오는 중입니다." className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <section aria-label="핵심 지표를 불러오는 중입니다." className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {summaryCardLabels.map((card) => <SummaryCardSkeleton key={card.key} />)}
       </section>
     );
@@ -49,7 +49,7 @@ export default function StatisticsSummaryCards({
 
   if (error || !statistics) {
     return (
-      <section className="mt-6" aria-live="polite">
+      <section className="mt-4" aria-live="polite">
         <Alert variant="destructive">
           <AlertTitle>예약 통계를 불러오지 못했습니다.</AlertTitle>
           <AlertDescription>{error ?? "잠시 후 다시 시도해 주세요."}</AlertDescription>
@@ -64,7 +64,7 @@ export default function StatisticsSummaryCards({
   const summary = buildStatisticsSummaryView(statistics.summary);
 
   return (
-    <section className="mt-6" aria-label="핵심 지표">
+    <section className="mt-4" aria-label="핵심 지표">
       {summary.isEmpty ? (
         <p className="mb-3 text-sm text-muted-foreground">선택한 기간에는 예약 데이터가 없습니다.</p>
       ) : null}
