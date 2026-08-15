@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Reservation } from "./reservations";
-import { buildAdminTimetableRows } from "./admin-timetable";
+import { buildAdminTimetableRows, getAdminMaintenanceTimeOptions } from "./admin-timetable";
 
 const baseReservation: Reservation = {
   id: "res-1",
@@ -24,6 +24,17 @@ describe("admin timetable", () => {
     expect(rows[0].timeLabel).toBe("07:00");
     expect(rows[31].timeLabel).toBe("22:30");
     expect(rows[0].tiles.map((tile) => tile.room.id)).toEqual(["room-1", "room-2", "room-3"]);
+  });
+
+  it("builds maintenance selectors inside operating hours", () => {
+    const { startOptions, endOptions } = getAdminMaintenanceTimeOptions();
+
+    expect(startOptions).toHaveLength(32);
+    expect(startOptions[0]).toEqual({ value: 420, label: "07:00" });
+    expect(startOptions[31]).toEqual({ value: 1350, label: "22:30" });
+    expect(endOptions).toHaveLength(32);
+    expect(endOptions[0]).toBe(450);
+    expect(endOptions[31]).toBe(1380);
   });
 
   it("shows maintenance before cancelled reservations in the same slot", () => {

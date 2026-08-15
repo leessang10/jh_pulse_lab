@@ -28,9 +28,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import AdminShell from "../admin-shell";
-import { buildAdminTimetableRows, type AdminTimetableTile } from "@/lib/admin-timetable";
+import {
+  buildAdminTimetableRows,
+  getAdminMaintenanceTimeOptions,
+  type AdminTimetableTile,
+} from "@/lib/admin-timetable";
 import { dateToKoreaValue, formatKoreaDate, todayKoreaValue, valueToKoreaDate } from "@/lib/korea-date";
-import { DAY_END_MINUTES, ROOMS, SLOT_MINUTES, formatMinutes, generateTimeSlots, getRoomName, STATUS_LABELS } from "@/lib/reservations";
+import { ROOMS, formatMinutes, getRoomName, STATUS_LABELS } from "@/lib/reservations";
 import { cn } from "@/lib/utils";
 import { useReservations } from "@/lib/use-reservations";
 import { useMaintenanceBlocks } from "@/lib/use-maintenance-blocks";
@@ -71,11 +75,7 @@ function AdminTimetablesPage() {
   );
   const selectedReservation = selectedTile?.reservation;
   const selectedMaintenanceBlock = selectedTile?.maintenanceBlock;
-  const startOptions = generateTimeSlots();
-  const endOptions = Array.from(
-    { length: DAY_END_MINUTES / SLOT_MINUTES },
-    (_, index) => (index + 1) * SLOT_MINUTES,
-  );
+  const { startOptions, endOptions } = getAdminMaintenanceTimeOptions();
 
   async function cancelReservation() {
     if (!selectedReservation) return;

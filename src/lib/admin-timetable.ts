@@ -29,6 +29,22 @@ export type AdminTimetableRow = {
   tiles: AdminTimetableTile[];
 };
 
+export function getAdminMaintenanceTimeOptions() {
+  const startOptions = Array.from(
+    { length: (BOOKING_END_MINUTES - BOOKING_START_MINUTES) / SLOT_MINUTES },
+    (_, index) => {
+      const value = BOOKING_START_MINUTES + index * SLOT_MINUTES;
+
+      return { value, label: formatMinutes(value) };
+    },
+  );
+
+  return {
+    startOptions,
+    endOptions: startOptions.map((option) => option.value + SLOT_MINUTES),
+  };
+}
+
 export function buildAdminTimetableRows(options: {
   date: string;
   reservations: Reservation[];
