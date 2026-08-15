@@ -5,6 +5,7 @@ out/
 dist/
 coverage/
 .review-screenshots/
+.superpowers/
 supabase/.temp/
 
 .env
