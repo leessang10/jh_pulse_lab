@@ -6,6 +6,7 @@ import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   formatTrendLabel,
+  getTrendBucketStatus,
   type StatisticsMetric,
   type StatisticsTrendBucket,
   type StatisticsUnit,
@@ -60,8 +61,14 @@ function TrendTooltip({
     return (
       <div className="grid min-w-52 gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-xs shadow-xl">
         <p className="font-medium text-foreground">{point.chartLabel}</p>
-        <p className="font-medium text-foreground">데이터 없음</p>
-        <p className="leading-relaxed text-muted-foreground">이 기간은 수집 또는 집계가 완료되지 않아 0으로 해석할 수 없습니다.</p>
+        <p className="font-medium text-foreground">{getTrendBucketStatus(point.isComplete)}</p>
+        <div className="flex items-center justify-between gap-4">
+          <span className="text-muted-foreground">{metricLabels[metric]}</span>
+          <span className="font-mono font-medium tabular-nums text-foreground">
+            {formatMetricValue(point[metric], metric)}
+          </span>
+        </div>
+        <p className="leading-relaxed text-muted-foreground">수집 또는 집계가 진행 중인 부분 집계이며, 점선 값은 확정 전 수치입니다.</p>
       </div>
     );
   }
@@ -94,7 +101,7 @@ export default function StatisticsTrendChart({
   const incompleteLabels = chartData.filter((point) => !point.isComplete).map((point) => point.chartLabel);
   const chartConfig = {
     completeValue: { label: metricLabels[metric], color: "var(--primary)" },
-    incompleteValue: { label: "집계 미완료", color: "var(--primary)" },
+    incompleteValue: { label: "부분 집계", color: "var(--primary)" },
   };
 
   return (
@@ -166,7 +173,7 @@ export default function StatisticsTrendChart({
                   <Area
                     type="monotone"
                     dataKey="incompleteValue"
-                    name="집계 미완료"
+                    name="부분 집계"
                     stroke="var(--color-incompleteValue)"
                     fill="var(--color-incompleteValue)"
                     fillOpacity={0.06}
@@ -177,7 +184,7 @@ export default function StatisticsTrendChart({
                 </AreaChart>
               </ChartContainer>
               <p className="mt-3 text-xs text-muted-foreground">
-                점선 구간{incompleteLabels.length ? ` (${incompleteLabels.join(", ")})` : ""}은 수집 또는 집계가 완료되지 않은 데이터입니다. 0으로 해석하지 마세요.
+                점선 구간{incompleteLabels.length ? ` (${incompleteLabels.join(", ")})` : ""}은 수집 또는 집계가 진행 중인 부분 집계이므로 확정된 값이 아닙니다.
               </p>
             </>
           )}

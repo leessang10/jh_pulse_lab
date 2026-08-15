@@ -7,6 +7,7 @@ import {
   formatTrendLabel,
   formatStatisticsMinutes,
   getNextRankingLimit,
+  getTrendBucketStatus,
   getVisibleRanking,
   parseStatisticsQuery,
 } from "./admin-statistics";
@@ -85,6 +86,11 @@ describe("admin statistics", () => {
   it("adds ten ranking rows without exceeding the available entries", () => {
     expect(getNextRankingLimit(5, 26)).toBe(15);
     expect(getNextRankingLimit(25, 26)).toBe(26);
+  });
+
+  it("labels incomplete trend buckets as partial aggregates", () => {
+    expect(getTrendBucketStatus(true)).toBe("집계 완료");
+    expect(getTrendBucketStatus(false)).toBe("부분 집계");
   });
 
   it("formats minute totals at hour boundaries", () => {

@@ -209,6 +209,11 @@ export function formatTrendLabel(point: StatisticsTrendBucket, unit: StatisticsU
   return formatTrendDate(point.startDate);
 }
 
+/** 추세 버킷 값이 확정값인지 부분 집계인지 알려준다. */
+export function getTrendBucketStatus(isComplete: boolean) {
+  return isComplete ? "집계 완료" : "부분 집계";
+}
+
 /** 회원 순위는 첫 5명 뒤에 한 번에 10명씩 더 표시한다. */
 export function getNextRankingLimit(currentLimit: number, totalEntries: number) {
   return Math.min(Math.max(0, totalEntries), Math.max(0, currentLimit) + 10);
