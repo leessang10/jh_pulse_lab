@@ -82,4 +82,23 @@ describe("admin statistics actions", () => {
     await expect(getAdminReservationStatistics({ referenceMonth: "2026-07", unit: "day" }))
       .resolves.toEqual({ ok: false, error: "예약 통계를 불러오지 못했습니다. 다시 시도해 주세요." });
   });
+
+  it("accepts the explicit trend status contract from the RPC", async () => {
+    const fixture = {
+      ...validStatisticsFixture,
+      trend: [{
+        key: "2026-07-01",
+        startDate: "2026-07-01",
+        endDate: "2026-07-02",
+        usageMinutes: null,
+        reservationCount: null,
+        userCount: null,
+        status: "noData",
+      }],
+    };
+    mocks.rpc.mockResolvedValue({ data: fixture, error: null });
+
+    await expect(getAdminReservationStatistics({ referenceMonth: "2026-07", unit: "day" }))
+      .resolves.toEqual({ ok: true, data: fixture });
+  });
 });

@@ -16,15 +16,35 @@ export const statisticsSummaryMetricSchema = z.object({
   cancelledCount: nonNegativeInteger,
 });
 
-export const statisticsTrendBucketSchema = z.object({
+const statisticsTrendBucketBase = {
   key: z.string(),
   startDate: dateString,
   endDate: dateString,
-  usageMinutes: nonNegativeInteger,
-  reservationCount: nonNegativeInteger,
-  userCount: nonNegativeInteger,
-  isComplete: z.boolean(),
-});
+};
+
+export const statisticsTrendBucketSchema = z.discriminatedUnion("status", [
+  z.object({
+    ...statisticsTrendBucketBase,
+    usageMinutes: z.null(),
+    reservationCount: z.null(),
+    userCount: z.null(),
+    status: z.literal("noData"),
+  }),
+  z.object({
+    ...statisticsTrendBucketBase,
+    usageMinutes: nonNegativeInteger,
+    reservationCount: nonNegativeInteger,
+    userCount: nonNegativeInteger,
+    status: z.literal("partial"),
+  }),
+  z.object({
+    ...statisticsTrendBucketBase,
+    usageMinutes: nonNegativeInteger,
+    reservationCount: nonNegativeInteger,
+    userCount: nonNegativeInteger,
+    status: z.literal("complete"),
+  }),
+]);
 
 export const statisticsRankingEntrySchema = z.object({
   name: z.string(),
@@ -70,6 +90,15 @@ export type StatisticsQuery = {
   metric: StatisticsMetric;
 };
 
+export type StatisticsRequestKey = Pick<StatisticsQuery, "referenceMonth" | "unit">;
+
+type KeyedStatisticsResponse<T> = {
+  key: StatisticsRequestKey;
+  statistics: T | null;
+  error: string | null;
+  isReady: boolean;
+};
+
 function isReferenceMonth(value: string | null | undefined, currentMonth: string): value is string {
   if (!value || !/^\d{4}-(0[1-9]|1[0-2])$/.test(value)) return false;
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(currentMonth)) return false;
@@ -98,6 +127,44 @@ export function buildStatisticsSearchParams(query: Pick<StatisticsQuery, "refere
   params.set("unit", query.unit);
   params.set("metric", query.metric);
   return params.toString();
+}
+
+/** URL 변경을 연속으로 적용할 때 직전 변경까지 보존한다. */
+export function mergeStatisticsQuery(current: StatisticsQuery, next: Partial<StatisticsQuery>): StatisticsQuery {
+  return { ...current, ...next };
+}
+
+function isSameStatisticsRequestKey(left: StatisticsRequestKey, right: StatisticsRequestKey) {
+  return left.referenceMonth === right.referenceMonth && left.unit === right.unit;
+}
+
+/** 현재 월·단위와 일치하지 않는 이전 응답을 화면에서 숨긴다. */
+export function selectCurrentStatisticsResponse<T>(
+  response: KeyedStatisticsResponse<T> | null,
+  currentKey: StatisticsRequestKey,
+) {
+  if (!response || !isSameStatisticsRequestKey(response.key, currentKey)) {
+    return { statistics: null, error: null, isReady: false };
+  }
+
+  return {
+    statistics: response.statistics,
+    error: response.error,
+    isReady: response.isReady,
+  };
+}
+
+/** 준비된 실제 이용 데이터가 있을 때만 시뮬레이터를 연다. */
+export function canOpenStatisticsSimulator(input: {
+  isReady: boolean;
+  hasError: boolean;
+  reservationCount: number;
+  rankingCount: number;
+}) {
+  return input.isReady
+    && !input.hasError
+    && input.reservationCount > 0
+    && input.rankingCount > 0;
 }
 
 export function formatStatisticsMinutes(minutes: number) {
@@ -202,16 +269,24 @@ function formatTrendDate(date: string) {
   return `${Number(month)}/${Number(day)}`;
 }
 
+function subtractTrendDay(date: string) {
+  const [year, month, day] = date.split("-").map(Number);
+  const value = new Date(Date.UTC(year, month - 1, day));
+  value.setUTCDate(value.getUTCDate() - 1);
+  return value.toISOString().slice(0, 10);
+}
+
 /** 선택한 추세 단위에 맞는 X축과 툴팁 기간 라벨을 만든다. */
 export function formatTrendLabel(point: StatisticsTrendBucket, unit: StatisticsUnit) {
   if (unit === "year") return `${Number(point.startDate.slice(5, 7))}월`;
-  if (unit === "week") return `${formatTrendDate(point.startDate)}~${formatTrendDate(point.endDate)}`;
+  if (unit === "week") return `${formatTrendDate(point.startDate)}~${formatTrendDate(subtractTrendDay(point.endDate))}`;
   return formatTrendDate(point.startDate);
 }
 
-/** 추세 버킷 값이 확정값인지 부분 집계인지 알려준다. */
-export function getTrendBucketStatus(isComplete: boolean) {
-  return isComplete ? "집계 완료" : "부분 집계";
+/** 추세 버킷의 수집·집계 상태를 표시한다. */
+export function getTrendBucketStatus(status: StatisticsTrendBucket["status"]) {
+  if (status === "noData") return "데이터 없음";
+  return status === "partial" ? "부분 집계" : "집계 완료";
 }
 
 /** 회원 순위는 첫 5명 뒤에 한 번에 10명씩 더 표시한다. */
@@ -233,15 +308,20 @@ export function calculateSubscriptionScenario(input: {
   const usersExceedingPeakAllowance = eligible.filter(
     (entry) => entry.peakMinutes > input.peakIncludedMinutes,
   ).length;
-  const scenarioSubscribers = Math.round((eligibleUsers * input.conversionRate) / 100);
+  const scenarioSubscribers = (eligibleUsers * input.conversionRate) / 100;
 
   return {
     eligibleUsers,
     usersExceedingPeakAllowance,
     scenarioSubscribers,
-    scenarioRevenue: scenarioSubscribers * input.monthlyPrice,
+    scenarioRevenue: Math.round(scenarioSubscribers * input.monthlyPrice),
     eligiblePeakUsageRate: eligibleUsageMinutes === 0 ? 0 : Number(((eligiblePeakMinutes / eligibleUsageMinutes) * 100).toFixed(1)),
   };
+}
+
+/** 기대 가입자 수를 정수 또는 최대 소수 둘째 자리로 표시한다. */
+export function formatScenarioSubscribers(value: number) {
+  return `${Number(value.toFixed(2)).toLocaleString("ko-KR", { maximumFractionDigits: 2 })}명`;
 }
 
 function formatClockTime(minutes: number) {

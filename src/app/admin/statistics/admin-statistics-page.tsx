@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,8 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   buildStatisticsSearchParams,
+  canOpenStatisticsSimulator,
+  mergeStatisticsQuery,
   parseStatisticsQuery,
   type StatisticsQuery,
   type StatisticsUnit,
@@ -58,6 +60,8 @@ export default function AdminStatisticsPage() {
     [currentMonth, searchParams],
   );
   const normalizedQuery = useMemo(() => buildStatisticsSearchParams(query), [query]);
+  const queryRef = useRef(query);
+  const pendingQueryRef = useRef<string | null>(null);
   const [isSimulatorOpen, setIsSimulatorOpen] = useState(false);
   const { statistics, isReady, error, refresh } = useAdminStatistics({
     referenceMonth: query.referenceMonth,
@@ -67,6 +71,23 @@ export default function AdminStatisticsPage() {
     () => getReferenceMonthOptions(currentMonth, query.referenceMonth, statistics?.coverageStart ?? null),
     [currentMonth, query.referenceMonth, statistics?.coverageStart],
   );
+  const canSimulate = canOpenStatisticsSimulator({
+    isReady,
+    hasError: error !== null,
+    reservationCount: statistics?.summary.current.reservationCount ?? 0,
+    rankingCount: statistics?.ranking.length ?? 0,
+  });
+
+  useEffect(() => {
+    if (pendingQueryRef.current === null || pendingQueryRef.current === normalizedQuery) {
+      queryRef.current = query;
+      pendingQueryRef.current = null;
+    }
+  }, [normalizedQuery, query]);
+
+  useEffect(() => {
+    if (!canSimulate) setIsSimulatorOpen(false);
+  }, [canSimulate]);
 
   useEffect(() => {
     if (searchParams.toString() !== normalizedQuery) {
@@ -75,7 +96,10 @@ export default function AdminStatisticsPage() {
   }, [normalizedQuery, pathname, router, searchParams]);
 
   function updateQuery(next: Partial<StatisticsQuery>) {
-    const nextQuery = buildStatisticsSearchParams({ ...query, ...next });
+    const accumulatedQuery = mergeStatisticsQuery(queryRef.current, next);
+    queryRef.current = accumulatedQuery;
+    const nextQuery = buildStatisticsSearchParams(accumulatedQuery);
+    pendingQueryRef.current = nextQuery;
     router.replace(`${pathname}?${nextQuery}`, { scroll: false });
   }
 
@@ -130,6 +154,7 @@ export default function AdminStatisticsPage() {
             aria-pressed={isSimulatorOpen}
             className="h-9"
             type="button"
+            disabled={!canSimulate}
             onClick={() => setIsSimulatorOpen(true)}
           >
             정기권 시뮬레이션
@@ -186,12 +211,14 @@ export default function AdminStatisticsPage() {
           </Card>
         </section>
       ) : null}
-      <StatisticsSimulatorDialog
-        ranking={statistics?.ranking ?? []}
-        peakTimes={statistics?.peakTimes ?? []}
-        open={isSimulatorOpen}
-        onOpenChange={setIsSimulatorOpen}
-      />
+      {canSimulate && statistics ? (
+        <StatisticsSimulatorDialog
+          ranking={statistics.ranking}
+          peakTimes={statistics.peakTimes}
+          open={isSimulatorOpen}
+          onOpenChange={setIsSimulatorOpen}
+        />
+      ) : null}
     </main>
   );
 }

@@ -16,13 +16,12 @@ begin
 end;
 $$;
 
-delete from public.reservations
-where date between date '2026-07-01' and date '2026-07-31';
+delete from public.reservations;
 
 insert into public.reservations
   (id, date, room_id, start_minutes, end_minutes, name, password_hash, status)
 values
-  ('31000000-0000-0000-0000-000000000001', '2026-07-06', 'room-1', 1140, 1200, ' 홍길동 ', 'hash-1', 'pending'),
+  ('31000000-0000-0000-0000-000000000001', '2026-07-03', 'room-1', 1140, 1200, ' 홍길동 ', 'hash-1', 'pending'),
   ('31000000-0000-0000-0000-000000000002', '2026-07-06', 'room-2', 1140, 1200, '홍길동', 'hash-2', 'pending'),
   ('31000000-0000-0000-0000-000000000003', '2026-07-13', 'room-1', 1140, 1200, '김연습', 'hash-3', 'pending'),
   ('31000000-0000-0000-0000-000000000004', '2026-07-13', 'room-2', 1200, 1260, '김연습', 'hash-4', 'cancelled');
@@ -32,6 +31,9 @@ set local role authenticated;
 do $$
 declare
   v_result jsonb;
+  v_week_result jsonb;
+  v_current_result jsonb;
+  v_today date := (clock_timestamp() at time zone 'Asia/Seoul')::date;
 begin
   select public.get_admin_reservation_statistics('2026-07-01', 'day') into v_result;
 
@@ -59,6 +61,55 @@ begin
   end if;
   if jsonb_array_length(v_result -> 'peakTimes') <> 7 then
     raise exception 'expected seven weekday rows';
+  end if;
+
+  if v_result #>> '{trend,0,status}' <> 'noData'
+    or jsonb_typeof(v_result #> '{trend,0,usageMinutes}') <> 'null' then
+    raise exception 'buckets before coverage must be noData with null values';
+  end if;
+
+  if v_result #>> '{trend,2,status}' <> 'complete' then
+    raise exception 'the first covered day must be complete';
+  end if;
+
+  select public.get_admin_reservation_statistics('2026-07-01', 'week') into v_week_result;
+  if v_week_result #>> '{trend,0,endDate}' <> '2026-07-06' then
+    raise exception 'weekly endDate must stay exclusive';
+  end if;
+  if v_week_result #>> '{trend,0,status}' <> 'partial'
+    or (v_week_result #>> '{trend,0,usageMinutes}')::integer <> 60 then
+    raise exception 'coverage starting inside a bucket must retain values as partial';
+  end if;
+
+  select public.get_admin_reservation_statistics(date_trunc('month', v_today)::date, 'day')
+    into v_current_result;
+  if v_current_result #>> array['trend', (jsonb_array_length(v_current_result -> 'trend') - 1)::text, 'status'] <> 'partial' then
+    raise exception 'the in-progress current day must be partial';
+  end if;
+
+end;
+$$;
+
+reset role;
+delete from public.reservations;
+set local role authenticated;
+
+do $$
+declare
+  v_no_data_result jsonb;
+begin
+  select public.get_admin_reservation_statistics('2026-07-01', 'day')
+    into v_no_data_result;
+  if (v_no_data_result ->> 'coverageStart') is not null
+    or exists (
+      select 1
+      from jsonb_array_elements(v_no_data_result -> 'trend') item
+      where item ->> 'status' <> 'noData'
+        or jsonb_typeof(item -> 'usageMinutes') <> 'null'
+        or jsonb_typeof(item -> 'reservationCount') <> 'null'
+        or jsonb_typeof(item -> 'userCount') <> 'null'
+    ) then
+    raise exception 'null coverage must make every trend bucket noData';
   end if;
 end;
 $$;

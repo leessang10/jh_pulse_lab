@@ -108,17 +108,26 @@ begin
       and r.room_id in ('room-1', 'room-2', 'room-3')
     group by b.start_date, b.end_date
     order by b.start_date
+  ), bucket_states as (
+    select *, case
+      when v_coverage_start is null or end_date <= v_coverage_start then 'noData'
+      when start_date < v_coverage_start and v_coverage_start < end_date then 'partial'
+      when v_month_start = date_trunc('month', v_today)::date
+        and end_date = v_scope_end then 'partial'
+      else 'complete'
+    end status
+    from values_by_bucket
   )
   select coalesce(jsonb_agg(jsonb_build_object(
     'key', start_date::text,
     'startDate', start_date,
     'endDate', end_date,
-    'usageMinutes', usage_minutes,
-    'reservationCount', reservation_count,
-    'userCount', user_count,
-    'isComplete', v_coverage_start is not null and v_coverage_start <= start_date
+    'usageMinutes', case when status = 'noData' then null else usage_minutes end,
+    'reservationCount', case when status = 'noData' then null else reservation_count end,
+    'userCount', case when status = 'noData' then null else user_count end,
+    'status', status
   ) order by start_date), '[]'::jsonb) into v_trend
-  from values_by_bucket;
+  from bucket_states;
 
   with weekdays as (
     select weekday,

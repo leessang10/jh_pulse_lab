@@ -22,7 +22,7 @@ type StatisticsTrendChartProps = {
 type TrendChartPoint = StatisticsTrendBucket & {
   chartLabel: string;
   completeValue: number | null;
-  incompleteValue: number | null;
+  partialValue: number | null;
 };
 
 const metricLabels: Record<StatisticsMetric, string> = {
@@ -57,18 +57,24 @@ function TrendTooltip({
   const point = payload?.[0]?.payload;
   if (!active || !point) return null;
 
-  if (!point.isComplete) {
+  if (point.status !== "complete") {
     return (
       <div className="grid min-w-52 gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-xs shadow-xl">
         <p className="font-medium text-foreground">{point.chartLabel}</p>
-        <p className="font-medium text-foreground">{getTrendBucketStatus(point.isComplete)}</p>
-        <div className="flex items-center justify-between gap-4">
-          <span className="text-muted-foreground">{metricLabels[metric]}</span>
-          <span className="font-mono font-medium tabular-nums text-foreground">
-            {formatMetricValue(point[metric], metric)}
-          </span>
-        </div>
-        <p className="leading-relaxed text-muted-foreground">수집 또는 집계가 진행 중인 부분 집계이며, 점선 값은 확정 전 수치입니다.</p>
+        <p className="font-medium text-foreground">{getTrendBucketStatus(point.status)}</p>
+        {point.status === "partial" ? (
+          <>
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-muted-foreground">{metricLabels[metric]}</span>
+              <span className="font-mono font-medium tabular-nums text-foreground">
+                {formatMetricValue(point[metric], metric)}
+              </span>
+            </div>
+            <p className="leading-relaxed text-muted-foreground">집계가 진행 중인 수치이며, 점선 값은 확정 전 수치입니다.</p>
+          </>
+        ) : (
+          <p className="leading-relaxed text-muted-foreground">수집 시작 전 기간이라 표시할 수치가 없습니다.</p>
+        )}
       </div>
     );
   }
@@ -95,13 +101,15 @@ export default function StatisticsTrendChart({
   const chartData: TrendChartPoint[] = points.map((point) => ({
     ...point,
     chartLabel: formatTrendLabel(point, unit),
-    completeValue: point.isComplete ? point[metric] : null,
-    incompleteValue: point.isComplete ? null : point[metric],
+    completeValue: point.status === "complete" ? point[metric] : null,
+    partialValue: point.status === "partial" ? point[metric] : null,
   }));
-  const incompleteLabels = chartData.filter((point) => !point.isComplete).map((point) => point.chartLabel);
+  const partialLabels = chartData.filter((point) => point.status === "partial").map((point) => point.chartLabel);
+  const noDataLabels = chartData.filter((point) => point.status === "noData").map((point) => point.chartLabel);
+  const hasChartValues = chartData.some((point) => point.status !== "noData");
   const chartConfig = {
     completeValue: { label: metricLabels[metric], color: "var(--primary)" },
-    incompleteValue: { label: "부분 집계", color: "var(--primary)" },
+    partialValue: { label: "부분 집계", color: "var(--primary)" },
   };
 
   return (
@@ -133,9 +141,9 @@ export default function StatisticsTrendChart({
           </CardAction>
         </CardHeader>
         <CardContent>
-          {chartData.length === 0 ? (
+          {chartData.length === 0 || !hasChartValues ? (
             <p className="flex min-h-64 items-center justify-center text-sm text-muted-foreground">
-              표시할 이용 추세 데이터가 없습니다.
+              아직 표시할 이용 추세 데이터가 없습니다.
             </p>
           ) : (
             <>
@@ -150,6 +158,7 @@ export default function StatisticsTrendChart({
                     minTickGap={28}
                   />
                   <YAxis
+                    allowDecimals={metric === "usageMinutes"}
                     tickLine={false}
                     axisLine={false}
                     tickMargin={8}
@@ -172,10 +181,10 @@ export default function StatisticsTrendChart({
                   />
                   <Area
                     type="monotone"
-                    dataKey="incompleteValue"
+                    dataKey="partialValue"
                     name="부분 집계"
-                    stroke="var(--color-incompleteValue)"
-                    fill="var(--color-incompleteValue)"
+                    stroke="var(--color-partialValue)"
+                    fill="var(--color-partialValue)"
                     fillOpacity={0.06}
                     strokeWidth={2}
                     strokeDasharray="5 4"
@@ -183,9 +192,16 @@ export default function StatisticsTrendChart({
                   />
                 </AreaChart>
               </ChartContainer>
-              <p className="mt-3 text-xs text-muted-foreground">
-                점선 구간{incompleteLabels.length ? ` (${incompleteLabels.join(", ")})` : ""}은 수집 또는 집계가 진행 중인 부분 집계이므로 확정된 값이 아닙니다.
-              </p>
+              {partialLabels.length ? (
+                <p className="mt-3 text-xs text-muted-foreground">
+                  부분 집계 ({partialLabels.join(", ")})는 점선으로 표시되며 확정된 값이 아닙니다.
+                </p>
+              ) : null}
+              {noDataLabels.length ? (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  데이터 없음 {noDataLabels.length.toLocaleString("ko-KR")}개 구간은 수집 시작 전 기간입니다.
+                </p>
+              ) : null}
             </>
           )}
         </CardContent>

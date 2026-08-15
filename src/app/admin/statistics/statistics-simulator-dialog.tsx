@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import {
   calculateSubscriptionScenarioFromHours,
+  formatScenarioSubscribers,
   type StatisticsPeakTime,
   type StatisticsRankingEntry,
 } from "@/lib/admin-statistics";
@@ -140,7 +141,7 @@ export default function StatisticsSimulatorDialog({
             </div>
             <div>
               <dt className="text-xs text-muted-foreground">시나리오 가입자</dt>
-              <dd className="mt-1 font-mono text-lg font-semibold tabular-nums text-foreground">{scenario.scenarioSubscribers.toLocaleString("ko-KR")}명</dd>
+              <dd className="mt-1 font-mono text-lg font-semibold tabular-nums text-foreground">{formatScenarioSubscribers(scenario.scenarioSubscribers)}</dd>
             </div>
             <div>
               <dt className="text-xs text-muted-foreground">시나리오 월매출</dt>
@@ -151,6 +152,9 @@ export default function StatisticsSimulatorDialog({
               <dd className="mt-1 font-mono text-lg font-semibold tabular-nums text-foreground">{formatPercent(scenario.eligiblePeakUsageRate)}</dd>
             </div>
           </dl>
+          <p className="mt-3 text-xs text-muted-foreground">
+            피크 허용 한도를 초과하는 잠재 대상 회원은 {scenario.usersExceedingPeakAllowance.toLocaleString("ko-KR")}명입니다.
+          </p>
         </section>
 
         <p className="text-sm text-muted-foreground">실제 매출 예측이 아닌 가정 결과입니다.</p>
