@@ -26,6 +26,7 @@ declare
   v_peak_times jsonb;
 begin
   if p_reference_month is null
+    or p_unit is null
     or p_unit not in ('day', 'week', 'year')
     or v_month_start > date_trunc('month', v_today)::date then
     raise exception 'invalid statistics input' using errcode = '22023';

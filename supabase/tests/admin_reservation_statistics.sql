@@ -35,6 +35,13 @@ declare
 begin
   select public.get_admin_reservation_statistics('2026-07-01', 'day') into v_result;
 
+  begin
+    perform public.get_admin_reservation_statistics('2026-07-01', null);
+    raise exception 'NULL p_unit must be rejected';
+  exception
+    when sqlstate '22023' then null;
+  end;
+
   if (v_result #>> '{summary,current,usageMinutes}')::integer <> 180 then
     raise exception 'expected 180 active minutes';
   end if;
