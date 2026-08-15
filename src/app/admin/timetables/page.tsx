@@ -169,7 +169,7 @@ function AdminTimetablesPage() {
           }
         />
 
-        <Card className="mt-4 border bg-card">
+        <Card size="sm" className="mt-4 border bg-card">
           <CardContent>
             {error || maintenanceError ? (
               <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-4 font-semibold text-destructive">
@@ -177,9 +177,9 @@ function AdminTimetablesPage() {
               </div>
             ) : null}
             {!isReady || !isMaintenanceReady ? (
-              <div className="grid gap-3">
-                {Array.from({ length: 6 }, (_, index) => (
-                  <div key={index} className="h-16 rounded-lg border border-border bg-muted/50" />
+              <div className="grid gap-2">
+                {Array.from({ length: 8 }, (_, index) => (
+                  <div key={index} className="h-11 rounded-md border border-border bg-muted/50" />
                 ))}
               </div>
             ) : (
@@ -308,10 +308,10 @@ function DesktopTimetable({
 
   return (
     <div className="hidden overflow-hidden rounded-lg border border-border md:block">
-      <div className="grid grid-cols-[5.5rem_repeat(3,minmax(0,1fr))] border-b border-border bg-muted/60">
-        <div className="px-3 py-3 text-sm font-bold text-muted-foreground">시간</div>
+      <div className="grid grid-cols-[4.75rem_repeat(3,minmax(0,1fr))] border-b border-border bg-muted/60">
+        <div className="px-2.5 py-2 text-xs font-bold text-muted-foreground">시간</div>
         {rooms.map((room) => (
-          <div key={room.id} className="border-l border-border px-3 py-3 text-center text-base font-bold">
+          <div key={room.id} className="border-l border-border px-2.5 py-2 text-center text-sm font-bold">
             {room.name}
           </div>
         ))}
@@ -319,11 +319,13 @@ function DesktopTimetable({
       {rows.map((row) => (
         <div
           key={row.startMinutes}
-          className="grid grid-cols-[5.5rem_repeat(3,minmax(0,1fr))] border-b border-border last:border-b-0"
+          className="grid grid-cols-[4.75rem_repeat(3,minmax(0,1fr))] border-b border-border last:border-b-0"
         >
-          <div className="grid min-h-16 place-items-center bg-muted/30 px-3 text-base font-bold">{row.timeLabel}</div>
+          <div className="grid min-h-12 place-items-center bg-muted/30 px-2 text-sm font-bold tabular-nums">
+            {row.timeLabel}
+          </div>
           {row.tiles.map((tile) => (
-            <div key={tile.key} className="border-l border-border p-2">
+            <div key={tile.key} className="border-l border-border p-1">
               <TimetableTile tile={tile} onClick={onTileClick} />
             </div>
           ))}
@@ -341,11 +343,11 @@ function MobileTimetable({
   onTileClick: (tile: AdminTimetableTile) => void;
 }) {
   return (
-    <div className="grid gap-3 md:hidden">
+    <div className="grid gap-2 md:hidden">
       {rows.map((row) => (
-        <section key={row.startMinutes} className="rounded-lg border border-border bg-card p-3">
-          <h2 className="mb-3 text-xl font-bold">{row.timeLabel}</h2>
-          <div className="grid gap-2">
+        <section key={row.startMinutes} className="rounded-lg border border-border bg-card p-2.5">
+          <h2 className="mb-2 text-lg font-bold tabular-nums">{row.timeLabel}</h2>
+          <div className="grid gap-1.5">
             {row.tiles.map((tile) => (
               <TimetableTile key={tile.key} tile={tile} onClick={onTileClick} />
             ))}
@@ -373,7 +375,7 @@ function TimetableTile({ tile, onClick }: { tile: AdminTimetableTile; onClick: (
       disabled={!isClickable}
       onClick={() => onClick(tile)}
       className={cn(
-        "flex min-h-14 w-full items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left text-base font-bold transition active:translate-y-px disabled:pointer-events-none",
+        "flex min-h-10 w-full items-center justify-between gap-2 rounded-md border px-3 py-2 text-left text-sm font-bold transition active:translate-y-px disabled:pointer-events-none",
         tile.state === "empty" && "border-border bg-background text-muted-foreground",
         tile.state === "reserved" && "border-slate-300 bg-slate-100 text-slate-950 hover:bg-slate-200",
         tile.state === "maintenance" && "border-amber-300 bg-amber-50 text-amber-950 hover:bg-amber-100",
@@ -382,8 +384,15 @@ function TimetableTile({ tile, onClick }: { tile: AdminTimetableTile; onClick: (
     >
       <span className="md:hidden">{tile.room.name}</span>
       <span className="truncate">{label}</span>
-      {reservation ? <Badge variant={reservation.status === "cancelled" ? "destructive" : "secondary"}>{STATUS_LABELS[reservation.status]}</Badge> : null}
-      {maintenanceBlock ? <Badge variant="outline">점검</Badge> : null}
+      {reservation ? (
+        <Badge
+          className="h-4 px-1.5 text-[0.65rem]"
+          variant={reservation.status === "cancelled" ? "destructive" : "secondary"}
+        >
+          {STATUS_LABELS[reservation.status]}
+        </Badge>
+      ) : null}
+      {maintenanceBlock ? <Badge className="h-4 px-1.5 text-[0.65rem]" variant="outline">점검</Badge> : null}
     </button>
   );
 }
