@@ -3,7 +3,9 @@ import {
   adminReservationStatisticsSchema,
   buildStatisticsSummaryView,
   buildStatisticsSearchParams,
+  calculateSubscriptionScenarioFromHours,
   calculateSubscriptionScenario,
+  formatPeakWindow,
   formatTrendLabel,
   formatStatisticsMinutes,
   getNextRankingLimit,
@@ -115,6 +117,7 @@ describe("admin statistics", () => {
       usersExceedingPeakAllowance: 1,
       scenarioSubscribers: 1,
       scenarioRevenue: 49000,
+      eligiblePeakUsageRate: 30,
     });
   });
 
@@ -132,6 +135,30 @@ describe("admin statistics", () => {
       usersExceedingPeakAllowance: 0,
       scenarioSubscribers: 0,
       scenarioRevenue: 0,
+      eligiblePeakUsageRate: 25,
+    });
+  });
+
+  it("formats a peak window with its occupancy rate", () => {
+    expect(formatPeakWindow({ startMinutes: 1140, endMinutes: 1260, occupancyRate: 50 }))
+      .toBe("19:00~21:00 · 50%");
+  });
+
+  it("converts simulator hour inputs to minutes before calculating the scenario", () => {
+    expect(calculateSubscriptionScenarioFromHours({
+      ranking: [
+        { name: "대상", usageMinutes: 480, peakMinutes: 120, reservationCount: 4 },
+        { name: "미대상", usageMinutes: 479, peakMinutes: 0, reservationCount: 3 },
+      ],
+      includedHours: 8,
+      peakIncludedHours: 2,
+      monthlyPrice: 49_000,
+      conversionRate: 50,
+    })).toMatchObject({
+      eligibleUsers: 1,
+      scenarioSubscribers: 1,
+      scenarioRevenue: 49_000,
+      eligiblePeakUsageRate: 25,
     });
   });
 

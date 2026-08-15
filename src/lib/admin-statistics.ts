@@ -228,6 +228,8 @@ export function calculateSubscriptionScenario(input: {
 }) {
   const eligible = input.ranking.filter((entry) => entry.usageMinutes >= input.includedMinutes);
   const eligibleUsers = eligible.length;
+  const eligibleUsageMinutes = eligible.reduce((total, entry) => total + entry.usageMinutes, 0);
+  const eligiblePeakMinutes = eligible.reduce((total, entry) => total + entry.peakMinutes, 0);
   const usersExceedingPeakAllowance = eligible.filter(
     (entry) => entry.peakMinutes > input.peakIncludedMinutes,
   ).length;
@@ -238,5 +240,33 @@ export function calculateSubscriptionScenario(input: {
     usersExceedingPeakAllowance,
     scenarioSubscribers,
     scenarioRevenue: scenarioSubscribers * input.monthlyPrice,
+    eligiblePeakUsageRate: eligibleUsageMinutes === 0 ? 0 : Number(((eligiblePeakMinutes / eligibleUsageMinutes) * 100).toFixed(1)),
   };
+}
+
+function formatClockTime(minutes: number) {
+  const safeMinutes = Math.max(0, Math.round(minutes));
+  return `${String(Math.floor(safeMinutes / 60)).padStart(2, "0")}:${String(safeMinutes % 60).padStart(2, "0")}`;
+}
+
+/** 피크 시간대와 평균 점유율을 차트와 툴팁에서 공통으로 표시한다. */
+export function formatPeakWindow(input: Pick<StatisticsPeakTime, "startMinutes" | "endMinutes" | "occupancyRate">) {
+  return `${formatClockTime(input.startMinutes ?? 0)}~${formatClockTime(input.endMinutes ?? 0)} · ${Number(input.occupancyRate.toFixed(1)).toLocaleString("ko-KR")}%`;
+}
+
+/** 정기권 모달의 시간 단위 입력을 기존 분 단위 시나리오 계산으로 변환한다. */
+export function calculateSubscriptionScenarioFromHours(input: {
+  ranking: StatisticsRankingEntry[];
+  includedHours: number;
+  peakIncludedHours: number;
+  monthlyPrice: number;
+  conversionRate: number;
+}) {
+  return calculateSubscriptionScenario({
+    ranking: input.ranking,
+    includedMinutes: Math.round(input.includedHours * 60),
+    peakIncludedMinutes: Math.round(input.peakIncludedHours * 60),
+    monthlyPrice: input.monthlyPrice,
+    conversionRate: input.conversionRate,
+  });
 }

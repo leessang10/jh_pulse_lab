@@ -18,6 +18,8 @@ import { useAdminStatistics } from "@/lib/use-admin-statistics";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import StatisticsMemberRanking from "./statistics-member-ranking";
+import StatisticsPeakChart from "./statistics-peak-chart";
+import StatisticsSimulatorDialog from "./statistics-simulator-dialog";
 import StatisticsSummaryCards from "./statistics-summary-cards";
 import StatisticsTrendChart from "./statistics-trend-chart";
 
@@ -154,6 +156,10 @@ export default function AdminStatisticsPage() {
             entries={statistics.ranking}
             referenceMonth={query.referenceMonth}
           />
+          <StatisticsPeakChart
+            peakTimes={statistics.peakTimes}
+            referenceMonth={query.referenceMonth}
+          />
         </>
       ) : !error ? (
         <section className="mt-6" aria-label="추세와 회원 순위를 불러오는 중입니다.">
@@ -171,8 +177,21 @@ export default function AdminStatisticsPage() {
             </CardHeader>
             <CardContent><Skeleton className="h-52 w-full" /></CardContent>
           </Card>
+          <Card className="mt-6 border bg-card">
+            <CardHeader className="gap-2">
+              <Skeleton className="h-5 w-32" />
+              <Skeleton className="h-4 w-72" />
+            </CardHeader>
+            <CardContent><Skeleton className="h-[21rem] w-full" /></CardContent>
+          </Card>
         </section>
       ) : null}
+      <StatisticsSimulatorDialog
+        ranking={statistics?.ranking ?? []}
+        peakTimes={statistics?.peakTimes ?? []}
+        open={isSimulatorOpen}
+        onOpenChange={setIsSimulatorOpen}
+      />
     </main>
   );
 }
