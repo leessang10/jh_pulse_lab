@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { Reservation } from "./reservations";
-import { buildAdminTimetableRows, getAdminMaintenanceTimeOptions } from "./admin-timetable";
+import {
+  buildAdminTimetableRows,
+  getAdminMaintenanceTimeOptions,
+  getAdminTimetableDateChange,
+} from "./admin-timetable";
 
 const baseReservation: Reservation = {
   id: "res-1",
@@ -14,6 +18,22 @@ const baseReservation: Reservation = {
 };
 
 describe("admin timetable", () => {
+  it("returns the changed date and its timetable toast message", () => {
+    expect(
+      getAdminTimetableDateChange("2026-08-06", new Date("2026-08-06T15:00:00.000Z")),
+    ).toEqual({
+      date: "2026-08-07",
+      message: "2026년 8월 7일 금 시간표로 변경했습니다.",
+    });
+  });
+
+  it("ignores an empty selection and the currently selected date", () => {
+    expect(getAdminTimetableDateChange("2026-08-07", undefined)).toBeNull();
+    expect(
+      getAdminTimetableDateChange("2026-08-07", new Date("2026-08-06T15:00:00.000Z")),
+    ).toBeNull();
+  });
+
   it("builds operating-hour rows with one tile per active room", () => {
     const rows = buildAdminTimetableRows({
       date: "2026-06-20",

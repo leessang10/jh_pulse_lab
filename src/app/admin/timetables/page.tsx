@@ -23,17 +23,18 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import AdminShell from "../admin-shell";
+import AdminPageHeader from "../admin-page-header";
 import {
   buildAdminTimetableRows,
   getAdminMaintenanceTimeOptions,
+  getAdminTimetableDateChange,
   type AdminTimetableTile,
 } from "@/lib/admin-timetable";
-import { dateToKoreaValue, formatKoreaDate, todayKoreaValue, valueToKoreaDate } from "@/lib/korea-date";
+import { formatKoreaDate, todayKoreaValue, valueToKoreaDate } from "@/lib/korea-date";
 import { ROOMS, formatMinutes, getRoomName, STATUS_LABELS } from "@/lib/reservations";
 import { cn } from "@/lib/utils";
 import { useReservations } from "@/lib/use-reservations";
@@ -76,6 +77,14 @@ function AdminTimetablesPage() {
   const selectedReservation = selectedTile?.reservation;
   const selectedMaintenanceBlock = selectedTile?.maintenanceBlock;
   const { startOptions, endOptions } = getAdminMaintenanceTimeOptions();
+
+  function selectDate(nextDate: Date | undefined) {
+    const change = getAdminTimetableDateChange(date, nextDate);
+    if (!change) return;
+
+    setDate(change.date);
+    toast.info(change.message);
+  }
 
   async function cancelReservation() {
     if (!selectedReservation) return;
@@ -131,69 +140,57 @@ function AdminTimetablesPage() {
 
   return (
     <>
-        <main className="min-h-screen w-full px-5 py-6 lg:px-8">
-          <header className="flex flex-col gap-4 border-b pb-5 sm:flex-row sm:items-end sm:justify-between">
-            <div className="flex items-start gap-3">
-              <SidebarTrigger className="mt-1 md:hidden" />
-              <div>
-                <Badge variant="outline" className="border-border bg-background text-muted-foreground">
-                  예약 시간표
-                </Badge>
-                <h1 className="mt-2 text-3xl font-bold text-foreground sm:text-4xl">예약 시간표</h1>
-              </div>
-            </div>
-            <Button type="button" onClick={() => setIsMaintenanceDialogOpen(true)}>
-              점검 등록
-            </Button>
-          </header>
-
-          <Card className="mt-6 border bg-card">
-            <CardHeader>
-              <CardTitle>날짜</CardTitle>
-            </CardHeader>
-            <CardContent>
+      <main className="min-h-screen w-full px-5 py-4 lg:px-8">
+        <AdminPageHeader
+          title="예약 시간표"
+          actionsLabel="시간표 작업"
+          actions={
+            <>
               <Popover>
-                <PopoverTrigger render={<Button variant="outline" className="h-11 justify-start" />}>
-                  {formatKoreaDate(date)}
+                <PopoverTrigger
+                  render={
+                    <Button variant="outline" className="min-w-0 flex-1 justify-start px-2 sm:flex-none sm:px-2.5" />
+                  }
+                >
+                  <span className="truncate">{formatKoreaDate(date)}</span>
                 </PopoverTrigger>
-                <PopoverContent align="start" className="w-auto">
+                <PopoverContent align="end" className="w-auto">
                   <Calendar
                     mode="single"
                     selected={valueToKoreaDate(date)}
-                    onSelect={(nextDate) => {
-                      if (nextDate) setDate(dateToKoreaValue(nextDate));
-                    }}
+                    onSelect={selectDate}
                   />
                 </PopoverContent>
               </Popover>
-            </CardContent>
-          </Card>
+              <Button type="button" onClick={() => setIsMaintenanceDialogOpen(true)}>
+                점검 등록
+              </Button>
+            </>
+          }
+        />
 
-          <Card className="mt-6 border bg-card">
-            <CardHeader>
-              <CardTitle>시간표</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {error || maintenanceError ? (
-                <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-4 font-semibold text-destructive">
-                  {error ?? maintenanceError}
-                </div>
-              ) : null}
-              {!isReady || !isMaintenanceReady ? (
-                <div className="grid gap-3">
-                  {Array.from({ length: 6 }, (_, index) => (
-                    <div key={index} className="h-16 rounded-lg border border-border bg-muted/50" />
-                  ))}
-                </div>
-              ) : (
-                <>
-                  <DesktopTimetable rows={rows} onTileClick={setSelectedTile} />
-                  <MobileTimetable rows={rows} onTileClick={setSelectedTile} />
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </main>
+        <Card className="mt-4 border bg-card">
+          <CardContent>
+            {error || maintenanceError ? (
+              <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-4 font-semibold text-destructive">
+                {error ?? maintenanceError}
+              </div>
+            ) : null}
+            {!isReady || !isMaintenanceReady ? (
+              <div className="grid gap-3">
+                {Array.from({ length: 6 }, (_, index) => (
+                  <div key={index} className="h-16 rounded-lg border border-border bg-muted/50" />
+                ))}
+              </div>
+            ) : (
+              <>
+                <DesktopTimetable rows={rows} onTileClick={setSelectedTile} />
+                <MobileTimetable rows={rows} onTileClick={setSelectedTile} />
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </main>
 
       <AlertDialog open={Boolean(selectedReservation)} onOpenChange={(open) => !open && setSelectedTile(null)}>
         <AlertDialogContent>

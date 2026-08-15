@@ -8,6 +8,7 @@ import {
   type Room,
 } from "@/lib/reservations";
 import type { MaintenanceBlock } from "@/lib/maintenance-blocks";
+import { dateToKoreaValue, formatKoreaDate } from "@/lib/korea-date";
 
 export type AdminTimetableTileState = "empty" | "reserved" | "cancelled" | "maintenance";
 
@@ -28,6 +29,18 @@ export type AdminTimetableRow = {
   timeLabel: string;
   tiles: AdminTimetableTile[];
 };
+
+export function getAdminTimetableDateChange(currentDate: string, nextDate: Date | undefined) {
+  if (!nextDate) return null;
+
+  const date = dateToKoreaValue(nextDate);
+  if (date === currentDate) return null;
+
+  return {
+    date,
+    message: `${formatKoreaDate(date)} 시간표로 변경했습니다.`,
+  };
+}
 
 export function getAdminMaintenanceTimeOptions() {
   const startOptions = Array.from(
