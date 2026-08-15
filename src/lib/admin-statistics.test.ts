@@ -4,7 +4,9 @@ import {
   buildStatisticsSummaryView,
   buildStatisticsSearchParams,
   calculateSubscriptionScenario,
+  formatTrendLabel,
   formatStatisticsMinutes,
+  getNextRankingLimit,
   getVisibleRanking,
   parseStatisticsQuery,
 } from "./admin-statistics";
@@ -62,6 +64,27 @@ describe("admin statistics", () => {
     expect(getVisibleRanking(ranking, 15)).toHaveLength(15);
     expect(getVisibleRanking(ranking, 35)).toHaveLength(26);
     expect(getVisibleRanking(ranking, 0)).toHaveLength(0);
+  });
+
+  it("formats trend labels for daily, weekly, and monthly buckets", () => {
+    const point = {
+      key: "2026-07-01",
+      startDate: "2026-07-01",
+      endDate: "2026-07-05",
+      usageMinutes: 0,
+      reservationCount: 0,
+      userCount: 0,
+      isComplete: true,
+    };
+
+    expect(formatTrendLabel(point, "day")).toBe("7/1");
+    expect(formatTrendLabel(point, "week")).toBe("7/1~7/5");
+    expect(formatTrendLabel(point, "year")).toBe("7월");
+  });
+
+  it("adds ten ranking rows without exceeding the available entries", () => {
+    expect(getNextRankingLimit(5, 26)).toBe(15);
+    expect(getNextRankingLimit(25, 26)).toBe(26);
   });
 
   it("formats minute totals at hour boundaries", () => {

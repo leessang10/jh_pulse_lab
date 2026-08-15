@@ -197,6 +197,23 @@ export function getVisibleRanking(ranking: StatisticsRankingEntry[], limit = 5) 
   return ranking.slice(0, Math.max(0, limit));
 }
 
+function formatTrendDate(date: string) {
+  const [, month, day] = date.split("-");
+  return `${Number(month)}/${Number(day)}`;
+}
+
+/** 선택한 추세 단위에 맞는 X축과 툴팁 기간 라벨을 만든다. */
+export function formatTrendLabel(point: StatisticsTrendBucket, unit: StatisticsUnit) {
+  if (unit === "year") return `${Number(point.startDate.slice(5, 7))}월`;
+  if (unit === "week") return `${formatTrendDate(point.startDate)}~${formatTrendDate(point.endDate)}`;
+  return formatTrendDate(point.startDate);
+}
+
+/** 회원 순위는 첫 5명 뒤에 한 번에 10명씩 더 표시한다. */
+export function getNextRankingLimit(currentLimit: number, totalEntries: number) {
+  return Math.min(Math.max(0, totalEntries), Math.max(0, currentLimit) + 10);
+}
+
 export function calculateSubscriptionScenario(input: {
   ranking: StatisticsRankingEntry[];
   includedMinutes: number;
