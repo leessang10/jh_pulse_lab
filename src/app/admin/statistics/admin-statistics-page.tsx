@@ -108,9 +108,9 @@ export default function AdminStatisticsPage() {
         title="예약 통계"
         actionsLabel="통계 조회 조건"
         actions={
-          <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
+          <div className="flex min-w-0 flex-wrap items-center justify-end gap-1">
             <Select value={query.referenceMonth} onValueChange={(value) => value && updateQuery({ referenceMonth: value })}>
-              <SelectTrigger aria-label="기준 월" className="min-w-34 bg-background">
+              <SelectTrigger aria-label="기준 월" className="w-28 bg-background">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -135,6 +135,7 @@ export default function AdminStatisticsPage() {
             </ToggleGroup>
             <Button
               aria-pressed={isSimulatorOpen}
+              className="px-2"
               type="button"
               disabled={!canSimulate}
               onClick={() => setIsSimulatorOpen(true)}
