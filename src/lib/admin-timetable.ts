@@ -1,4 +1,12 @@
-import { DAY_END_MINUTES, ROOMS, SLOT_MINUTES, formatMinutes, type Reservation, type Room } from "@/lib/reservations";
+import {
+  BOOKING_END_MINUTES,
+  BOOKING_START_MINUTES,
+  ROOMS,
+  SLOT_MINUTES,
+  formatMinutes,
+  type Reservation,
+  type Room,
+} from "@/lib/reservations";
 import type { MaintenanceBlock } from "@/lib/maintenance-blocks";
 
 export type AdminTimetableTileState = "empty" | "reserved" | "cancelled" | "maintenance";
@@ -26,8 +34,8 @@ export function buildAdminTimetableRows(options: {
   reservations: Reservation[];
   maintenanceBlocks?: MaintenanceBlock[];
 }): AdminTimetableRow[] {
-  return Array.from({ length: DAY_END_MINUTES / SLOT_MINUTES }, (_, index) => {
-    const startMinutes = index * SLOT_MINUTES;
+  return Array.from({ length: (BOOKING_END_MINUTES - BOOKING_START_MINUTES) / SLOT_MINUTES }, (_, index) => {
+    const startMinutes = BOOKING_START_MINUTES + index * SLOT_MINUTES;
 
     return {
       startMinutes,

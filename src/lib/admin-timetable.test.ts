@@ -14,15 +14,15 @@ const baseReservation: Reservation = {
 };
 
 describe("admin timetable", () => {
-  it("builds a full-day board with one tile per active room", () => {
+  it("builds operating-hour rows with one tile per active room", () => {
     const rows = buildAdminTimetableRows({
       date: "2026-06-20",
       reservations: [baseReservation],
     });
 
-    expect(rows).toHaveLength(48);
-    expect(rows[0].timeLabel).toBe("00:00");
-    expect(rows[47].timeLabel).toBe("23:30");
+    expect(rows).toHaveLength(32);
+    expect(rows[0].timeLabel).toBe("07:00");
+    expect(rows[31].timeLabel).toBe("22:30");
     expect(rows[0].tiles.map((tile) => tile.room.id)).toEqual(["room-1", "room-2", "room-3"]);
   });
 
