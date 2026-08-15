@@ -75,32 +75,42 @@ export default function StatisticsPeakChart({ peakTimes, referenceMonth }: Stati
           <CardDescription>{formatReferenceMonth(referenceMonth)} 기준, 예약이 가장 몰린 연속 2시간과 평균 점유율입니다.</CardDescription>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={chartConfig} className="h-[21rem] min-h-[21rem] w-full" aria-label="요일별 피크 시간 범위 막대 차트">
-            <BarChart data={chartData} layout="vertical" margin={{ top: 8, right: 152, left: 0, bottom: 0 }} barCategoryGap="28%">
-              <CartesianGrid horizontal={false} />
-              <XAxis
-                type="number"
-                domain={[420, 1380]}
-                ticks={[420, 600, 780, 960, 1140, 1320, 1380]}
-                tickFormatter={formatHourTick}
-                tickLine={false}
-                axisLine={false}
-                tickMargin={8}
-              />
-              <YAxis
-                type="category"
-                dataKey="weekdayLabel"
-                width={52}
-                tickLine={false}
-                axisLine={false}
-                tickMargin={8}
-              />
-              <Tooltip cursor={{ fill: "var(--muted)" }} content={(props) => <PeakTooltip {...props} />} />
-              <Bar dataKey="range" name="피크 시간" fill="var(--color-range)" radius={4} isAnimationActive={false}>
-                <LabelList dataKey="label" position="right" offset={8} className="fill-foreground text-[11px] font-medium" />
-              </Bar>
-            </BarChart>
-          </ChartContainer>
+          <div
+            className="overflow-x-auto lg:overflow-visible"
+            role="region"
+            aria-label="요일별 피크 시간 차트. 좁은 화면에서는 가로로 스크롤하실 수 있습니다."
+            tabIndex={0}
+          >
+            <div className="min-w-[42rem] lg:min-w-0">
+              <ChartContainer config={chartConfig} className="h-[21rem] min-h-[21rem] w-full" aria-label="요일별 피크 시간 범위 막대 차트">
+                <BarChart data={chartData} layout="vertical" margin={{ top: 8, right: 152, left: 0, bottom: 0 }} barCategoryGap="28%">
+                  <CartesianGrid horizontal={false} />
+                  <XAxis
+                    type="number"
+                    domain={[420, 1380]}
+                    ticks={[420, 600, 780, 960, 1140, 1320, 1380]}
+                    tickFormatter={formatHourTick}
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="weekdayLabel"
+                    width={52}
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                  />
+                  <Tooltip cursor={{ fill: "var(--muted)" }} content={(props) => <PeakTooltip {...props} />} />
+                  <Bar dataKey="range" name="피크 시간" fill="var(--color-range)" radius={4} isAnimationActive={false}>
+                    <LabelList dataKey="label" position="right" offset={8} className="fill-foreground text-[11px] font-medium" />
+                  </Bar>
+                </BarChart>
+              </ChartContainer>
+            </div>
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground lg:hidden">좁은 화면에서는 차트를 가로로 밀어 확인하실 수 있습니다.</p>
           <ul className="sr-only" aria-label="요일별 피크 시간 상세">
             {chartData.map((point) => <li key={point.weekday}>{point.weekdayLabel}: {point.label}</li>)}
           </ul>
