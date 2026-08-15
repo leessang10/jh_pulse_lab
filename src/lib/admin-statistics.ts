@@ -114,6 +114,85 @@ export function formatStatisticsMinutes(minutes: number) {
   return parts.join(" ");
 }
 
+export type StatisticsSummaryView = {
+  totalUsage: StatisticsSummaryValue;
+  reservationCount: StatisticsSummaryValue;
+  userCount: StatisticsSummaryValue;
+  averageUsage: StatisticsSummaryValue;
+  cancellationRate: StatisticsSummaryValue;
+  isEmpty: boolean;
+};
+
+type StatisticsSummaryValue = {
+  value: string;
+  comparison: string;
+};
+
+type StatisticsSummaryInput = {
+  current: StatisticsSummaryMetric;
+  previous: StatisticsSummaryMetric;
+  comparisonAvailable: boolean;
+};
+
+const INSUFFICIENT_COMPARISON_MESSAGE = "이전 월 데이터가 충분하지 않습니다.";
+
+function formatStatisticsHours(minutes: number) {
+  const hours = Math.max(0, minutes) / 60;
+  if (hours === 0) return "0시간";
+  return `${Number(hours.toFixed(1)).toLocaleString("ko-KR")}시간`;
+}
+
+function formatStatisticsPercent(value: number) {
+  const safeValue = Math.max(0, value);
+  if (safeValue === 0) return "0%";
+  return `${Number(safeValue.toFixed(1)).toLocaleString("ko-KR")}%`;
+}
+
+function formatComparison(current: number, previous: number, available: boolean) {
+  if (!available) return INSUFFICIENT_COMPARISON_MESSAGE;
+  if (previous === 0) return current === 0 ? "이전 월과 변동이 없습니다." : "이전 월은 0이어서 비교할 수 없습니다.";
+
+  const change = ((current - previous) / previous) * 100;
+  if (change === 0) return "이전 월과 변동이 없습니다.";
+  return `이전 월 대비 ${Math.abs(Number(change.toFixed(1))).toLocaleString("ko-KR")}% ${change > 0 ? "증가했습니다." : "감소했습니다."}`;
+}
+
+/** KPI 카드가 바로 표시할 값과 이전 월 비교 문구를 만든다. */
+export function buildStatisticsSummaryView(input: StatisticsSummaryInput): StatisticsSummaryView {
+  const currentAverage = input.current.userCount === 0 ? 0 : input.current.usageMinutes / input.current.userCount;
+  const previousAverage = input.previous.userCount === 0 ? 0 : input.previous.usageMinutes / input.previous.userCount;
+  const currentCancellationRate = input.current.reservationCount === 0
+    ? 0
+    : (input.current.cancelledCount / input.current.reservationCount) * 100;
+  const previousCancellationRate = input.previous.reservationCount === 0
+    ? 0
+    : (input.previous.cancelledCount / input.previous.reservationCount) * 100;
+
+  return {
+    totalUsage: {
+      value: formatStatisticsHours(input.current.usageMinutes),
+      comparison: formatComparison(input.current.usageMinutes, input.previous.usageMinutes, input.comparisonAvailable),
+    },
+    reservationCount: {
+      value: `${input.current.reservationCount.toLocaleString("ko-KR")}건`,
+      comparison: formatComparison(input.current.reservationCount, input.previous.reservationCount, input.comparisonAvailable),
+    },
+    userCount: {
+      value: `${input.current.userCount.toLocaleString("ko-KR")}명`,
+      comparison: formatComparison(input.current.userCount, input.previous.userCount, input.comparisonAvailable),
+    },
+    averageUsage: {
+      value: formatStatisticsHours(currentAverage),
+      comparison: formatComparison(currentAverage, previousAverage, input.comparisonAvailable),
+    },
+    cancellationRate: {
+      value: formatStatisticsPercent(currentCancellationRate),
+      comparison: formatComparison(currentCancellationRate, previousCancellationRate, input.comparisonAvailable),
+    },
+    isEmpty: input.current.reservationCount === 0,
+  };
+}
+
 export function getVisibleRanking(ranking: StatisticsRankingEntry[], limit = 5) {
   return ranking.slice(0, Math.max(0, limit));
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   adminReservationStatisticsSchema,
+  buildStatisticsSummaryView,
   buildStatisticsSearchParams,
   calculateSubscriptionScenario,
   formatStatisticsMinutes,
@@ -9,6 +10,33 @@ import {
 } from "./admin-statistics";
 
 describe("admin statistics", () => {
+  it("builds one-decimal summary values and hides comparisons without enough previous data", () => {
+    expect(buildStatisticsSummaryView({
+      current: { usageMinutes: 19_170, reservationCount: 1_000, userCount: 26, cancelledCount: 126 },
+      previous: { usageMinutes: 0, reservationCount: 0, userCount: 0, cancelledCount: 0 },
+      comparisonAvailable: false,
+    })).toEqual({
+      totalUsage: { value: "319.5시간", comparison: "이전 월 데이터가 충분하지 않습니다." },
+      reservationCount: { value: "1,000건", comparison: "이전 월 데이터가 충분하지 않습니다." },
+      userCount: { value: "26명", comparison: "이전 월 데이터가 충분하지 않습니다." },
+      averageUsage: { value: "12.3시간", comparison: "이전 월 데이터가 충분하지 않습니다." },
+      cancellationRate: { value: "12.6%", comparison: "이전 월 데이터가 충분하지 않습니다." },
+      isEmpty: false,
+    });
+  });
+
+  it("shows zero average and cancellation rate when there are no reservations", () => {
+    expect(buildStatisticsSummaryView({
+      current: { usageMinutes: 0, reservationCount: 0, userCount: 0, cancelledCount: 0 },
+      previous: { usageMinutes: 120, reservationCount: 2, userCount: 1, cancelledCount: 1 },
+      comparisonAvailable: true,
+    })).toMatchObject({
+      averageUsage: { value: "0시간" },
+      cancellationRate: { value: "0%" },
+      isEmpty: true,
+    });
+  });
+
   it("normalizes invalid query values", () => {
     expect(parseStatisticsQuery(new URLSearchParams("month=nope&unit=month&metric=x"), "2026-08"))
       .toEqual({ referenceMonth: "2026-08", unit: "day", metric: "usageMinutes" });

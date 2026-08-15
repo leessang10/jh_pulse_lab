@@ -1,33 +1,142 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  buildStatisticsSearchParams,
+  parseStatisticsQuery,
+  type StatisticsQuery,
+  type StatisticsUnit,
+} from "@/lib/admin-statistics";
+import { todayKoreaValue } from "@/lib/korea-date";
+import { useAdminStatistics } from "@/lib/use-admin-statistics";
+import StatisticsSummaryCards from "./statistics-summary-cards";
+
+function formatMonthLabel(value: string) {
+  const [year, month] = value.split("-");
+  return `${year}년 ${Number(month)}월`;
+}
+
+function getReferenceMonthOptions(currentMonth: string, referenceMonth: string, coverageStart: string | null) {
+  const earliestMonth = [coverageStart?.slice(0, 7), referenceMonth]
+    .filter((month): month is string => Boolean(month))
+    .sort()[0];
+  const [startYear, startMonth] = earliestMonth.split("-").map(Number);
+  const [endYear, endMonth] = currentMonth.split("-").map(Number);
+  const options: string[] = [];
+
+  for (let year = endYear, month = endMonth; year > startYear || (year === startYear && month >= startMonth);) {
+    options.push(`${year}-${String(month).padStart(2, "0")}`);
+    month -= 1;
+    if (month === 0) {
+      month = 12;
+      year -= 1;
+    }
+  }
+
+  return options;
+}
 
 export default function AdminStatisticsPage() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const currentMonth = todayKoreaValue().slice(0, 7);
+  const query = useMemo(
+    () => parseStatisticsQuery(new URLSearchParams(searchParams.toString()), currentMonth),
+    [currentMonth, searchParams],
+  );
+  const normalizedQuery = useMemo(() => buildStatisticsSearchParams(query), [query]);
+  const [isSimulatorOpen, setIsSimulatorOpen] = useState(false);
+  const { statistics, isReady, error, refresh } = useAdminStatistics({
+    referenceMonth: query.referenceMonth,
+    unit: query.unit,
+  });
+  const referenceMonthOptions = useMemo(
+    () => getReferenceMonthOptions(currentMonth, query.referenceMonth, statistics?.coverageStart ?? null),
+    [currentMonth, query.referenceMonth, statistics?.coverageStart],
+  );
+
+  useEffect(() => {
+    if (searchParams.toString() !== normalizedQuery) {
+      router.replace(`${pathname}?${normalizedQuery}`, { scroll: false });
+    }
+  }, [normalizedQuery, pathname, router, searchParams]);
+
+  function updateQuery(next: Partial<StatisticsQuery>) {
+    const nextQuery = buildStatisticsSearchParams({ ...query, ...next });
+    router.replace(`${pathname}?${nextQuery}`, { scroll: false });
+  }
+
   return (
     <main className="min-h-screen w-full px-5 py-6 lg:px-8">
-      <header className="flex items-start gap-3 border-b pb-5">
-        <SidebarTrigger className="mt-1 md:hidden" />
-        <div>
-          <Badge variant="outline" className="border-border bg-background text-muted-foreground">
-            예약 통계
-          </Badge>
-          <h1 className="mt-2 text-3xl font-bold text-foreground sm:text-4xl">예약 통계</h1>
-          <p className="mt-2 text-sm text-muted-foreground">예약 통계를 준비하고 있습니다.</p>
+      <header className="flex flex-col gap-4 border-b pb-5 xl:flex-row xl:items-end xl:justify-between">
+        <div className="flex items-start gap-3">
+          <SidebarTrigger className="mt-1 md:hidden" />
+          <div>
+            <Badge variant="outline" className="border-border bg-background text-muted-foreground">
+              예약 통계
+            </Badge>
+            <h1 className="mt-2 text-3xl font-bold text-foreground sm:text-4xl">예약 통계</h1>
+            <p className="mt-2 text-sm text-muted-foreground">기준 월의 예약 이용 현황을 확인하실 수 있습니다.</p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-end gap-3" aria-label="통계 조회 조건">
+          <label className="grid gap-1.5 text-sm font-semibold text-muted-foreground">
+            기준 월
+            <Select value={query.referenceMonth} onValueChange={(value) => value && updateQuery({ referenceMonth: value })}>
+              <SelectTrigger className="h-9 min-w-34 bg-background">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {referenceMonthOptions.map((month) => (
+                  <SelectItem key={month} value={month}>{formatMonthLabel(month)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </label>
+
+          <div className="grid gap-1.5">
+            <span className="text-sm font-semibold text-muted-foreground">추세 단위</span>
+            <ToggleGroup
+              aria-label="추세 단위"
+              value={[query.unit]}
+              onValueChange={(value) => {
+                const unit = Array.isArray(value) ? value[0] : value;
+                if (unit === "day" || unit === "week" || unit === "year") updateQuery({ unit: unit as StatisticsUnit });
+              }}
+              variant="outline"
+              spacing={0}
+            >
+              <ToggleGroupItem value="day" aria-label="일 단위">일</ToggleGroupItem>
+              <ToggleGroupItem value="week" aria-label="주 단위">주</ToggleGroupItem>
+              <ToggleGroupItem value="year" aria-label="년 단위">년</ToggleGroupItem>
+            </ToggleGroup>
+          </div>
+
+          <Button
+            aria-pressed={isSimulatorOpen}
+            className="h-9"
+            type="button"
+            onClick={() => setIsSimulatorOpen(true)}
+          >
+            정기권 시뮬레이션
+          </Button>
         </div>
       </header>
 
-      <Card className="mt-6 border bg-card">
-        <CardHeader>
-          <CardTitle>통계 데이터를 불러오는 중입니다.</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-3">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-32 w-full" />
-        </CardContent>
-      </Card>
+      <StatisticsSummaryCards
+        error={error}
+        isReady={isReady}
+        statistics={statistics}
+        onRetry={() => { void refresh(); }}
+      />
     </main>
   );
 }
