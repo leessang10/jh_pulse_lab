@@ -188,6 +188,18 @@ export default function StatisticsTrendChart({
                     fillOpacity={0.06}
                     strokeWidth={2}
                     strokeDasharray="5 4"
+                    dot={{
+                      r: 4,
+                      fill: "var(--color-partialValue)",
+                      stroke: "var(--background)",
+                      strokeWidth: 2,
+                    }}
+                    activeDot={{
+                      r: 6,
+                      fill: "var(--color-partialValue)",
+                      stroke: "var(--background)",
+                      strokeWidth: 2,
+                    }}
                     connectNulls={false}
                   />
                 </AreaChart>
